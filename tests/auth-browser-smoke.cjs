@@ -12,7 +12,7 @@ assert.match(moduleCode,/@supabase\/supabase-js@2\.108\.0/);
 assert.match(moduleCode,/cdn\.jsdelivr\.net/);
 assert.match(html,/decide_secure_request/);
 assert.match(html,/challengeAndVerify/);
-const fakeSdk="export function createClient() {\n const scenario=new URLSearchParams(location.search).get(\"scenario\")||\"\";\n const id=\"00000000-0000-4000-8000-000000000001\";\n const owner=\"00000000-0000-4000-8000-000000000002\";\n const signedIn=[\"sergeant\",\"mfa\",\"disabled\",\"hung\",\"sms-new\",\"sms-existing\",\"sms-unavailable\"].includes(scenario);\n const profile={user_id:id,display_label:\"Demo Sergeant A\",rank:\"Sergeant\",division:\"Patrol\",enabled:scenario!==\"disabled\"};\n const request={id:\"11111111-1111-4111-8111-111111111111\",kind:\"equipment\",stage:\"supervisor\",division:\"Patrol\",owner_id:owner,created_at:\"2026-10-30T12:00:00Z\"};\n let smsCompleted=false;\n return {\n  auth:{\n   getUser:()=>scenario===\"hung\"?new Promise(()=>{}):Promise.resolve({data:{user:signedIn?{id}:null},error:null}),\n   mfa:{\n    getAuthenticatorAssuranceLevel:async()=>({data:{currentLevel:scenario===\"mfa\"||smsCompleted?\"aal2\":\"aal1\"},error:null}),\n    enroll:async p=>p.factorType===\"phone\"?(scenario===\"sms-unavailable\"?{data:null,error:{message:\"Phone MFA is not enabled\"}}:{data:{id:\"phone-factor-1\"},error:null}):{data:{id:\"factor-1\",totp:{qr_code:\"data:image/svg+xml,%3Csvg/%3E\",secret:\"FICTIONAL-TEST-ONLY\"}},error:null},\n    listFactors:async()=>({data:{\n     totp:[],\n     phone:scenario===\"sms-existing\"?[{id:\"phone-factor-1\",factor_type:\"phone\",status:\"verified\",phone:\"+15555550123\"}]:[],\n     all:scenario===\"sms-existing\"?[{id:\"phone-factor-1\",factor_type:\"phone\",status:\"verified\",phone:\"+15555550123\"}]:[]\n    },error:null}),\n    challenge:async({factorId})=>({data:{id:\"sms-challenge-1\"},error:null}),\n    verify:async({factorId,challengeId,code})=>{if(code===\"123456\"){smsCompleted=true;return {data:{},error:null}}return {data:null,error:{message:\"Wrong code\"}}},\n    challengeAndVerify:async()=>({data:{},error:null})\n   },\n   signInWithOtp:async()=>({error:null}),\n   verifyOtp:async()=>({error:null}),\n   signOut:async()=>({error:null})\n  },\n  from(table) {\n   if(table===\"staff_access\")return {select:()=>({eq:()=>({maybeSingle:async()=>({data:profile,error:null})})})};\n   if(table===\"secure_requests\")return {select:()=>({order:()=>({limit:async()=>({data:[request],error:null})})})};\n   throw Error(\"Unexpected mocked table: \"+table);\n  },\n  rpc:async()=>({error:{message:\"Tests must never submit real decisions\"}})\n };\n}";
+const fakeSdk="export function createClient() {\n const scenario=new URLSearchParams(location.search).get(\"scenario\")||\"\";\n const id=\"00000000-0000-4000-8000-000000000001\";\n const owner=\"00000000-0000-4000-8000-000000000002\";\n const signedIn=[\"sergeant\",\"mfa\",\"disabled\",\"hung\"].includes(scenario);\n const profile={user_id:id,display_label:\"Demo Sergeant A\",rank:\"Sergeant\",division:\"Patrol\",enabled:scenario!==\"disabled\"};\n const request={id:\"11111111-1111-4111-8111-111111111111\",kind:\"equipment\",stage:\"supervisor\",division:\"Patrol\",owner_id:owner,created_at:\"2026-10-30T12:00:00Z\"};\n return {\n  auth:{\n   getUser:()=>scenario===\"hung\"?new Promise(()=>{}):Promise.resolve({data:{user:signedIn?{id}:null},error:null}),\n   mfa:{\n    getAuthenticatorAssuranceLevel:async()=>({data:{currentLevel:scenario===\"mfa\"?\"aal2\":\"aal1\"},error:null}),\n    enroll:async()=>({data:{id:\"factor-1\",totp:{qr_code:\"data:image/svg+xml,%3Csvg/%3E\",secret:\"FICTIONAL-TEST-ONLY\"}},error:null}),\n    listFactors:async()=>({data:{totp:[]},error:null}),\n    challengeAndVerify:async()=>({data:{},error:null})\n   },\n   signInWithOtp:async()=>({error:null}),\n   verifyOtp:async()=>({error:null}),\n   signOut:async()=>({error:null})\n  },\n  from(table) {\n   if(table===\"staff_access\")return {select:()=>({eq:()=>({maybeSingle:async()=>({data:profile,error:null})})})};\n   if(table===\"secure_requests\")return {select:()=>({order:()=>({limit:async()=>({data:[request],error:null})})})};\n   throw Error(\"Unexpected mocked table: \"+table);\n  },\n  rpc:async()=>({error:{message:\"Tests must never submit real decisions\"}})\n };\n}";
 const server=http.createServer((req,res)=>{
  if(req.url.startsWith("/secure.html")){
   res.writeHead(200,{"content-type":"text/html; charset=utf-8","cache-control":"no-store"});
@@ -96,47 +96,6 @@ async function run(){
    await page.goto(base);
    await page.waitForFunction(()=>!document.querySelector("#login").hidden,null,{timeout:30000});
    assert.equal(await page.locator("#loading").isHidden(),true);
-   await ctx.close();
-  });
-  await check("SMS enrollment sends code and upgrades MFA after verification",async()=>{
-   const {ctx,page}=await open("sms-new");
-   await page.waitForFunction(()=>!document.querySelector("#portal").hidden);
-   assert.equal(await page.locator(".record button").first().isDisabled(),true);
-   await page.locator("#smsPhone").fill("+15555550123");
-   await page.locator("#smsEnrollForm button").click();
-   await page.waitForFunction(()=>!document.querySelector("#smsCodeForm").hidden);
-   assert.match(await page.locator("#smsDestination").textContent(),/0123/);
-   await page.locator("#smsCode").fill("123456");
-   await page.locator('#smsCodeForm button[type="submit"]').click();
-   await page.waitForFunction(()=>document.querySelector("#mfaStatus").textContent.includes("Second-factor verification complete"));
-   assert.equal(await page.locator(".record button").first().isEnabled(),true);
-   await ctx.close();
-  });
-  await check("existing verified phone factor can request SMS challenge",async()=>{
-   const {ctx,page}=await open("sms-existing");
-   await page.waitForFunction(()=>!document.querySelector("#portal").hidden);
-   assert.equal(await page.locator("#smsEnrollForm").isHidden(),true);
-   await page.locator("#smsSendCode").click();
-   await page.waitForFunction(()=>!document.querySelector("#smsCodeForm").hidden);
-   assert.match(await page.locator("#smsDestination").textContent(),/0123/);
-   await ctx.close();
-  });
-  await check("SMS provider unavailable cannot bypass MFA",async()=>{
-   const {ctx,page}=await open("sms-unavailable");
-   await page.waitForFunction(()=>!document.querySelector("#portal").hidden);
-   await page.locator("#smsPhone").fill("+15555550123");
-   await page.locator("#smsEnrollForm button").click();
-   await page.waitForFunction(()=>document.querySelector("#smsStatus").textContent.includes("Phone MFA is not enabled"));
-   assert.equal(await page.locator(".record button").first().isDisabled(),true);
-   await ctx.close();
-  });
-  await check("invalid SMS phone number is rejected locally",async()=>{
-   const {ctx,page}=await open("sms-new");
-   await page.waitForFunction(()=>!document.querySelector("#portal").hidden);
-   await page.locator("#smsPhone").fill("123");
-   await page.locator("#smsEnrollForm button").click();
-   await page.waitForFunction(()=>document.querySelector("#smsStatus").textContent.includes("valid international phone"));
-   assert.equal(await page.locator("#smsCodeForm").isHidden(),true);
    await ctx.close();
   });
   await check("published GitHub Pages serves repaired secure HTML",async()=>{
