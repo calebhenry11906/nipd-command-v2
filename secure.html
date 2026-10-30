@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer"><title>NIPD Command — Secure Access Preview</title>
+<style>
+:root{font:16px system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#183a59;background:#edf2f7}
+*{box-sizing:border-box}body{margin:0}header{background:#102e4e;color:white;padding:17px clamp(16px,4vw,50px);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+header strong{letter-spacing:.05em}header small{display:block;margin-top:5px;color:#b9d0e5}header a{color:#d6e8f7;font-size:13px;text-decoration:none}
+main{max-width:900px;margin:28px auto;padding:0 16px}.panel{background:white;border:1px solid #d3dfeb;border-radius:15px;padding:25px;margin-bottom:16px;box-shadow:0 6px 22px #193d5b0b}
+h1{font-size:26px;letter-spacing:-.035em;margin:0 0 9px}h2{font-size:18px;margin:0 0 12px}
+p{line-height:1.65;color:#667f98;font-size:14px}.label{font-size:11px;font-weight:800;letter-spacing:.1em;color:#3172a6}
+.notice{border:1px solid #e7c893;background:#fff7e8;border-radius:10px;padding:12px 14px;color:#755621;font-size:13px;line-height:1.6;margin:18px 0}
+.field{display:flex;flex-direction:column;gap:7px;font-size:13px;font-weight:700;margin:16px 0}input,select{padding:13px;border-radius:9px;border:1px solid #c2d3e3;min-height:46px;font:inherit;max-width:500px;width:100%;background:#fbfdff;color:#183a59}
+button{min-height:45px;border-radius:9px;background:#1d568e;color:white;padding:11px 17px;border:0;cursor:pointer;font:inherit;font-weight:750}
+button:disabled{opacity:.6;cursor:wait}.outline{background:#eaf2fa;color:#225881;border:1px solid #c9dcea}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.stack{display:flex;flex-direction:column;gap:10px}.record{border:1px solid #dce6ef;border-radius:10px;padding:15px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:8px 0}
+.record small{display:block;color:#7890a6;margin-top:6px}.muted{color:#7891a7;font-size:12px}.status{color:#285e89;background:#e7f1fb;border-radius:30px;padding:7px 12px;font-size:12px;font-weight:700}
+#feedback{min-height:19px;font-size:13px;color:#1c587b;margin:11px 0}#feedback.error{color:#a33}
+[hidden]{display:none!important}
+@media(max-width:550px){.panel{padding:17px}h1{font-size:22px}.row{align-items:flex-start}.record{align-items:flex-start}}
+</style></head><body>
+<header><div><strong>NIPD COMMAND</strong><small>Secure Access Foundation · Backend Preview</small></div><a href="./index.html">← Public design prototype</a></header>
+<main>
+<section class="panel"><div class="label">SECURE FOUNDATION</div><h1>Department access</h1><p>This area is backed by real authentication and database permissions. Access remains disabled until a system administrator provisions an account and assigns its department role.</p>
+<div class="notice"><b>Development environment — not approved for official personnel records.</b> Do not enter real timesheet, personnel, equipment or leave data. The existing modules remain fictional demonstrations. MFA, operational policy validation, security testing and department authorization are required before production use.</div>
+<div id="feedback" role="status" aria-live="polite"></div>
+<div id="loading">Checking secure connection…</div>
+<form id="login" hidden><label class="field">Approved account email <input name="email" type="email" required autocomplete="email" maxlength="200" placeholder="Your authorized department account"></label><button type="submit">Send one-time sign-in code</button></form>
+<form id="verify" hidden><label class="field">Email verification code<input name="token" type="text" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="12" required placeholder="Enter the code you received"></label><div class="row"><button type="submit">Verify and sign in</button><button type="button" class="outline" id="changeEmail">Change email</button></div></form>
+<div id="notProvisioned" hidden><p>You have authenticated, but this account is not enabled for department access. Contact an authorized administrator. No operational data is accessible.</p><button id="lockedSignOut" class="outline">Sign out</button></div>
+<div id="portal" hidden><div class="row"><div><h2 id="identity"></h2><p id="scope"></p></div><button id="signOut" class="outline">Sign out</button></div><div class="notice">Approval records below are for testing with fictional examples only. Authentication confirms your identity, but department use still requires policy, MFA and security validation.</div><div class="row"><h2>Protected request records</h2><button id="refresh" class="outline">Refresh</button></div><div id="requestList"></div><div class="row"><h2>Test database workflow</h2><button id="createTest">Create fictional equipment test</button></div><p class="muted">This test writes a fictional example to the central database and uses real server-enforced approval permissions. It never represents an official request.</p></div>
+</section>
+</main>
+<script type="module">
+import {createClient} from "https://esm.sh/@supabase/supabase-js@2.58.0";
+const url="https://czdrsblgwmovhoznlxvm.supabase.co",publishable="sb_publishable_6qhGc7WuKaCRH5yfmQ787w_YB-VEfn5";
+const client=createClient(url,publishable,{auth:{detectSessionInUrl:false,autoRefreshToken:true,persistSession:true}});
+const $=id=>document.getElementById(id),el=(t,x)=>{const n=document.createElement(t);n.textContent=x;return n};
+let email="",staff=null;
+const show=(id)=>{for(const x of ["loading","login","verify","notProvisioned","portal"])$(x).hidden=x!==id};
+const message=(txt,error=false)=>{$("feedback").textContent=txt;$("feedback").classList.toggle("error",error)};
+const fail=err=>message(err?.message||"Unable to complete that action.",true);
+async function check(){
+ show("loading");
+ try{
+  const {data:{user},error}=await client.auth.getUser();
+  if(error||!user){show("login");return}
+  const r=await client.from("staff_access").select("user_id,display_label,division,rank,enabled").eq("user_id",user.id).maybeSingle();
+  if(r.error){fail(r.error);show("notProvisioned");return}
+  staff=r.data;
+  if(!staff?.enabled){show("notProvisioned");return}
+  $("identity").textContent=staff.display_label;
+  $("scope").textContent=staff.rank+" · "+staff.division+" · verified database access";
+  show("portal");await loadRequests();
+ }catch(e){fail(e);show("login")}
+}
+async function loadRequests(){
+ const list=$("requestList");list.replaceChildren(el("p","Loading verified records…"));
+ const {data,error}=await client.from("secure_requests").select("id,kind,stage,division,created_at,owner_id").order("created_at",{ascending:false}).limit(25);
+ if(error){fail(error);list.replaceChildren();return}
+ list.replaceChildren();
+ if(!data?.length){list.append(el("p","No accessible protected requests. Records are not shared unless database authorization permits."));return}
+ const {data:{user}}=await client.auth.getUser();
+ for(const r of data){const card=el("article","");card.className="record";const info=el("div","");info.append(el("strong",r.kind+" · "+r.stage),el("small",r.division+" · "+new Date(r.created_at).toLocaleString()),el("small",r.id));card.append(info);
+ if(r.owner_id!==user.id&&!["approved","denied","returned","policy_hold"].includes(r.stage)){
+ const buttons=el("div","");buttons.className="row";
+ for(const [action,title] of [["approve","Approve"],["return","Return"],["deny","Deny"]]){
+ const b=el("button",title);b.className=action==="approve"?"":"outline";
+ b.onclick=async()=>{const reason=action==="approve"?null:prompt("Required fictional reason for "+action+":");if(action!=="approve"&&!reason?.trim())return;if(!confirm("Perform server-verified "+action+" on this fictional record?"))return;b.disabled=true;const {error,result}=await client.rpc("decide_secure_request",{p_request_id:r.id,p_action:action,p_reason:reason});if(error)fail(error);else{message("Protected decision recorded.");await loadRequests()}b.disabled=false};
+ buttons.append(b)
+ }card.append(buttons)
+ }else card.append(el("span",r.owner_id===user.id?"Own request":r.stage));
+ list.append(card)
+ }
+}
+$("login").onsubmit=async e=>{e.preventDefault();email=e.target.elements.email.value.trim();const b=e.target.querySelector("button");b.disabled=true;message("Requesting code…");const {error}=await client.auth.signInWithOtp({email,options:{shouldCreateUser:false}});b.disabled=false;if(error){fail(error);return}message("If the account is registered, check that inbox for a sign-in code.");show("verify")};
+$("verify").onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector("button");b.disabled=true;const {error}=await client.auth.verifyOtp({email,token:e.target.elements.token.value.trim(),type:"email"});b.disabled=false;if(error){fail(error);return}message("");await check()};
+$("changeEmail").onclick=()=>{email="";show("login")};
+async function logout(){await client.auth.signOut();staff=null;message("Signed out.");show("login")}
+$("signOut").onclick=logout;$("lockedSignOut").onclick=logout;
+$("refresh").onclick=loadRequests;
+$("createTest").onclick=async()=>{if(!confirm("Create a fictional test request in the protected database?"))return;const b=$("createTest");b.disabled=true;const {error}=await client.rpc("submit_secure_request",{p_kind:"equipment",p_details:{demo:true,description:"Fictional equipment workflow security test; no real officer or property information."}});b.disabled=false;if(error)fail(error);else{message("Fictional request created in central database.");await loadRequests()}};
+await check();
+</script></body></html>
