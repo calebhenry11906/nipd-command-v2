@@ -32,7 +32,7 @@ function render(){shell();byId("assignSearch").value=search;byId("assignUnit").v
 function metric(label,value){return '<div class="assign-metric"><b>'+safe(value)+'</b><span>'+safe(label)+'</span></div>'}
 function renderGroups(){
  const root=byId("assignmentRoot");if(!root)return;
- byId("assignSummary").innerHTML=metric("Personnel",data.length)+metric("Patrol Shifts",["Alpha","Bravo","Charlie","Delta"].reduce((n,u)=>n+counts(u),0))+metric("In IPT",data.filter(x=>x.training==="IPT").length)+metric("In FTO",data.filter(x=>x.training==="FTO").length));
+ byId("assignSummary").innerHTML=metric("Personnel",data.length)+metric("Patrol Shifts",["Alpha","Bravo","Charlie","Delta"].reduce((n,u)=>n+counts(u),0))+metric("In IPT",data.filter(x=>x.training==="IPT").length)+metric("In FTO",data.filter(x=>x.training==="FTO").length);
  root.querySelectorAll("[data-assign-view]").forEach(b=>b.classList.toggle("selected",b.dataset.assignView===view));
  const list=data.filter(p=>(view==="All"||p.training===view)&&(unitFilter==="All"||p.unit===unitFilter||view!=="All")&&[p.name,p.rank,p.radio,p.unit,p.training].join(" ").toLowerCase().includes(search.toLowerCase()));
  const groups=view==="All"?(search.trim()?UNITS:(unitFilter==="All"?UNITS:[unitFilter])):[view];
