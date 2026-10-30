@@ -157,3 +157,22 @@ The existing PostgreSQL authorization model is unchanged: protected decisions re
 References: [Supabase Phone MFA](https://supabase.com/docs/guides/auth/auth-mfa/phone), [Advanced MFA Phone pricing](https://supabase.com/docs/guides/platform/manage-your-usage/advanced-mfa-phone).
 
 **Testing gate:** Automated fake-session browser tests may verify the UI without using real phone numbers or sending texts. A separate authorized live test must prove actual SMS delivery, code verification, `aal2` issuance, denied `aal1` decisions, and permitted scoped `aal2` decisions before enabling SMS for users.
+
+### Two-account authorization regression checks — October 30, 2026
+
+These checks use only the existing fictional **Demo Officer A** and **Demo Sergeant A** identities. No third mailbox or user is required. The test-only disable and scope changes were issued inside explicit `BEGIN ... ROLLBACK` transactions; they were **not persisted**. They exercise database authorization, not Android login sessions.
+
+| Check | Result | Evidence/limit |
+| --- | --- | --- |
+| Officer A can read own equipment request | **PASS** | RLS returned one visible row |
+| Unprovisioned fictional identity can read existing request | **PASS (denied)** | RLS returned zero visible rows |
+| Disabled Officer A can still read previously owned request | **PASS (denied)** | Temporary `staff_access.enabled=false` caused zero visible rows; rolled back |
+| Sergeant A can still see Officer A's request after supervisor scope disabled | **PASS (denied)** | Temporary `supervisory_scopes.enabled=false` caused zero visible rows; rolled back |
+| Sergeant A's existing authenticated approval | **PASS** | `approval_events` records `approved` transition `supervisor` → `commander` and actor Sergeant A |
+| Protected decision with fictional `aal1` JWT | **PASS (denied)** | `Verified multifactor authentication is required for approvals` |
+| Officer's fictional `aal2` self-approval | **PASS (denied)** | `Self approval is prohibited` |
+| New fictional request, followed by changing simulated JWT identity to Sergeant within the same transaction | **INCONCLUSIVE** | After attempted approval, row not visible through the simulated Sergeant RLS context. Transaction rolled back without keeping a request. Do not treat this as verified or as a confirmed application defect. |
+| Two genuinely independent browser sessions approving simultaneously | **NOT TESTED** | Requires concurrency harness; no additional email addresses needed if existing authorized accounts and controlled test records suffice |
+| Session revocation in already-open phone/browser tab | **NOT TESTED** | SQL role simulation is not a real browser token lifecycle |
+
+No production use is approved based on these tests. The public Leave & Training module in `leave-training.js` still uses `localStorage` and anonymized November reference data. It must not be treated as secure or connected to the protected request workflow. The current `submit_secure_request` RPC supports only `equipment` and `timesheet`, not `leave`. A separate validated backend change and explicit leave workflow design are required before centralizing leave requests. 
