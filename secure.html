@@ -24,7 +24,7 @@ button:disabled{opacity:.6;cursor:wait}.outline{background:#eaf2fa;color:#225881
 <div class="notice"><b>Development environment — not approved for official personnel records.</b> Do not enter real timesheet, personnel, equipment or leave data. The existing modules remain fictional demonstrations. MFA, authentication redirects, operational policy validation, security testing and department authorization require verification before production use.</div>
 <div id="feedback" role="status" aria-live="polite"></div>
 <div id="loading">Checking secure connection…</div>
-<form id="login" hidden><label class="field">Approved account email <input name="email" type="email" required autocomplete="email" maxlength="200" placeholder="Your authorized department account"></label><button type="submit">Send secure sign-in email</button></form>
+<form id="login" hidden><label class="field">Approved account email <input name="email" type="email" required autocomplete="email" maxlength="200" placeholder="Your authorized department account"></label><button type="submit">Send secure sign-in email</button><div id="resetArea" hidden><p class="muted">Only if this browser has a broken saved session: resetting removes its local sign-in and may require a fresh email link.</p><button id="resetBrowser" type="button" class="outline">Reset this browser sign-in</button></div></form>
 <form id="verify" hidden><label class="field">Email verification code (if your email contains one)<input name="token" type="text" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="12" required placeholder="Enter the code you received"></label><div class="row"><button type="submit">Verify and sign in</button><button type="button" class="outline" id="changeEmail">Change email</button></div></form>
 <div id="notProvisioned" hidden><p>You have authenticated, but this account is not enabled for department access. Contact an authorized administrator. No operational data is accessible.</p><button id="lockedSignOut" class="outline">Sign out</button></div>
 <div id="portal" hidden><div class="row"><div><h2 id="identity"></h2><p id="scope"></p></div><button id="signOut" class="outline">Sign out</button></div><div class="notice">Approval records below are for testing with fictional examples only. MFA verification is mandatory for protected decisions. Production use still requires security review and agency authorization.</div><section class="panel" id="mfaPanel" aria-label="Multifactor authentication"><h2>Authenticator verification</h2><p id="mfaStatus">Checking authentication assurance…</p><div id="mfaEnrollArea" hidden><p>Scan this QR code using an authenticator application, then enter its six-digit code to activate MFA for this account.</p><img id="mfaQr" alt="MFA authenticator enrollment QR code" style="width:min(200px,100%);height:auto"><p id="mfaSecret" class="muted"></p></div><div class="row"><button id="mfaEnroll" class="outline">Set up authenticator</button><button id="mfaVerify" class="outline">Verify authenticator code</button></div></section><div class="row"><h2>Protected request records</h2><button id="refresh" class="outline">Refresh</button></div><div id="requestList"></div><div class="row"><h2>Test database workflow</h2><button id="createTest">Create fictional equipment test</button></div><p class="muted">This test writes a fictional example to the central database and uses real server-enforced approval permissions. It never represents an official request.</p></div>
@@ -35,7 +35,7 @@ window.__nipdAuthStep="Loading authentication library";
 (function(){
   const loading=document.getElementById("loading");
   const watchdog=setTimeout(function(){
-    if(!loading || loading.hidden)return;
+    if(!loading || loading.hidden || window.__nipdAuthHandled)return;
     loading.replaceChildren();
     const heading=document.createElement("p");
     heading.textContent="Secure connection could not finish. Your account has not been changed.";
@@ -46,17 +46,46 @@ window.__nipdAuthStep="Loading authentication library";
     retry.addEventListener("click",function(){location.reload()});
     loading.append(heading,detail,retry);
     loading.setAttribute("role","alert");
-  },18000);
+  },40000);
   window.addEventListener("pagehide",function(){clearTimeout(watchdog)},{once:true});
 })();
 </script>
 <script type="module">
-import {createClient} from "https://esm.sh/@supabase/supabase-js@2.58.0";
 const url="https://czdrsblgwmovhoznlxvm.supabase.co",publishable="sb_publishable_6qhGc7WuKaCRH5yfmQ787w_YB-VEfn5";
-window.__nipdAuthStep="Initializing Supabase client";
-const client=createClient(url,publishable,{auth:{detectSessionInUrl:true,autoRefreshToken:true,persistSession:true}});
 const $=id=>document.getElementById(id),el=(t,x)=>{const n=document.createElement(t);n.textContent=x;return n};
-const withTimeout=(promise,ms,label)=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error(label)),ms))]);
+const withTimeout=(promise,ms,label)=>{
+ let timer;
+ return Promise.race([Promise.resolve(promise),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(label)),ms)})]).finally(()=>clearTimeout(timer));
+};
+const sdkSources=[
+ ["Primary","https://esm.sh/@supabase/supabase-js@2.108.0"],
+ ["Fallback","https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.0/+esm"]
+];
+let createClient=null;
+for(const [label,source] of sdkSources){
+ window.__nipdAuthStep="Loading authentication library ("+label.toLowerCase()+")";
+ try{
+  const module=await withTimeout(import(source),8000,"Authentication library download timed out");
+  if(typeof module.createClient!=="function")throw new Error("Authentication library did not export createClient");
+  createClient=module.createClient;
+  break;
+ }catch(e){ /* A second pinned CDN can recover from a blocked or unavailable first CDN. */ }
+}
+const showStartupError=()=>{
+ window.__nipdAuthHandled=true;
+ const loading=$("loading");
+ loading.replaceChildren(el("p","Secure sign-in could not load its authentication library. Your account has not been changed."));
+ loading.append(el("p","Please retry. If this continues, the browser may be blocking both JavaScript providers. No login information has been sent."));
+ const retry=el("button","Retry secure connection");
+ retry.type="button";retry.onclick=()=>location.reload();loading.append(retry);
+};
+if(!createClient)showStartupError();
+window.__nipdAuthStep="Initializing Supabase client";
+let client=null;
+if(createClient){
+ try{client=createClient(url,publishable,{auth:{detectSessionInUrl:true,autoRefreshToken:true,persistSession:true}})}
+ catch(e){window.__nipdAuthStep="Supabase client initialization failed";showStartupError()}
+}
 const signInError=()=>{
   const hash=new URLSearchParams(location.hash.startsWith("#")?location.hash.slice(1):"");
   const query=new URLSearchParams(location.search);
@@ -76,7 +105,7 @@ async function check(){
  window.__nipdAuthStep="Verifying saved session";
  try{
   const {data:{user},error}=await withTimeout(client.auth.getUser(),12000,"Session verification timed out. Close other NIPD Command tabs, then reload this page.");
-  if(error||!user){if(error)fail(error);show("login");return}
+  if(error||!user){if(error){fail(error);$("resetArea").hidden=false}show("login");return}
   window.__nipdAuthStep="Loading authorized staff profile";
   const r=await withTimeout(client.from("staff_access").select("user_id,display_label,division,rank,enabled").eq("user_id",user.id).maybeSingle(),12000,"Staff profile request timed out. The signed-in session was not changed.");
   if(r.error){fail(r.error);show("notProvisioned");return}
@@ -86,11 +115,11 @@ async function check(){
   $("scope").textContent=staff.rank+" · "+staff.division+" · enabled test access · permissions determined by database";
   window.__nipdAuthStep="Signed in; checking multifactor status";
   show("portal");await updateMfa();await loadRequests();
- }catch(e){fail(e);show("login")}
+ }catch(e){fail(e);$("resetArea").hidden=false;show("login")}
 }
 async function updateMfa(){
  try{
-  const {data,error}=await client.auth.mfa.getAuthenticatorAssuranceLevel();
+  const {data,error}=await withTimeout(client.auth.mfa.getAuthenticatorAssuranceLevel(),10000,"MFA status timed out. Refresh before attempting an approval.");
   if(error)throw error;
   mfaVerified=data?.currentLevel==="aal2";
   $("mfaStatus").textContent=mfaVerified?"MFA verified for this session. Protected approvals may be submitted.":"Additional verification required before approving any protected request.";
@@ -99,7 +128,7 @@ async function updateMfa(){
  }catch(e){mfaVerified=false;fail(e)}
 }
 $("mfaEnroll").onclick=async()=>{
- const {data,error}=await client.auth.mfa.enroll({factorType:"totp",friendlyName:"NIPD Command Preview"});
+ const {data,error}=await withTimeout(client.auth.mfa.enroll({factorType:"totp",friendlyName:"NIPD Command Preview"}),12000,"Authenticator enrollment timed out. Retry after refreshing.");
  if(error){fail(error);return}
  mfaEnrollment=data;
  $("mfaEnrollArea").hidden=false;
@@ -113,13 +142,13 @@ $("mfaVerify").onclick=async()=>{
  if(!/^\d{6}$/.test(code.trim())){message("Enter exactly six digits.",true);return}
  let factorId=mfaEnrollment?.id;
  if(!factorId){
-  const {data,error}=await client.auth.mfa.listFactors();
+  const {data,error}=await withTimeout(client.auth.mfa.listFactors(),10000,"Could not load enrolled factors.");
   if(error){fail(error);return}
   const factor=data?.totp?.find(x=>x.status==="verified");
   factorId=factor?.id;
  }
  if(!factorId){message("Set up an authenticator first.",true);return}
- const {error}=await client.auth.mfa.challengeAndVerify({factorId,code:code.trim()});
+ const {error}=await withTimeout(client.auth.mfa.challengeAndVerify({factorId,code:code.trim()}),12000,"Authenticator verification timed out.");
  if(error){fail(error);return}
  $("mfaEnrollArea").hidden=true;
  $("mfaSecret").textContent="";
@@ -129,7 +158,11 @@ $("mfaVerify").onclick=async()=>{
 };
 async function loadRequests(){
  const list=$("requestList");list.replaceChildren(el("p","Loading verified records…"));
- const {data,error}=await client.from("secure_requests").select("id,kind,stage,division,created_at,owner_id").order("created_at",{ascending:false}).limit(25);
+ let data,error;
+ try{
+  const result=await withTimeout(client.from("secure_requests").select("id,kind,stage,division,created_at,owner_id").order("created_at",{ascending:false}).limit(25),12000,"Protected request lookup timed out. Refresh to retry.");
+  data=result.data;error=result.error;
+ }catch(e){fail(e);list.replaceChildren();return}
  if(error){fail(error);list.replaceChildren();return}
  list.replaceChildren();
  if(!data?.length){list.append(el("p","No accessible protected requests. Records are not shared unless database authorization permits."));return}
@@ -153,10 +186,19 @@ async function logout(){await client.auth.signOut();staff=null;mfaVerified=false
 $("signOut").onclick=logout;$("lockedSignOut").onclick=logout;
 $("refresh").onclick=loadRequests;
 $("createTest").onclick=async()=>{if(!confirm("Create a fictional test request in the protected database?"))return;const b=$("createTest");b.disabled=true;const {error}=await client.rpc("submit_secure_request",{p_kind:"equipment",p_details:{demo:true,description:"Fictional equipment workflow security test; no real officer or property information."}});b.disabled=false;if(error)fail(error);else{message("Fictional request created in central database.");await loadRequests()}};
-if(signInError()){
- show("login");
- message("This email invitation or sign-in link has already been used or has expired. It cannot be reused. Request a new sign-in link only if you need a new session.",true);
-}else{
- await check();
+$("resetBrowser").onclick=()=>{
+ if(!confirm("Reset the saved NIPD Command login on THIS browser? You may need a fresh email sign-in link afterward. This does not change the department account."))return;
+ const key="sb-"+new URL(url).hostname.split(".")[0]+"-auth-token";
+ try{localStorage.removeItem(key);localStorage.removeItem(key+"-code-verifier")}
+ catch(e){message("Browser storage could not be cleared. Check Chrome site settings.",true);return}
+ location.assign(location.pathname);
+};
+if(client){
+ if(signInError()){
+  show("login");
+  message("The email sign-in link is invalid, expired or already used. Request a fresh link if no valid saved session is available.",true);
+ }else{
+  await check();
+ }
 }
 </script></body></html>
