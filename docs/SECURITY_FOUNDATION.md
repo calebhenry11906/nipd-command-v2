@@ -69,3 +69,65 @@ Do not import real NIPD personnel data, use the system for staffing decisions, a
 6. Payroll, staffing and approval workflows are validated against written department policy.
 
 The infrastructure is a **starting point**, not an assurance of CJIS, payroll, records retention or electronic signature compliance.
+
+
+## Phase 2 hardening — October 30, 2026
+
+The existing Supabase project was hardened; **no real staff accounts or records were created**.
+
+### Additional tables and rules
+
+- `public.approval_authorities`: an enabled, time-bounded database-administrator-authorized commander/maintenance delegation is required, even for Captains and the Chief. No user may provision their own approvals.
+- `public.supervisory_scopes`: enabled records now have `valid_from` and optional `valid_until` so expired supervisor assignments lose effect immediately.
+- `public.access_change_audit`: database triggers record insert/update/delete changes to staff access, supervisory assignments and approval authority. Application roles have no direct table grants. **These triggers do not by themselves provide independently tamper-proof audit storage.**
+- `public.staff_access`: disabled accounts are excluded from RLS reads, even for previously owned requests.
+- `public.submit_secure_request`: only explicitly labeled fictional `demo:true` requests are accepted. **Do not enter any real operational text even inside a demo-marked record.**
+- `public.decide_secure_request`: uses current database authorization checks; self-approval, out-of-scope reviews and duplicate stage approvals are blocked. The Records & Maintenance same-person equipment path remains at policy hold.
+
+### Verified database results (October 30, 2026)
+
+| Check | Observed |
+| --- | --- |
+| Application tables have RLS | Yes |
+| Total auth users / enabled staff | 0 / 0 |
+| Approval authorities / supervisory scopes | 0 / 0 |
+| Stored requests / approval events | 0 / 0 |
+| Anonymous direct submit or decide execution | Denied by database grants |
+| Authenticated direct staff-access UPDATE permission | Denied |
+| Authenticated direct approval-event UPDATE permission | Denied |
+| End-to-end email login and verification | **Not tested — no test users** |
+| MFA enrollment and enforcement | **Not configured/tested** |
+| Officer, Corporal, Sergeant, Lieutenant, Captain, Chief authorization scenarios | **Not tested — controlled identities required** |
+| Concurrent approval collision testing | **Not tested** |
+| Disabled-account session/token revocation | **Not tested** |
+| Backup restoration / incident response | **Not tested** |
+| Mobile browser verification | **Not tested** |
+
+### Outstanding security-advisor findings
+
+1. Three intentional **INFO: RLS enabled with no policies** findings on `supervisory_scopes`, `approval_authorities` and `access_change_audit`. These tables are administrator-only and not granted to `anon`/`authenticated`. [Advisor details](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy).
+2. Two **WARN: authenticated users can execute SECURITY DEFINER functions** findings for `public.submit_secure_request` and `public.decide_secure_request`. These are intentionally exposed RPCs and enforce authentication, enabled staff status, division, supervisory mapping, current stage, self-approval and repeated-actor checks. They still require a third-party security review before production. [Advisor details](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable).
+
+### Administrator tasks required before meaningful login testing
+
+1. Open [Supabase Authentication URL Configuration](https://supabase.com/dashboard/project/czdrsblgwmovhoznlxvm/auth/url-configuration). Add `https://calebhenry11906.github.io/nipd-command-v2/secure.html` as an allowed redirect. Verify the Site URL.
+2. In Authentication Providers, verify email sign-in settings and **disable unrestricted signups**. Review email templates for whether they send a magic link or a code, and check applicable rate limits.
+3. Set an approved MFA enrollment/enforcement policy and verify the assurance level of privileged sessions. The database currently checks authenticated user access and database delegations, **but does not yet enforce MFA assurance on privileged approvals**.
+4. With permission from the agency, invite a small set of controlled **fictional test accounts**. Accounts are not automatically assigned permissions. Use the provisioning process below and avoid personally identifying personnel data.
+5. Approve all test division/role memberships, create supervisor mappings and **explicit commander/maintenance authority grants** with suitable validity windows. For example, a verified database administrator may execute:
+
+```sql
+-- These UUIDs are placeholders. Replace only with verified test auth.users IDs.
+insert into public.approval_authorities(user_id,division,stage,enabled)
+values ('VERIFIED-TEST-CAPTAIN-UUID','Patrol','commander',true);
+```
+
+6. Test legitimate and prohibited actions using independent authenticated sessions (including revocation and parallel decisions). Keep formal test evidence. Do not infer approval success from visibility of a button.
+7. Establish secure backups, role-change review policy, retention, incident response and change controls with department leadership before production.
+
+### Important remaining restrictions
+
+- Existing public Shift Assignments and Employee Directory pages still use publicly embedded roster information. Review whether public disclosure is appropriate before operational adoption.
+- Existing Leave, Equipment, Security Details and Timesheets screens remain **local-browser demonstrations** and are **not connected to the protected workflow**.
+- The secure portal is a minimal foundation preview, not a complete authenticated production workforce interface.
+- No real departmental records or approval signatures should be entered; **production remains No-Go**.
