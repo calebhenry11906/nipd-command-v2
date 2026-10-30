@@ -30,6 +30,25 @@ button:disabled{opacity:.6;cursor:wait}.outline{background:#eaf2fa;color:#225881
 <div id="portal" hidden><div class="row"><div><h2 id="identity"></h2><p id="scope"></p></div><button id="signOut" class="outline">Sign out</button></div><div class="notice">Approval records below are for testing with fictional examples only. MFA verification is mandatory for protected decisions. Production use still requires security review and agency authorization.</div><section class="panel" id="mfaPanel" aria-label="Multifactor authentication"><h2>Authenticator verification</h2><p id="mfaStatus">Checking authentication assurance…</p><div id="mfaEnrollArea" hidden><p>Scan this QR code using an authenticator application, then enter its six-digit code to activate MFA for this account.</p><img id="mfaQr" alt="MFA authenticator enrollment QR code" style="width:min(200px,100%);height:auto"><p id="mfaSecret" class="muted"></p></div><div class="row"><button id="mfaEnroll" class="outline">Set up authenticator</button><button id="mfaVerify" class="outline">Verify authenticator code</button></div></section><div class="row"><h2>Protected request records</h2><button id="refresh" class="outline">Refresh</button></div><div id="requestList"></div><div class="row"><h2>Test database workflow</h2><button id="createTest">Create fictional equipment test</button></div><p class="muted">This test writes a fictional example to the central database and uses real server-enforced approval permissions. It never represents an official request.</p></div>
 </section>
 </main>
+<script>
+(function(){
+  const loading=document.getElementById("loading");
+  const watchdog=setTimeout(function(){
+    if(!loading || loading.hidden)return;
+    loading.replaceChildren();
+    const heading=document.createElement("p");
+    heading.textContent="Secure connection could not finish. Your account has not been changed.";
+    const detail=document.createElement("p");
+    detail.textContent="The sign-in page may be unable to load its authentication library or reach Supabase. Try again, or report this message to the app administrator.";
+    const retry=document.createElement("button");
+    retry.type="button";retry.textContent="Retry secure connection";
+    retry.addEventListener("click",function(){location.reload()});
+    loading.append(heading,detail,retry);
+    loading.setAttribute("role","alert");
+  },18000);
+  window.addEventListener("pagehide",function(){clearTimeout(watchdog)},{once:true});
+})();
+</script>
 <script type="module">
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2.58.0";
 const url="https://czdrsblgwmovhoznlxvm.supabase.co",publishable="sb_publishable_6qhGc7WuKaCRH5yfmQ787w_YB-VEfn5";
