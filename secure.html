@@ -27,40 +27,7 @@ button:disabled{opacity:.6;cursor:wait}.outline{background:#eaf2fa;color:#225881
 <form id="login" hidden><label class="field">Approved account email <input name="email" type="email" required autocomplete="email" maxlength="200" placeholder="Your authorized department account"></label><button type="submit">Send secure sign-in email</button><div id="resetArea" hidden><p class="muted">Only if this browser has a broken saved session: resetting removes its local sign-in and may require a fresh email link.</p><button id="resetBrowser" type="button" class="outline">Reset this browser sign-in</button></div></form>
 <form id="verify" hidden><label class="field">Email verification code (if your email contains one)<input name="token" type="text" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="12" required placeholder="Enter the code you received"></label><div class="row"><button type="submit">Verify and sign in</button><button type="button" class="outline" id="changeEmail">Change email</button></div></form>
 <div id="notProvisioned" hidden><p>You have authenticated, but this account is not enabled for department access. Contact an authorized administrator. No operational data is accessible.</p><button id="lockedSignOut" class="outline">Sign out</button></div>
-<div id="portal" hidden><div class="row"><div><h2 id="identity"></h2><p id="scope"></p></div><button id="signOut" class="outline">Sign out</button></div><div class="notice">Approval records below are for testing with fictional examples only. MFA verification is mandatory for protected decisions. Production use still requires security review and agency authorization.</div><section class="panel" id="mfaPanel" aria-label="Multifactor authentication">
-<h2>SMS verification for protected approvals</h2>
-<p id="mfaStatus">Checking multifactor authentication…</p>
-<div id="smsMfaArea" hidden>
- <p>Use a one-time code sent to your enrolled cellphone. The department must enable Supabase Phone MFA and configure an SMS provider before texts can be delivered. Standard email sign-in remains the first factor.</p>
- <form id="smsEnrollForm" hidden>
-  <label class="field">Cellphone number in international format (example +15555550123)
-   <input id="smsPhone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="16" placeholder="+1XXXXXXXXXX" required>
-  </label>
-  <button type="submit">Enroll cellphone for SMS verification</button>
- </form>
- <div id="smsExisting" hidden>
-  <p id="smsDestination"></p>
-  <button id="smsSendCode" type="button">Text me a verification code</button>
- </div>
- <form id="smsCodeForm" hidden>
-  <label class="field">Verification code from your text message
-   <input id="smsCode" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" minlength="6" maxlength="10" required placeholder="Enter SMS code">
-  </label>
-  <button type="submit">Verify SMS code</button>
- </form>
- <p id="smsStatus" class="muted" role="status" aria-live="polite"></p>
-</div>
-<details id="totpFallback">
- <summary>Authenticator app (backup option)</summary>
- <p>Continue to use an authenticator app until SMS delivery is configured. Protect the QR code and secret; never share them with an administrator.</p>
- <div id="mfaEnrollArea" hidden>
-  <p>Scan this QR code using an authenticator application, then enter its code to activate this factor.</p>
-  <img id="mfaQr" alt="MFA authenticator enrollment QR code" style="width:min(200px,100%);height:auto">
-  <p id="mfaSecret" class="muted"></p>
- </div>
- <div class="row"><button id="mfaEnroll" type="button" class="outline">Set up authenticator</button><button id="mfaVerify" type="button" class="outline">Verify authenticator code</button></div>
-</details>
-</section><div class="row"><h2>Protected request records</h2><button id="refresh" class="outline">Refresh</button></div><div id="requestList"></div><div class="row"><h2>Test database workflow</h2><button id="createTest">Create fictional equipment test</button></div><p class="muted">This test writes a fictional example to the central database and uses real server-enforced approval permissions. It never represents an official request.</p></div>
+<div id="portal" hidden><div class="row"><div><h2 id="identity"></h2><p id="scope"></p></div><button id="signOut" class="outline">Sign out</button></div><div class="notice">Approval records below are for testing with fictional examples only. MFA verification is mandatory for protected decisions. Production use still requires security review and agency authorization.</div><section class="panel" id="mfaPanel" aria-label="Multifactor authentication"><h2>Authenticator verification</h2><p id="mfaStatus">Checking authentication assurance…</p><div id="mfaEnrollArea" hidden><p>Scan this QR code using an authenticator application, then enter its six-digit code to activate MFA for this account.</p><img id="mfaQr" alt="MFA authenticator enrollment QR code" style="width:min(200px,100%);height:auto"><p id="mfaSecret" class="muted"></p></div><div class="row"><button id="mfaEnroll" type="button" class="outline">Set up authenticator</button><button id="mfaVerify" type="button" class="outline">Verify authenticator code</button></div></section><div class="row"><h2>Protected request records</h2><button id="refresh" class="outline">Refresh</button></div><div id="requestList"></div><div class="row"><h2>Test database workflow</h2><button id="createTest">Create fictional equipment test</button></div><p class="muted">This test writes a fictional example to the central database and uses real server-enforced approval permissions. It never represents an official request.</p></div>
 </section>
 </main>
 <script>
@@ -130,10 +97,6 @@ const signInError=()=>{
   return true;
 };
 let email="",staff=null,mfaVerified=false,mfaEnrollment=null;
-let smsFactorId=null,smsPending=null,smsLastSent=0;
-const smsMessage=(s,isError=false)=>{$("smsStatus").textContent=s;$("smsStatus").style.color=isError?"#a33":""};
-const phoneMask=phone=>phone?"Phone ending in "+phone.slice(-4):"Enrolled cellphone";
-const phoneRateLimitMs=60000;
 
 const show=(id)=>{for(const x of ["loading","login","verify","notProvisioned","portal"])$(x).hidden=x!==id};
 const message=(txt,error=false)=>{$("feedback").textContent=txt;$("feedback").classList.toggle("error",error)};
@@ -157,84 +120,14 @@ async function check(){
 }
 async function updateMfa(){
  try{
-  const [{data:aal,error:aalError},{data:factors,error:factorsError}]=await Promise.all([
-   withTimeout(client.auth.mfa.getAuthenticatorAssuranceLevel(),10000,"MFA assurance lookup timed out."),
-   withTimeout(client.auth.mfa.listFactors(),10000,"MFA factor lookup timed out.")
-  ]);
-  if(aalError)throw aalError;
-  if(factorsError)throw factorsError;
-  mfaVerified=aal?.currentLevel==="aal2";
-  const verifiedPhone=factors?.phone?.find(f=>f.status==="verified");
-  const unverifiedPhone=factors?.all?.find(f=>f.factor_type==="phone"&&f.status!=="verified");
-  const selectedPhone=verifiedPhone||unverifiedPhone;
-  smsFactorId=selectedPhone?.id||null;
-  $("mfaStatus").textContent=mfaVerified?
-   "Second-factor verification complete for this session. Protected approvals are permitted only within your authorized scope.":
-   "SMS verification is preferred for protected approvals. Complete an SMS challenge to satisfy MFA; the database also checks your supervisory permissions.";
-  $("smsMfaArea").hidden=mfaVerified;
-  $("smsEnrollForm").hidden=mfaVerified||!!selectedPhone;
-  $("smsExisting").hidden=mfaVerified||!selectedPhone;
-  $("smsDestination").textContent=selectedPhone?phoneMask(selectedPhone.phone):"";
+  const {data,error}=await withTimeout(client.auth.mfa.getAuthenticatorAssuranceLevel(),10000,"MFA status timed out. Refresh before attempting an approval.");
+  if(error)throw error;
+  mfaVerified=data?.currentLevel==="aal2";
+  $("mfaStatus").textContent=mfaVerified?"MFA verified for this session. Protected approvals may be submitted only within your authorized scope.":"Authenticator verification required before approving any protected request.";
   $("mfaEnroll").hidden=mfaVerified;
   $("mfaVerify").hidden=mfaVerified;
-  if(mfaVerified){smsPending=null;$("smsCodeForm").hidden=true;$("smsCode").value="";smsMessage("")}
  }catch(e){mfaVerified=false;fail(e)}
 }
-async function sendSmsCode(factorId){
- if(!factorId)throw new Error("Enroll a cellphone before requesting a code.");
- if(Date.now()-smsLastSent<phoneRateLimitMs)throw new Error("Please wait at least one minute before requesting another SMS code.");
- const {data,error}=await withTimeout(client.auth.mfa.challenge({factorId}),12000,"SMS delivery request timed out. Check for a text before requesting another.");
- if(error)throw error;
- if(!data?.id)throw new Error("SMS challenge was not created.");
- smsPending={factorId,challengeId:data.id};
- smsLastSent=Date.now();
- $("smsCode").value="";
- $("smsCodeForm").hidden=false;
- smsMessage("Code requested. Enter the code received on your cellphone. Never share this code.");
-}
-$("smsEnrollForm").onsubmit=async e=>{
- e.preventDefault();
- const phone=$("smsPhone").value.replace(/[\s()-]/g,"").trim();
- if(!/^\+[1-9]\d{7,14}$/.test(phone)){smsMessage("Use a valid international phone number such as +1 followed by ten digits.",true);return}
- const btn=e.target.querySelector('button[type="submit"]');btn.disabled=true;
- try{
-  smsMessage("Requesting cellphone enrollment…");
-  const {data,error}=await withTimeout(client.auth.mfa.enroll({factorType:"phone",phone}),12000,"Phone enrollment timed out.");
-  if(error)throw error;
-  if(!data?.id)throw new Error("Phone factor enrollment did not return an ID.");
-  smsFactorId=data.id;
-  $("smsEnrollForm").hidden=true;
-  $("smsExisting").hidden=false;
-  $("smsDestination").textContent=phoneMask(phone);
-  $("smsPhone").value="";
-  await sendSmsCode(smsFactorId);
- }catch(err){
-  smsMessage("Unable to enable SMS verification. An administrator must configure paid Supabase Phone MFA and an SMS provider first. "+(err?.message||""),true);
- }finally{btn.disabled=false}
-};
-$("smsSendCode").onclick=async()=>{
- const b=$("smsSendCode");b.disabled=true;
- try{await sendSmsCode(smsFactorId)}catch(err){smsMessage(err?.message||"SMS delivery failed.",true)}finally{b.disabled=false}
-};
-$("smsCodeForm").onsubmit=async e=>{
- e.preventDefault();
- const code=$("smsCode").value.trim();
- if(!/^\d{6,10}$/.test(code)){smsMessage("Enter the code from your SMS message.",true);return}
- if(!smsPending){smsMessage("Request a new verification text first.",true);return}
- const btn=e.target.querySelector('button[type="submit"]');btn.disabled=true;
- try{
-  const {error}=await withTimeout(client.auth.mfa.verify({
-   factorId:smsPending.factorId,challengeId:smsPending.challengeId,code
-  }),12000,"SMS verification timed out.");
-  if(error)throw error;
-  $("smsCode").value="";$("smsPhone").value="";
-  $("smsCodeForm").hidden=true;
-  smsPending=null;
-  smsMessage("SMS verification succeeded.");
-  await updateMfa();await loadRequests();
- }catch(err){smsMessage(err?.message||"SMS verification failed.",true)}
- finally{btn.disabled=false}
-};
 $("mfaEnroll").onclick=async()=>{
  try{
  const {data,error}=await withTimeout(client.auth.mfa.enroll({factorType:"totp",friendlyName:"NIPD Command Preview"}),12000,"Authenticator enrollment timed out. Retry after refreshing.");
@@ -312,7 +205,7 @@ async function logout(){
  try{
   const {error}=await withTimeout(client.auth.signOut(),12000,"Sign-out timed out; the browser session may still be active.");
   if(error)throw error;
-  staff=null;mfaVerified=false;mfaEnrollment=null;smsFactorId=null;smsPending=null;smsLastSent=0;$("smsCode").value="";$("smsPhone").value="";$("resetArea").hidden=true;message("Signed out.");show("login");
+  staff=null;mfaVerified=false;mfaEnrollment=null;$("resetArea").hidden=true;message("Signed out.");show("login");
  }catch(err){fail(err)}
 }
 $("signOut").onclick=logout;$("lockedSignOut").onclick=logout;
