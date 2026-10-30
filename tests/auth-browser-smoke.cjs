@@ -83,6 +83,21 @@ async function run(){
    await Promise.all([page.waitForFunction(()=>!document.querySelector("#portal").hidden),page2.waitForFunction(()=>!document.querySelector("#portal").hidden)]);
    await ctx.close();
   });
+  await check("mobile-sized Chromium viewport loads login",async()=>{
+   const ctx=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2});
+   await ctx.route("https://esm.sh/**",r=>r.fulfill({status:200,contentType:"application/javascript",headers:{"access-control-allow-origin":"*"},body:fakeSdk}));
+   const page=await ctx.newPage();await page.goto(base);
+   await page.waitForFunction(()=>!document.querySelector("#login").hidden);
+   assert.equal(await page.locator("#login").isVisible(),true);
+   await ctx.close();
+  });
+  await check("real pinned CDN dependency loads without any session",async()=>{
+   const ctx=await browser.newContext();const page=await ctx.newPage();
+   await page.goto(base);
+   await page.waitForFunction(()=>!document.querySelector("#login").hidden,null,{timeout:30000});
+   assert.equal(await page.locator("#loading").isHidden(),true);
+   await ctx.close();
+  });
  }finally{await browser.close()}
 }
 run().then(()=>server.close(),e=>{console.error(e);server.close();process.exitCode=1});
