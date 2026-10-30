@@ -26,6 +26,7 @@
 @media(prefers-reduced-motion:reduce){button{transition:none!important}button:active{transform:none!important}}
 
 .department-logo{width:62px;height:66px;object-fit:contain;flex-shrink:0;display:block;filter:drop-shadow(0 3px 5px #03162970)}@media(max-width:1020px){.department-logo{width:55px;height:58px}}@media(max-width:650px){.department-logo{width:52px;height:56px}}
+.secure-entry-link{color:#1c5687;background:#e7f1fa;border:1px solid #c6d9ea;border-radius:9px;padding:10px;text-decoration:none;font-size:12px;font-weight:750;display:inline-block;white-space:nowrap}.secure-entry-link:focus-visible{outline:3px solid #4283c4;outline-offset:2px}@media(max-width:620px){.secure-entry-link{font-size:11px;padding:9px 7px}}
 </style>
 <link rel="stylesheet" href="shift-assignments.css">
 <link rel="stylesheet" href="leave-training.css">
@@ -33,8 +34,8 @@
 <link rel="stylesheet" href="security-details.css">
 <link rel="stylesheet" href="employee-directory.css">
 </head><body>
-<div class="app"><aside class="side"><div class="brand"><img class="department-logo" src="assets/nipd-shield.svg" alt="New Iberia Police Department shield" width="64" height="64"><div><b>NIPD COMMAND</b><small>NEW IBERIA POLICE</small></div></div><div class="navlabel">WORKSPACE</div><nav id="sideNav"></nav><div class="sidefoot">PUBLIC DESIGN PREVIEW<br>Fictional demo data only<br>v0.1 • No login or database</div></aside>
-<div class="maincol"><header class="top"><div><strong>NEW IBERIA POLICE DEPARTMENT</strong><small>Operations Management • Design Prototype</small></div><div class="topright"><select class="role" id="role" aria-label="Demo account"><option>Employee preview</option><option>Sergeant preview</option><option>Lieutenant preview</option><option>Captain preview</option><option>Agency administrator</option></select><div class="avatar" aria-label="Demo account">NC</div></div></header>
+<div class="app"><aside class="side"><div class="brand"><img class="department-logo" src="assets/nipd-shield.svg" alt="New Iberia Police Department shield" width="64" height="64"><div><b>NIPD COMMAND</b><small>NEW IBERIA POLICE</small></div></div><div class="navlabel">WORKSPACE</div><nav id="sideNav"></nav><div class="sidefoot">PUBLIC DESIGN PREVIEW<br>Fictional demo data only<br>v0.1 • Secure access separate</div></aside>
+<div class="maincol"><header class="top"><div><strong>NEW IBERIA POLICE DEPARTMENT</strong><small>Operations Management • Design Prototype</small></div><div class="topright"><a class="secure-entry-link" href="secure.html" aria-label="Open secure access portal">🔒 Secure Access</a><select class="role" id="role" aria-label="Demo account"><option>Employee preview</option><option>Sergeant preview</option><option>Lieutenant preview</option><option>Captain preview</option><option>Agency administrator</option></select><div class="avatar" aria-label="Demo account">NC</div></div></header>
 <nav class="mobileNav" id="mobileNav"></nav>
 <main class="content"><div class="eyebrow">NIPD / COMMAND CENTER</div><div class="heading"><div><h1 id="title">Department Dashboard</h1><p class="muted" id="subtitle"></p></div><button class="btn" id="topAction">+ New Request</button></div><div id="notice" class="notice" role="status"></div>
 <section id="dashboard" class="view active">
