@@ -24,8 +24,8 @@ button:disabled{opacity:.6;cursor:wait}.outline{background:#eaf2fa;color:#225881
 <div class="notice"><b>Development environment — not approved for official personnel records.</b> Do not enter real timesheet, personnel, equipment or leave data. The existing modules remain fictional demonstrations. MFA, operational policy validation, security testing and department authorization are required before production use.</div>
 <div id="feedback" role="status" aria-live="polite"></div>
 <div id="loading">Checking secure connection…</div>
-<form id="login" hidden><label class="field">Approved account email <input name="email" type="email" required autocomplete="email" maxlength="200" placeholder="Your authorized department account"></label><button type="submit">Send one-time sign-in code</button></form>
-<form id="verify" hidden><label class="field">Email verification code<input name="token" type="text" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="12" required placeholder="Enter the code you received"></label><div class="row"><button type="submit">Verify and sign in</button><button type="button" class="outline" id="changeEmail">Change email</button></div></form>
+<form id="login" hidden><label class="field">Approved account email <input name="email" type="email" required autocomplete="email" maxlength="200" placeholder="Your authorized department account"></label><button type="submit">Send secure sign-in email</button></form>
+<form id="verify" hidden><label class="field">Email verification code (if your email contains one)<input name="token" type="text" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="12" required placeholder="Enter the code you received"></label><div class="row"><button type="submit">Verify and sign in</button><button type="button" class="outline" id="changeEmail">Change email</button></div></form>
 <div id="notProvisioned" hidden><p>You have authenticated, but this account is not enabled for department access. Contact an authorized administrator. No operational data is accessible.</p><button id="lockedSignOut" class="outline">Sign out</button></div>
 <div id="portal" hidden><div class="row"><div><h2 id="identity"></h2><p id="scope"></p></div><button id="signOut" class="outline">Sign out</button></div><div class="notice">Approval records below are for testing with fictional examples only. Authentication confirms your identity, but department use still requires policy, MFA and security validation.</div><div class="row"><h2>Protected request records</h2><button id="refresh" class="outline">Refresh</button></div><div id="requestList"></div><div class="row"><h2>Test database workflow</h2><button id="createTest">Create fictional equipment test</button></div><p class="muted">This test writes a fictional example to the central database and uses real server-enforced approval permissions. It never represents an official request.</p></div>
 </section>
@@ -33,7 +33,7 @@ button:disabled{opacity:.6;cursor:wait}.outline{background:#eaf2fa;color:#225881
 <script type="module">
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2.58.0";
 const url="https://czdrsblgwmovhoznlxvm.supabase.co",publishable="sb_publishable_6qhGc7WuKaCRH5yfmQ787w_YB-VEfn5";
-const client=createClient(url,publishable,{auth:{detectSessionInUrl:false,autoRefreshToken:true,persistSession:true}});
+const client=createClient(url,publishable,{auth:{detectSessionInUrl:true,autoRefreshToken:true,persistSession:true}});
 const $=id=>document.getElementById(id),el=(t,x)=>{const n=document.createElement(t);n.textContent=x;return n};
 let email="",staff=null;
 const show=(id)=>{for(const x of ["loading","login","verify","notProvisioned","portal"])$(x).hidden=x!==id};
@@ -72,7 +72,7 @@ async function loadRequests(){
  list.append(card)
  }
 }
-$("login").onsubmit=async e=>{e.preventDefault();email=e.target.elements.email.value.trim();const b=e.target.querySelector("button");b.disabled=true;message("Requesting code…");const {error}=await client.auth.signInWithOtp({email,options:{shouldCreateUser:false}});b.disabled=false;if(error){fail(error);return}message("If the account is registered, check that inbox for a sign-in code.");show("verify")};
+$("login").onsubmit=async e=>{e.preventDefault();email=e.target.elements.email.value.trim();const b=e.target.querySelector("button");b.disabled=true;message("Requesting code…");const {error}=await client.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname}});b.disabled=false;if(error){fail(error);return}message("If the account is registered, check your inbox for a sign-in link or one-time code.");show("verify")};
 $("verify").onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector("button");b.disabled=true;const {error}=await client.auth.verifyOtp({email,token:e.target.elements.token.value.trim(),type:"email"});b.disabled=false;if(error){fail(error);return}message("");await check()};
 $("changeEmail").onclick=()=>{email="";show("login")};
 async function logout(){await client.auth.signOut();staff=null;message("Signed out.");show("login")}
