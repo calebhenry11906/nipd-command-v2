@@ -26,8 +26,8 @@ async function run(){
  async function open(scenario,failed=[]){
   const ctx=await browser.newContext();
   const page=await ctx.newPage();
-  await page.route("https://esm.sh/**",r=>failed.includes("primary")?r.abort():r.fulfill({status:200,contentType:"application/javascript",headers:{"access-control-allow-origin":"*"},body:fakeSdk}));
-  await page.route("https://cdn.jsdelivr.net/**",r=>failed.includes("fallback")?r.abort():r.fulfill({status:200,contentType:"application/javascript",headers:{"access-control-allow-origin":"*"},body:fakeSdk}));
+  await ctx.route("https://esm.sh/**",r=>failed.includes("primary")?r.abort():r.fulfill({status:200,contentType:"application/javascript",headers:{"access-control-allow-origin":"*"},body:fakeSdk}));
+  await ctx.route("https://cdn.jsdelivr.net/**",r=>failed.includes("fallback")?r.abort():r.fulfill({status:200,contentType:"application/javascript",headers:{"access-control-allow-origin":"*"},body:fakeSdk}));
   await page.goto(base+(scenario?"?scenario="+scenario:""));
   return {ctx,page};
  }
