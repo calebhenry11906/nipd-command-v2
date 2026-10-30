@@ -105,7 +105,7 @@ async function check(){
  window.__nipdAuthStep="Verifying saved session";
  try{
   const {data:{user},error}=await withTimeout(client.auth.getUser(),12000,"Session verification timed out. Close other NIPD Command tabs, then reload this page.");
-  if(error||!user){if(error){fail(error);$("resetArea").hidden=false}show("login");return}
+  if(error||!user){if(error&&error.name!=="AuthSessionMissingError"&&error.code!=="session_not_found"){fail(error);$("resetArea").hidden=false}show("login");return}
   window.__nipdAuthStep="Loading authorized staff profile";
   const r=await withTimeout(client.from("staff_access").select("user_id,display_label,division,rank,enabled").eq("user_id",user.id).maybeSingle(),12000,"Staff profile request timed out. The signed-in session was not changed.");
   if(r.error){fail(r.error);show("notProvisioned");return}
@@ -128,6 +128,7 @@ async function updateMfa(){
  }catch(e){mfaVerified=false;fail(e)}
 }
 $("mfaEnroll").onclick=async()=>{
+ try{
  const {data,error}=await withTimeout(client.auth.mfa.enroll({factorType:"totp",friendlyName:"NIPD Command Preview"}),12000,"Authenticator enrollment timed out. Retry after refreshing.");
  if(error){fail(error);return}
  mfaEnrollment=data;
@@ -135,8 +136,10 @@ $("mfaEnroll").onclick=async()=>{
  $("mfaQr").src=data.totp.qr_code;
  $("mfaSecret").textContent="Manual setup key (keep private): "+data.totp.secret;
  $("mfaStatus").textContent="Enter the current authenticator code using Verify authenticator code.";
+ }catch(e){fail(e)}
 };
 $("mfaVerify").onclick=async()=>{
+ try{
  const code=prompt("Enter the current six-digit code from your authenticator app:");
  if(code===null)return;
  if(!/^\d{6}$/.test(code.trim())){message("Enter exactly six digits.",true);return}
@@ -155,6 +158,7 @@ $("mfaVerify").onclick=async()=>{
  mfaEnrollment=null;
  message("Authenticator verification succeeded.");
  await updateMfa();await loadRequests();
+ }catch(e){fail(e)}
 };
 async function loadRequests(){
  const list=$("requestList");list.replaceChildren(el("p","Loading verified records…"));
@@ -179,10 +183,30 @@ async function loadRequests(){
  list.append(card)
  }
 }
-$("login").onsubmit=async e=>{e.preventDefault();email=e.target.elements.email.value.trim();const b=e.target.querySelector("button");b.disabled=true;message("Requesting code…");const {error}=await client.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname}});b.disabled=false;if(error){fail(error);return}message("If the account is registered, check your inbox for a sign-in link or one-time code.");show("verify")};
-$("verify").onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector("button");b.disabled=true;const {error}=await client.auth.verifyOtp({email,token:e.target.elements.token.value.trim(),type:"email"});b.disabled=false;if(error){fail(error);return}message("");await check()};
+$("login").onsubmit=async e=>{
+ e.preventDefault();email=e.target.elements.email.value.trim();
+ const b=e.target.querySelector('button[type="submit"]');b.disabled=true;message("Requesting sign-in email…");
+ try{
+  const {error}=await withTimeout(client.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname}}),12000,"Sign-in request timed out. Check whether an email arrived before trying again.");
+  if(error){fail(error);return}
+  message("If the account is registered, check your inbox for a sign-in link or one-time code.");show("verify");
+ }catch(err){fail(err)}finally{b.disabled=false}
+};
+$("verify").onsubmit=async e=>{
+ e.preventDefault();const b=e.target.querySelector('button[type="submit"]');b.disabled=true;
+ try{
+  const {error}=await withTimeout(client.auth.verifyOtp({email,token:e.target.elements.token.value.trim(),type:"email"}),12000,"Code verification timed out.");
+  if(error){fail(error);return}message("");await check();
+ }catch(err){fail(err)}finally{b.disabled=false}
+};
 $("changeEmail").onclick=()=>{email="";show("login")};
-async function logout(){await client.auth.signOut();staff=null;mfaVerified=false;mfaEnrollment=null;message("Signed out.");show("login")}
+async function logout(){
+ try{
+  const {error}=await withTimeout(client.auth.signOut(),12000,"Sign-out timed out; the browser session may still be active.");
+  if(error)throw error;
+  staff=null;mfaVerified=false;mfaEnrollment=null;$("resetArea").hidden=true;message("Signed out.");show("login");
+ }catch(err){fail(err)}
+}
 $("signOut").onclick=logout;$("lockedSignOut").onclick=logout;
 $("refresh").onclick=loadRequests;
 $("createTest").onclick=async()=>{if(!confirm("Create a fictional test request in the protected database?"))return;const b=$("createTest");b.disabled=true;const {error}=await client.rpc("submit_secure_request",{p_kind:"equipment",p_details:{demo:true,description:"Fictional equipment workflow security test; no real officer or property information."}});b.disabled=false;if(error)fail(error);else{message("Fictional request created in central database.");await loadRequests()}};
