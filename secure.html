@@ -21,7 +21,7 @@ button:disabled{opacity:.6;cursor:wait}.outline{background:#eaf2fa;color:#225881
 <header><div><strong>NIPD COMMAND</strong><small>Secure Access Foundation · Backend Preview</small></div><a href="./index.html">← Public design prototype</a></header>
 <main>
 <section class="panel"><div class="label">SECURE FOUNDATION</div><h1>Department access</h1><p>This area is backed by real authentication and database permissions. Access remains disabled until a system administrator provisions an account and assigns its department role.</p>
-<div class="notice"><b>Development environment — not approved for official personnel records.</b> Do not enter real timesheet, personnel, equipment or leave data. The existing modules remain fictional demonstrations. MFA, operational policy validation, security testing and department authorization are required before production use.</div>
+<div class="notice"><b>Development environment — not approved for official personnel records.</b> Do not enter real timesheet, personnel, equipment or leave data. The existing modules remain fictional demonstrations. MFA, authentication redirects, operational policy validation, security testing and department authorization require verification before production use.</div>
 <div id="feedback" role="status" aria-live="polite"></div>
 <div id="loading">Checking secure connection…</div>
 <form id="login" hidden><label class="field">Approved account email <input name="email" type="email" required autocomplete="email" maxlength="200" placeholder="Your authorized department account"></label><button type="submit">Send secure sign-in email</button></form>
@@ -49,7 +49,7 @@ async function check(){
   staff=r.data;
   if(!staff?.enabled){show("notProvisioned");return}
   $("identity").textContent=staff.display_label;
-  $("scope").textContent=staff.rank+" · "+staff.division+" · verified database access";
+  $("scope").textContent=staff.rank+" · "+staff.division+" · enabled test access · permissions determined by database";
   show("portal");await loadRequests();
  }catch(e){fail(e);show("login")}
 }
@@ -59,13 +59,13 @@ async function loadRequests(){
  if(error){fail(error);list.replaceChildren();return}
  list.replaceChildren();
  if(!data?.length){list.append(el("p","No accessible protected requests. Records are not shared unless database authorization permits."));return}
- const {data:{user}}=await client.auth.getUser();
+ const {data:{user},error:userError}=await client.auth.getUser();if(userError||!user){message("Your session is no longer valid. Please sign in again.",true);show("login");return}
  for(const r of data){const card=el("article","");card.className="record";const info=el("div","");info.append(el("strong",r.kind+" · "+r.stage),el("small",r.division+" · "+new Date(r.created_at).toLocaleString()),el("small",r.id));card.append(info);
  if(r.owner_id!==user.id&&!["approved","denied","returned","policy_hold"].includes(r.stage)){
  const buttons=el("div","");buttons.className="row";
  for(const [action,title] of [["approve","Approve"],["return","Return"],["deny","Deny"]]){
  const b=el("button",title);b.className=action==="approve"?"":"outline";
- b.onclick=async()=>{const reason=action==="approve"?null:prompt("Required fictional reason for "+action+":");if(action!=="approve"&&!reason?.trim())return;if(!confirm("Perform server-verified "+action+" on this fictional record?"))return;b.disabled=true;const {error,result}=await client.rpc("decide_secure_request",{p_request_id:r.id,p_action:action,p_reason:reason});if(error)fail(error);else{message("Protected decision recorded.");await loadRequests()}b.disabled=false};
+ b.onclick=async()=>{const reason=action==="approve"?null:prompt("Required fictional reason for "+action+":");if(action!=="approve"&&!reason?.trim())return;if(!confirm("Perform server-verified "+action+" on this fictional record?"))return;b.disabled=true;const {error}=await client.rpc("decide_secure_request",{p_request_id:r.id,p_action:action,p_reason:reason});if(error)fail(error);else{message("Protected decision recorded.");await loadRequests()}b.disabled=false};
  buttons.append(b)
  }card.append(buttons)
  }else card.append(el("span",r.owner_id===user.id?"Own request":r.stage));
