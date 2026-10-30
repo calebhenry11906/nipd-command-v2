@@ -79,7 +79,7 @@ function conflict(r){
  return issues;
 }
 function claim(r){
- if(r.cancelled||occupied(r)){alert("This detail is no longer available.");return}
+ if(r.cancelled||occupied(r)||r.date<iso(new Date())){alert("This detail is no longer available for pickup.");return}
  if(r.assigned.includes(employee)){alert("Already claimed by this demo officer.");return}
  const issues=conflict(r);if(issues.length){alert("Cannot claim: overlapping demo assignment on "+issues.map(x=>human(x.date)).join(", "));return}
  if(!confirm("Claim "+r.location+" ("+r.type+") on "+human(r.date)+" for "+employee+"? Scheduling Conflict Check Incomplete: regular shifts, leave and on-call eligibility are not verified."))return;
@@ -122,11 +122,11 @@ function editForm(id=null){
  if(rows.some(x=>x.id!==id&&x.date===candidate.date&&x.type===candidate.type&&x.start===candidate.start&&x.location===candidate.location)){alert("Duplicate detail: matching date, type, location and start time.");return}
  hist(candidate,id?"Detail edited (demo)":"Detail created (demo)");let old=rows.slice();if(id)rows=rows.map(x=>x.id===id?candidate:x);else rows.push(candidate);
  if(!save()){rows=old;return}closeModal();notice="Detail saved locally.";render()};
- if(id){const actions=$("sdAdminActions");for(const [label,fn] of [["Cancel Detail",()=>{if(!confirm("Cancel this demo detail and release all assignments?"))return;r.cancelled=true;r.assigned=[];hist(r,"Detail cancelled");save();closeModal();render()}],["Assign Demo Officer",()=>assign(r)]]){let b=document.createElement("button");b.className="sd-outline";b.textContent=label;b.onclick=fn;actions.append(b)}}
+ if(id){const actions=$("sdAdminActions");for(const [label,fn] of [["Cancel Detail",()=>{if(!confirm("Cancel this demo detail and release all assignments?"))return;r.cancelled=true;r.assigned=[];hist(r,"Detail cancelled");save();closeModal();render()}],["Assign Demo Officer",()=>assign(r)],["Remove Assigned Officer",()=>{if(!r.assigned.length){alert("No officers assigned.");return}const person=prompt("Which fictional officer should be removed?\n"+r.assigned.join("\n"),r.assigned[0]);if(person===null)return;if(!r.assigned.includes(person)){alert("That officer is not assigned.");return}if(!confirm("Remove "+person+" from this detail?"))return;r.assigned=r.assigned.filter(x=>x!==person);hist(r,"Administrator preview removed "+person);save();closeModal();render()}]]){let b=document.createElement("button");b.className="sd-outline";b.textContent=label;b.onclick=fn;actions.append(b)}}
 }
 function assign(r){
  const person=prompt("Enter one of these fictional demo officers:\n"+PEOPLE.join("\n"),employee);if(person===null)return;if(!PEOPLE.includes(person)){alert("Choose a listed fictional officer.");return}
- if(r.assigned.includes(person)||occupied(r)){alert("No free position for that officer.");return}
+ if(r.assigned.includes(person)||occupied(r)||r.cancelled){alert("No free position for that officer.");return}
  const before=employee;employee=person;const collisions=conflict(r);employee=before;
  if(collisions.length){alert("Overlapping demo security detail for "+person);return}
  if(!confirm("Manually assign "+person+"? Patrol and leave schedules are not verified."))return;
@@ -165,8 +165,7 @@ function administration(){
  $("sdCreate").onclick=()=>editForm();$("sdTemplate").onclick=template;
  $("sdReset").onclick=()=>{if(!confirm("Restore the original fictional November schedule and erase all local edits, uploads and claims?"))return;rows=seed();save();notice="Demo schedule reset.";render()};
  $("sdCsv").onchange=async e=>{const file=e.target.files[0];if(!file)return;if(file.size>300000){alert("Maximum CSV size 300 KB.");return}csvPreview(await file.text())};
- const list=$("sdAdminList");list.innerHTML=rows.filter(r=>r.date.startsWith("2026-11")).slice(0,20).map(r=>'<button class="sd-adminrow" data-edit="'+esc(r.id)+'">'+human(r.date)+' · '+esc(r.type)+' · '+esc(status(r))+'</button>').join("")+'<p class="sd-muted">Showing first 20 November records. Imported dates are available in the calendar.</p>';
- list.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>editForm(b.dataset.edit));
+ const list=$("sdAdminList");list.innerHTML='<label>Find assignments<input type="search" id="sdAdminSearch" placeholder="Date, location or type"></label><div id="sdAdminMatches"></div>';const updateAdmin=()=>{const q=$("sdAdminSearch").value.toLowerCase().trim();const matches=rows.filter(r=>[r.date,r.location,r.type,...r.assigned].join(" ").toLowerCase().includes(q)).sort((a,b)=>a.date.localeCompare(b.date));$("sdAdminMatches").innerHTML=matches.slice(0,75).map(r=>'<button class="sd-adminrow" data-edit="'+esc(r.id)+'">'+human(r.date)+' · '+esc(r.type)+' · '+esc(status(r))+'</button>').join("")+'<p class="sd-muted">'+matches.length+' matching records'+(matches.length>75?' — refine search to view more':'')+'</p>';$("sdAdminMatches").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>editForm(b.dataset.edit))};$("sdAdminSearch").oninput=updateAdmin;updateAdmin();
 }
 function mount(){
  const base=navigate,target=$("module");if(!target)return;
