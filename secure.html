@@ -31,6 +31,7 @@ button:disabled{opacity:.6;cursor:wait}.outline{background:#eaf2fa;color:#225881
 </section>
 </main>
 <script>
+window.__nipdAuthStep="Loading authentication library";
 (function(){
   const loading=document.getElementById("loading");
   const watchdog=setTimeout(function(){
@@ -39,7 +40,7 @@ button:disabled{opacity:.6;cursor:wait}.outline{background:#eaf2fa;color:#225881
     const heading=document.createElement("p");
     heading.textContent="Secure connection could not finish. Your account has not been changed.";
     const detail=document.createElement("p");
-    detail.textContent="The sign-in page may be unable to load its authentication library or reach Supabase. Try again, or report this message to the app administrator.";
+    detail.textContent="Last connection step: "+(window.__nipdAuthStep||"Unknown")+". Please report this step to the app administrator; do not share sign-in codes or invitation links.";
     const retry=document.createElement("button");
     retry.type="button";retry.textContent="Retry secure connection";
     retry.addEventListener("click",function(){location.reload()});
@@ -52,6 +53,7 @@ button:disabled{opacity:.6;cursor:wait}.outline{background:#eaf2fa;color:#225881
 <script type="module">
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2.58.0";
 const url="https://czdrsblgwmovhoznlxvm.supabase.co",publishable="sb_publishable_6qhGc7WuKaCRH5yfmQ787w_YB-VEfn5";
+window.__nipdAuthStep="Initializing Supabase client";
 const client=createClient(url,publishable,{auth:{detectSessionInUrl:true,autoRefreshToken:true,persistSession:true}});
 const $=id=>document.getElementById(id),el=(t,x)=>{const n=document.createElement(t);n.textContent=x;return n};
 const withTimeout=(promise,ms,label)=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error(label)),ms))]);
@@ -71,15 +73,18 @@ const message=(txt,error=false)=>{$("feedback").textContent=txt;$("feedback").cl
 const fail=err=>message(err?.message||"Unable to complete that action.",true);
 async function check(){
  show("loading");
+ window.__nipdAuthStep="Verifying saved session";
  try{
   const {data:{user},error}=await withTimeout(client.auth.getUser(),12000,"Session verification timed out. Close other NIPD Command tabs, then reload this page.");
   if(error||!user){if(error)fail(error);show("login");return}
-  const r=await client.from("staff_access").select("user_id,display_label,division,rank,enabled").eq("user_id",user.id).maybeSingle();
+  window.__nipdAuthStep="Loading authorized staff profile";
+  const r=await withTimeout(client.from("staff_access").select("user_id,display_label,division,rank,enabled").eq("user_id",user.id).maybeSingle(),12000,"Staff profile request timed out. The signed-in session was not changed.");
   if(r.error){fail(r.error);show("notProvisioned");return}
   staff=r.data;
   if(!staff?.enabled){show("notProvisioned");return}
   $("identity").textContent=staff.display_label;
   $("scope").textContent=staff.rank+" · "+staff.division+" · enabled test access · permissions determined by database";
+  window.__nipdAuthStep="Signed in; checking multifactor status";
   show("portal");await updateMfa();await loadRequests();
  }catch(e){fail(e);show("login")}
 }
