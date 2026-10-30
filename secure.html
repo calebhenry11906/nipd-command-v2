@@ -54,6 +54,17 @@ import {createClient} from "https://esm.sh/@supabase/supabase-js@2.58.0";
 const url="https://czdrsblgwmovhoznlxvm.supabase.co",publishable="sb_publishable_6qhGc7WuKaCRH5yfmQ787w_YB-VEfn5";
 const client=createClient(url,publishable,{auth:{detectSessionInUrl:true,autoRefreshToken:true,persistSession:true}});
 const $=id=>document.getElementById(id),el=(t,x)=>{const n=document.createElement(t);n.textContent=x;return n};
+const withTimeout=(promise,ms,label)=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error(label)),ms))]);
+const signInError=()=>{
+  const hash=new URLSearchParams(location.hash.startsWith("#")?location.hash.slice(1):"");
+  const query=new URLSearchParams(location.search);
+  if(!hash.has("error")&&!query.has("error"))return false;
+  const clean=new URL(location.href);
+  for(const k of ["error","error_code","error_description"])clean.searchParams.delete(k);
+  clean.hash="";
+  history.replaceState(null,"",clean.pathname+clean.search);
+  return true;
+};
 let email="",staff=null,mfaVerified=false,mfaEnrollment=null;
 const show=(id)=>{for(const x of ["loading","login","verify","notProvisioned","portal"])$(x).hidden=x!==id};
 const message=(txt,error=false)=>{$("feedback").textContent=txt;$("feedback").classList.toggle("error",error)};
@@ -61,8 +72,8 @@ const fail=err=>message(err?.message||"Unable to complete that action.",true);
 async function check(){
  show("loading");
  try{
-  const {data:{user},error}=await client.auth.getUser();
-  if(error||!user){show("login");return}
+  const {data:{user},error}=await withTimeout(client.auth.getUser(),12000,"Session verification timed out. Close other NIPD Command tabs, then reload this page.");
+  if(error||!user){if(error)fail(error);show("login");return}
   const r=await client.from("staff_access").select("user_id,display_label,division,rank,enabled").eq("user_id",user.id).maybeSingle();
   if(r.error){fail(r.error);show("notProvisioned");return}
   staff=r.data;
@@ -137,5 +148,10 @@ async function logout(){await client.auth.signOut();staff=null;mfaVerified=false
 $("signOut").onclick=logout;$("lockedSignOut").onclick=logout;
 $("refresh").onclick=loadRequests;
 $("createTest").onclick=async()=>{if(!confirm("Create a fictional test request in the protected database?"))return;const b=$("createTest");b.disabled=true;const {error}=await client.rpc("submit_secure_request",{p_kind:"equipment",p_details:{demo:true,description:"Fictional equipment workflow security test; no real officer or property information."}});b.disabled=false;if(error)fail(error);else{message("Fictional request created in central database.");await loadRequests()}};
-await check();
+if(signInError()){
+ show("login");
+ message("This email invitation or sign-in link has already been used or has expired. It cannot be reused. Request a new sign-in link only if you need a new session.",true);
+}else{
+ await check();
+}
 </script></body></html>
