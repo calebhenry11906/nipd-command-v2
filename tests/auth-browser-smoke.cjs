@@ -98,6 +98,20 @@ async function run(){
    assert.equal(await page.locator("#loading").isHidden(),true);
    await ctx.close();
   });
+  await check("published GitHub Pages serves repaired secure HTML",async()=>{
+   const response=await fetch("https://calebhenry11906.github.io/nipd-command-v2/secure.html?check=auth-v2108",{signal:AbortSignal.timeout(15000)});
+   assert.equal(response.status,200);
+   const deployed=await response.text();
+   assert.match(deployed,/@supabase\/supabase-js@2\.108\.0/);
+   assert.match(deployed,/Reset this browser sign-in/);
+  });
+  await check("published secure page opens login with a fresh browser",async()=>{
+   const ctx=await browser.newContext();const page=await ctx.newPage();
+   await page.goto("https://calebhenry11906.github.io/nipd-command-v2/secure.html?smoke=20261030");
+   await page.waitForFunction(()=>!document.querySelector("#login").hidden,null,{timeout:30000});
+   assert.equal(await page.locator("#portal").isHidden(),true);
+   await ctx.close();
+  });
  }finally{await browser.close()}
 }
 run().then(()=>server.close(),e=>{console.error(e);server.close();process.exitCode=1});
