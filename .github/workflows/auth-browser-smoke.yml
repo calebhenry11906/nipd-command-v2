@@ -1,0 +1,25 @@
+name: Secure access browser smoke tests
+on:
+  push:
+    paths:
+      - secure.html
+      - tests/auth-browser-smoke.cjs
+      - .github/workflows/auth-browser-smoke.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  chromium-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned browser test tools
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Test the secure login UI with fictional mocked sessions
+        run: node tests/auth-browser-smoke.cjs
