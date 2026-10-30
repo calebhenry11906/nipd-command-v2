@@ -1,0 +1,70 @@
+(()=>{
+"use strict";
+const PEOPLE=[
+["Brandon Williams","Chief","—","Command"],["Leland Laseter","Captain","102","Command"],["Tyler Sohm","Lieutenant","206","Administration"],["Stoney Penn","Lieutenant","201","Oversight"],["Roland Lege","Lieutenant","205","Traffic"],
+["Caleb Henry","Sergeant","301","Alpha"],["Ross Fontenette","Corporal","401","Alpha"],["Caleb McMath","Corporal","410","Alpha"],["Destiny Ledet","Corporal","407","Alpha"],["Darian Charles","Officer","416","Alpha"],
+["Marek Mason","Sergeant","302","Bravo"],["Chad Gaudet","Corporal","403","Bravo"],["Ty Melancon","Officer","413","Bravo"],["Spencer Pete","Officer","417","Bravo"],
+["Daniel Ellis III","Sergeant","304","Charlie"],["David Faircloth","Corporal","402","Charlie"],["Brittni Hernandez","Corporal","408","Charlie"],["Rashad Wilson","Corporal","412","Charlie"],
+["Alexander Dauphin","Sergeant","303","Delta"],["Seth Tsitso","Corporal","404","Delta"],["Heather Davis","Corporal","414","Delta"],["Liam Rivers-Kidd","Officer","415","Delta"],
+["Gary Talley","Corporal","405","Traffic"],["Christopher Mouton II","Sergeant","306","Direct Patrol"],["Jacob Russo","Officer","406","Direct Patrol"],["Caleb Champagne","Officer","411","School Resource"],["Bryan Trahan","Corporal","501","Transportation"],["Jacob Green","Officer","419","Academy"],["Trystan Riddle","Officer","418","Academy"],["Maddie Bergeron","Officer","420","FTO"],["Raymond Belcher IV","Officer","421","FTO"],["David Hulin","Officer","422","FTO"],["Jacquelin Olivier","Records Clerk","—","Records"],["Marisa Townsend","Records Clerk","—","Records"],["Hajj Green","Corporal","409","Leave / Modified Duty"]
+].map(([name,rank,radio,unit],i)=>({id:"person-"+i,name,rank,radio,unit,training:unit==="FTO"?"FTO":"",phase:"",trainer:"",status:unit==="FTO"?"In Training":"",notes:""}));
+const KEY="nipd_v2_shift_assignments_demo_20261029";
+const UNITS=["Alpha","Bravo","Charlie","Delta","Traffic","Direct Patrol","School Resource","Transportation","Academy","FTO","IPT","Records","Leave / Modified Duty","Command","Administration","Oversight"];
+const CAPACITY={Alpha:[2,1],Bravo:[2,1],Charlie:[2,1],Delta:[1,1],Transportation:[0,1]};
+const PERIOD={Alpha:"Days · 0545–1745",Bravo:"Nights · 1745–0545",Charlie:"Days · 0545–1745",Delta:"Nights · 1745–0545"};
+let data=PEOPLE.map(x=>({...x})),search="",unitFilter="All",view="All";
+try{const v=JSON.parse(localStorage.getItem(KEY)||"null");if(Array.isArray(v)&&v.every(x=>x&&typeof x.id==="string"&&typeof x.name==="string"))data=v}catch(e){}
+const byId=id=>document.getElementById(id);
+const safe=s=>String(s??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+const counts=(u)=>data.filter(p=>p.unit===u).length;
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(data));return true}catch(e){alert("Unable to save browser-only data.");return false}};
+function shell(){
+ const root=byId("assignmentRoot");if(!root)return;
+ root.innerHTML='<div class="assign-caution">PUBLIC PROTOTYPE: This roster is visible to anyone who opens this GitHub Pages website. Do not enter confidential personnel details, actual training evaluations, investigative data, or private operational schedules. Edits are stored in this browser only, and the role selector does not enforce access permissions.</div><div class="assign-hero"><div><h2>Patrol Division — Shift Assignments</h2><p>Chain of command, unit assignments, radio call numbers, IPT and field training.</p></div><div class="assign-actions"><button id="assignAdd" class="assign-button">+ Add Record</button><button id="assignReset" class="assign-button quiet">Reset Local Changes</button></div></div><div class="assign-summary" id="assignSummary"></div><div class="assign-chain"><div><small>CHIEF OF POLICE</small><strong>Brandon Williams</strong></div><div><small>PATROL CAPTAIN</small><strong>Leland Laseter · 102</strong></div><div><small>ADMINISTRATIVE LIEUTENANT</small><strong>Tyler Sohm · 206</strong></div><div><small>CHARLIE / DELTA OVERSIGHT</small><strong>Stoney Penn · 201</strong></div><div><small>TRAFFIC SUPERVISOR</small><strong>Roland Lege · 205</strong></div></div><div class="assign-panel"><div class="assign-tabs"><button data-assign-view="All">All Units</button><button data-assign-view="IPT">Initial Phase Training (IPT)</button><button data-assign-view="FTO">Field Training (FTO)</button></div><div class="assign-filter"><input type="search" id="assignSearch" aria-label="Search employees" placeholder="Search name, rank, radio number..."><select id="assignUnit" aria-label="Filter by unit"><option>All</option>'+UNITS.map(x=>'<option>'+safe(x)+'</option>').join("")+'</select></div></div><div class="assign-groups" id="assignGroups"></div><div class="assign-note">Open and vacant positions are separate from filled positions. Training entries do not automatically count as independently deployable staffing. Employee changes are browser-only demonstrations.</div>';
+ byId("assignAdd").onclick=()=>edit(null);
+ byId("assignReset").onclick=()=>{if(confirm("Discard all local assignment edits and restore the supplied roster?")){data=PEOPLE.map(x=>({...x}));try{localStorage.removeItem(KEY)}catch(e){};render()}};
+ byId("assignSearch").oninput=e=>{search=e.target.value;renderGroups()};
+ byId("assignUnit").onchange=e=>{unitFilter=e.target.value;renderGroups()};
+ root.querySelectorAll("[data-assign-view]").forEach(b=>b.onclick=()=>{view=b.dataset.assignView;renderGroups()});
+ renderGroups();
+}
+function render(){shell();byId("assignSearch").value=search;byId("assignUnit").value=unitFilter;renderGroups()}
+function metric(label,value){return '<div class="assign-metric"><b>'+safe(value)+'</b><span>'+safe(label)+'</span></div>'}
+function renderGroups(){
+ const root=byId("assignmentRoot");if(!root)return;
+ byId("assignSummary").innerHTML=metric("Personnel",data.length)+metric("Alpha–Delta",["Alpha","Bravo","Charlie","Delta"].reduce((n,u)=>n+counts(u),0))+metric("IPT",data.filter(x=>x.training==="IPT").length)+metric("FTO",data.filter(x=>x.training==="FTO").length)+metric("Open Positions",Object.values(CAPACITY).reduce((n,x)=>n+x[0],0))+metric("Vacant Positions",Object.values(CAPACITY).reduce((n,x)=>n+x[1],0));
+ root.querySelectorAll("[data-assign-view]").forEach(b=>b.classList.toggle("selected",b.dataset.assignView===view));
+ const list=data.filter(p=>(view==="All"||p.training===view)&&(unitFilter==="All"||p.unit===unitFilter)&&[p.name,p.rank,p.radio,p.unit,p.training].join(" ").toLowerCase().includes(search.toLowerCase()));
+ const groups=view==="All"?UNITS:[view];
+ const container=byId("assignGroups");container.replaceChildren();
+ for(const group of groups){
+  const matches=view==="All"?list.filter(x=>x.unit===group):list;
+  if(!matches.length&&!((view==="All"&&unitFilter==="All")&&CAPACITY[group]))continue;
+  const card=document.createElement("section");card.className="assign-card";
+  const header=document.createElement("div");header.className="assign-card-head";
+  const ttl=document.createElement("div");const title=document.createElement("h3");title.textContent=view==="All"?group:view==="IPT"?"Initial Phase Training (IPT)":"Field Training (FTO)";
+  const sub=document.createElement("p");sub.textContent=view!=="All"?"No phase/trainer assigned unless explicitly entered.":PERIOD[group]||({Charlie:"Lt. Stoney Penn oversees",Delta:"Lt. Stoney Penn oversees",Traffic:"Lt. Roland Lege supervises"}[group]||"Department unit");
+  ttl.append(title,sub);const badge=document.createElement("span");badge.className="assign-badge";badge.textContent=matches.length+" listed";header.append(ttl,badge);card.append(header);
+  for(const p of matches){const row=document.createElement("button");row.type="button";row.className="assign-person";const info=document.createElement("span");info.innerHTML='<b>'+safe(p.name)+'</b><small>'+safe(p.rank)+(p.training?" · "+safe(p.training)+(p.phase?" · "+safe(p.phase):""):"")+'</small>';const radio=document.createElement("strong");radio.textContent=p.radio==="—"?"No radio":p.radio;row.append(info,radio);row.onclick=()=>detail(p.id);card.append(row)}
+  if(view==="All"&&CAPACITY[group]){const [open,vacant]=CAPACITY[group];const positions=document.createElement("div");positions.className="assign-positions";positions.textContent=(open?"OPEN: "+open+"   ":"")+(vacant?"VACANT: "+vacant:"");card.append(positions)}
+  if(view!=="All"&&!matches.length){const no=document.createElement("p");no.className="assign-empty";no.textContent="No employees currently assigned to "+view+".";card.append(no)}
+  container.append(card);
+ }
+ if(!container.children.length){const empty=document.createElement("div");empty.className="assign-empty";empty.textContent="No personnel match your filters.";container.append(empty)}
+}
+function close(){byId("assignDialog").classList.remove("shown");byId("assignDialog").replaceChildren()}
+function detail(id){const p=data.find(q=>q.id===id);if(!p)return;const host=byId("assignDialog");host.classList.add("shown");host.innerHTML='<div class="assign-modal"><header><h2>'+safe(p.name)+'</h2><button id="assignClose" class="assign-button quiet">Close</button></header><dl><dt>Rank</dt><dd>'+safe(p.rank)+'</dd><dt>Radio Call</dt><dd>'+safe(p.radio||"Not listed")+'</dd><dt>Assignment</dt><dd>'+safe(p.unit)+'</dd><dt>Training</dt><dd>'+safe(p.training||"Not classified")+'</dd><dt>Phase</dt><dd>'+safe(p.phase||"Not specified")+'</dd><dt>Trainer</dt><dd>'+safe(p.trainer||"Not assigned")+'</dd><dt>Status</dt><dd>'+safe(p.status||"Not specified")+'</dd></dl><div class="assign-actions"><button class="assign-button" id="assignEdit">Edit Demo Record</button></div></div>';byId("assignClose").onclick=close;byId("assignEdit").onclick=()=>edit(p.id)}
+function field(name,value,label){return '<label>'+label+'<input name="'+name+'" value="'+safe(value||"")+'" maxlength="150"'+(name==="name"?" required":"")+'></label>'}
+function edit(id){const p=data.find(q=>q.id===id)||{name:"",rank:"Officer",radio:"",unit:"Alpha",training:"",phase:"",trainer:"",status:""};const host=byId("assignDialog");host.classList.add("shown");host.innerHTML='<div class="assign-modal"><header><h2>'+(id?"Edit Demo Record":"Add Demo Personnel")+'</h2><button type="button" class="assign-button quiet" id="assignClose">Close</button></header><p class="assign-note">This edit only affects this browser. No real account permissions are active.</p><form id="assignForm"><div class="assign-form">'+field("name",p.name,"Employee name")+field("rank",p.rank,"Rank")+field("radio",p.radio==="—"?"":p.radio,"Radio call")+ '<label>Unit<select name="unit">'+UNITS.map(u=>'<option'+(p.unit===u?" selected":"")+'>'+safe(u)+'</option>').join("")+'</select></label><label>Training<select name="training">'+["","IPT","FTO"].map(u=>'<option value="'+u+'"'+(p.training===u?" selected":"")+'>'+(u||"None")+'</option>').join("")+'</select></label>'+field("phase",p.phase,"Training phase")+field("trainer",p.trainer,"Trainer (demo only)")+field("status",p.status,"Training status")+'</div><div class="assign-actions"><button type="submit" class="assign-button">Save Changes</button><button type="button" class="assign-button quiet" id="assignCancel">Cancel</button></div></form></div>';byId("assignClose").onclick=close;byId("assignCancel").onclick=close;byId("assignForm").onsubmit=e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target).entries());f.name=f.name.trim();f.radio=f.radio.trim();if(!f.name)return;if(f.radio&&data.some(q=>q.id!==id&&q.radio===f.radio)){alert("Duplicate radio call number "+f.radio+". Review the existing assignment before saving.");return}const previous=data.slice();if(id)data=data.map(q=>q.id===id?{...q,...f}:q);else data=[...data,{...f,id:"demo-"+Date.now()}];if(!save()){data=previous;return}close();render()}}
+function mount(){
+ const module=byId("module");if(!module)return;module.insertAdjacentHTML("afterend",'<section id="assignmentRoot" class="assign-root"></section><div id="assignDialog" class="assign-overlay" role="dialog" aria-modal="true"></div>');
+ const old=navigate;
+ navigate=function(id){if(id==="schedule"){old(id);byId("module").classList.remove("active");byId("assignmentRoot").classList.add("active");byId("title").textContent="Shift Assignments";byId("subtitle").textContent="Personnel assignments, training and radio calls";byId("topAction").textContent="← Dashboard";render()}else{byId("assignmentRoot").classList.remove("active");old(id)}};
+ const item=modules.find(m=>m.id==="schedule");if(item){item.name="Shift Assignments";item.desc="Personnel, training and unit assignments"}
+ document.querySelectorAll("[data-nav='schedule'] .navText").forEach(x=>x.textContent="Shift Assignments");
+ document.querySelectorAll("[data-nav='schedule']").forEach(x=>{if(!x.querySelector(".navText")){const spans=x.querySelectorAll("span");if(spans.length===1)spans[0].textContent="Shift Assignments"}});
+ document.querySelectorAll(".tile").forEach(x=>{if(x.querySelector("strong")?.textContent==="Scheduling"){x.querySelector("strong").textContent="Shift Assignments";x.querySelector("small").textContent="Personnel, training and unit assignments"}});
+ byId("assignDialog").addEventListener("click",e=>{if(e.target===byId("assignDialog"))close()});document.addEventListener("keydown",e=>{if(e.key==="Escape")close()});
+}
+mount();
+})();
