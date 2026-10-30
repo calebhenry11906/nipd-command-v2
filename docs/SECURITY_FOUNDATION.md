@@ -82,7 +82,7 @@ The existing Supabase project was hardened; **no real staff accounts or records 
 - `public.access_change_audit`: database triggers record insert/update/delete changes to staff access, supervisory assignments and approval authority. Application roles have no direct table grants. **These triggers do not by themselves provide independently tamper-proof audit storage.**
 - `public.staff_access`: disabled accounts are excluded from RLS reads, even for previously owned requests.
 - `public.submit_secure_request`: only explicitly labeled fictional `demo:true` requests are accepted. **Do not enter any real operational text even inside a demo-marked record.**
-- `public.decide_secure_request`: uses current database authorization checks; self-approval, out-of-scope reviews and duplicate stage approvals are blocked. The Records & Maintenance same-person equipment path remains at policy hold.
+- `public.decide_secure_request`: uses current database authorization checks and requires Supabase MFA assurance level `aal2`; self-approval, out-of-scope reviews and duplicate stage approvals are blocked. The Records & Maintenance same-person equipment path remains at policy hold.
 
 ### Verified database results (October 30, 2026)
 
@@ -96,7 +96,7 @@ The existing Supabase project was hardened; **no real staff accounts or records 
 | Authenticated direct staff-access UPDATE permission | Denied |
 | Authenticated direct approval-event UPDATE permission | Denied |
 | End-to-end email login and verification | **Not tested — no test users** |
-| MFA enrollment and enforcement | **Not configured/tested** |
+| MFA enrollment and server-side approval assurance | **Implemented; no live-account validation yet** |
 | Officer, Corporal, Sergeant, Lieutenant, Captain, Chief authorization scenarios | **Not tested — controlled identities required** |
 | Concurrent approval collision testing | **Not tested** |
 | Disabled-account session/token revocation | **Not tested** |
@@ -131,3 +131,17 @@ values ('VERIFIED-TEST-CAPTAIN-UUID','Patrol','commander',true);
 - Existing Leave, Equipment, Security Details and Timesheets screens remain **local-browser demonstrations** and are **not connected to the protected workflow**.
 - The secure portal is a minimal foundation preview, not a complete authenticated production workforce interface.
 - No real departmental records or approval signatures should be entered; **production remains No-Go**.
+
+
+### MFA implementation note
+
+The secure portal now includes TOTP authenticator enrollment and code verification, and the database denies protected approval decisions unless the authenticated JWT contains `aal2`. This is a code/schema-level implementation **not yet tested with a real authenticated user**. Before any pilot, configure the Supabase Auth settings, register controlled test identities, and verify both the expected denied `aal1` action and successful authorized `aal2` action with audit evidence. Do not distribute TOTP recovery secrets in logs or screenshots.
+
+### Priority for next controlled test
+
+1. Configure authentication redirect URL and email templates in the [Supabase project settings](https://supabase.com/dashboard/project/czdrsblgwmovhoznlxvm/auth/url-configuration).
+2. Use an approved fictional test mailbox and provision a disabled profile, then verify denied access; enable it only after explicit administrator approval.
+3. Enroll an authenticator and demonstrate an approval attempt rejected at `aal1`, then accepted at `aal2` **only** for an explicitly scoped, non-self reviewer.
+4. Use two separate authorized browser sessions to test concurrent approvals; verify exactly one stage transition and one approval event per stage.
+5. Verify demotion, revocation, expired delegation, transferred employee and disabled-account access immediately after the change.
+6. Perform an independent security review and test full audit retention and backup restore before any real departmental workflow.
