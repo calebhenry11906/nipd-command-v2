@@ -27,7 +27,7 @@ button:disabled{opacity:.6;cursor:wait}.outline{background:#eaf2fa;color:#225881
 <form id="login" hidden><label class="field">Approved account email <input name="email" type="email" required autocomplete="email" maxlength="200" placeholder="Your authorized department account"></label><button type="submit">Send secure sign-in email</button></form>
 <form id="verify" hidden><label class="field">Email verification code (if your email contains one)<input name="token" type="text" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="12" required placeholder="Enter the code you received"></label><div class="row"><button type="submit">Verify and sign in</button><button type="button" class="outline" id="changeEmail">Change email</button></div></form>
 <div id="notProvisioned" hidden><p>You have authenticated, but this account is not enabled for department access. Contact an authorized administrator. No operational data is accessible.</p><button id="lockedSignOut" class="outline">Sign out</button></div>
-<div id="portal" hidden><div class="row"><div><h2 id="identity"></h2><p id="scope"></p></div><button id="signOut" class="outline">Sign out</button></div><div class="notice">Approval records below are for testing with fictional examples only. Authentication confirms your identity, but department use still requires policy, MFA and security validation.</div><div class="row"><h2>Protected request records</h2><button id="refresh" class="outline">Refresh</button></div><div id="requestList"></div><div class="row"><h2>Test database workflow</h2><button id="createTest">Create fictional equipment test</button></div><p class="muted">This test writes a fictional example to the central database and uses real server-enforced approval permissions. It never represents an official request.</p></div>
+<div id="portal" hidden><div class="row"><div><h2 id="identity"></h2><p id="scope"></p></div><button id="signOut" class="outline">Sign out</button></div><div class="notice">Approval records below are for testing with fictional examples only. MFA verification is mandatory for protected decisions. Production use still requires security review and agency authorization.</div><section class="panel" id="mfaPanel" aria-label="Multifactor authentication"><h2>Authenticator verification</h2><p id="mfaStatus">Checking authentication assurance…</p><div id="mfaEnrollArea" hidden><p>Scan this QR code using an authenticator application, then enter its six-digit code to activate MFA for this account.</p><img id="mfaQr" alt="MFA authenticator enrollment QR code" style="width:min(200px,100%);height:auto"><p id="mfaSecret" class="muted"></p></div><div class="row"><button id="mfaEnroll" class="outline">Set up authenticator</button><button id="mfaVerify" class="outline">Verify authenticator code</button></div></section><div class="row"><h2>Protected request records</h2><button id="refresh" class="outline">Refresh</button></div><div id="requestList"></div><div class="row"><h2>Test database workflow</h2><button id="createTest">Create fictional equipment test</button></div><p class="muted">This test writes a fictional example to the central database and uses real server-enforced approval permissions. It never represents an official request.</p></div>
 </section>
 </main>
 <script type="module">
@@ -35,7 +35,7 @@ import {createClient} from "https://esm.sh/@supabase/supabase-js@2.58.0";
 const url="https://czdrsblgwmovhoznlxvm.supabase.co",publishable="sb_publishable_6qhGc7WuKaCRH5yfmQ787w_YB-VEfn5";
 const client=createClient(url,publishable,{auth:{detectSessionInUrl:true,autoRefreshToken:true,persistSession:true}});
 const $=id=>document.getElementById(id),el=(t,x)=>{const n=document.createElement(t);n.textContent=x;return n};
-let email="",staff=null;
+let email="",staff=null,mfaVerified=false,mfaEnrollment=null;
 const show=(id)=>{for(const x of ["loading","login","verify","notProvisioned","portal"])$(x).hidden=x!==id};
 const message=(txt,error=false)=>{$("feedback").textContent=txt;$("feedback").classList.toggle("error",error)};
 const fail=err=>message(err?.message||"Unable to complete that action.",true);
@@ -50,9 +50,48 @@ async function check(){
   if(!staff?.enabled){show("notProvisioned");return}
   $("identity").textContent=staff.display_label;
   $("scope").textContent=staff.rank+" · "+staff.division+" · enabled test access · permissions determined by database";
-  show("portal");await loadRequests();
+  show("portal");await updateMfa();await loadRequests();
  }catch(e){fail(e);show("login")}
 }
+async function updateMfa(){
+ try{
+  const {data,error}=await client.auth.mfa.getAuthenticatorAssuranceLevel();
+  if(error)throw error;
+  mfaVerified=data?.currentLevel==="aal2";
+  $("mfaStatus").textContent=mfaVerified?"MFA verified for this session. Protected approvals may be submitted.":"Additional verification required before approving any protected request.";
+  $("mfaEnroll").hidden=mfaVerified;
+  $("mfaVerify").hidden=mfaVerified;
+ }catch(e){mfaVerified=false;fail(e)}
+}
+$("mfaEnroll").onclick=async()=>{
+ const {data,error}=await client.auth.mfa.enroll({factorType:"totp",friendlyName:"NIPD Command Preview"});
+ if(error){fail(error);return}
+ mfaEnrollment=data;
+ $("mfaEnrollArea").hidden=false;
+ $("mfaQr").src=data.totp.qr_code;
+ $("mfaSecret").textContent="Manual setup key (keep private): "+data.totp.secret;
+ $("mfaStatus").textContent="Enter the current authenticator code using Verify authenticator code.";
+};
+$("mfaVerify").onclick=async()=>{
+ const code=prompt("Enter the current six-digit code from your authenticator app:");
+ if(code===null)return;
+ if(!/^\d{6}$/.test(code.trim())){message("Enter exactly six digits.",true);return}
+ let factorId=mfaEnrollment?.id;
+ if(!factorId){
+  const {data,error}=await client.auth.mfa.listFactors();
+  if(error){fail(error);return}
+  const factor=data?.totp?.find(x=>x.status==="verified");
+  factorId=factor?.id;
+ }
+ if(!factorId){message("Set up an authenticator first.",true);return}
+ const {error}=await client.auth.mfa.challengeAndVerify({factorId,code:code.trim()});
+ if(error){fail(error);return}
+ $("mfaEnrollArea").hidden=true;
+ $("mfaSecret").textContent="";
+ mfaEnrollment=null;
+ message("Authenticator verification succeeded.");
+ await updateMfa();await loadRequests();
+};
 async function loadRequests(){
  const list=$("requestList");list.replaceChildren(el("p","Loading verified records…"));
  const {data,error}=await client.from("secure_requests").select("id,kind,stage,division,created_at,owner_id").order("created_at",{ascending:false}).limit(25);
@@ -65,7 +104,7 @@ async function loadRequests(){
  const buttons=el("div","");buttons.className="row";
  for(const [action,title] of [["approve","Approve"],["return","Return"],["deny","Deny"]]){
  const b=el("button",title);b.className=action==="approve"?"":"outline";
- b.onclick=async()=>{const reason=action==="approve"?null:prompt("Required fictional reason for "+action+":");if(action!=="approve"&&!reason?.trim())return;if(!confirm("Perform server-verified "+action+" on this fictional record?"))return;b.disabled=true;const {error}=await client.rpc("decide_secure_request",{p_request_id:r.id,p_action:action,p_reason:reason});if(error)fail(error);else{message("Protected decision recorded.");await loadRequests()}b.disabled=false};
+ b.disabled=!mfaVerified;b.title=mfaVerified?"":"Verify MFA before approval";b.onclick=async()=>{if(!mfaVerified){message("MFA is required before approval.",true);return}const reason=action==="approve"?null:prompt("Required fictional reason for "+action+":");if(action!=="approve"&&!reason?.trim())return;if(!confirm("Perform server-verified "+action+" on this fictional record?"))return;b.disabled=true;const {error}=await client.rpc("decide_secure_request",{p_request_id:r.id,p_action:action,p_reason:reason});if(error)fail(error);else{message("Protected decision recorded.");await loadRequests()}b.disabled=false};
  buttons.append(b)
  }card.append(buttons)
  }else card.append(el("span",r.owner_id===user.id?"Own request":r.stage));
@@ -75,7 +114,7 @@ async function loadRequests(){
 $("login").onsubmit=async e=>{e.preventDefault();email=e.target.elements.email.value.trim();const b=e.target.querySelector("button");b.disabled=true;message("Requesting code…");const {error}=await client.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname}});b.disabled=false;if(error){fail(error);return}message("If the account is registered, check your inbox for a sign-in link or one-time code.");show("verify")};
 $("verify").onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector("button");b.disabled=true;const {error}=await client.auth.verifyOtp({email,token:e.target.elements.token.value.trim(),type:"email"});b.disabled=false;if(error){fail(error);return}message("");await check()};
 $("changeEmail").onclick=()=>{email="";show("login")};
-async function logout(){await client.auth.signOut();staff=null;message("Signed out.");show("login")}
+async function logout(){await client.auth.signOut();staff=null;mfaVerified=false;mfaEnrollment=null;message("Signed out.");show("login")}
 $("signOut").onclick=logout;$("lockedSignOut").onclick=logout;
 $("refresh").onclick=loadRequests;
 $("createTest").onclick=async()=>{if(!confirm("Create a fictional test request in the protected database?"))return;const b=$("createTest");b.disabled=true;const {error}=await client.rpc("submit_secure_request",{p_kind:"equipment",p_details:{demo:true,description:"Fictional equipment workflow security test; no real officer or property information."}});b.disabled=false;if(error)fail(error);else{message("Fictional request created in central database.");await loadRequests()}};
