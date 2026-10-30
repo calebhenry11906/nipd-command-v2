@@ -145,3 +145,15 @@ The secure portal now includes TOTP authenticator enrollment and code verificati
 4. Use two separate authorized browser sessions to test concurrent approvals; verify exactly one stage transition and one approval event per stage.
 5. Verify demotion, revocation, expired delegation, transferred employee and disabled-account access immediately after the change.
 6. Perform an independent security review and test full audit retention and backup restore before any real departmental workflow.
+
+### SMS phone MFA integration — October 30, 2026
+
+NIPD Command now presents **SMS as the preferred second-factor option** for protected approvals. The client-side preview uses the documented Supabase Auth Phone MFA APIs: `mfa.enroll({ factorType: "phone", phone })`, `mfa.challenge({ factorId })`, and `mfa.verify({ factorId, challengeId, code })`. It supports existing verified phone factors, a short resend cooldown, phone numbers in E.164 format, and displays only the last four digits after enrollment. The existing authenticator-app (TOTP) flow is still available as a backup.
+
+**Not activated:** This code change does not enable Supabase Advanced MFA Phone, select a paid Supabase plan, register a messaging provider, store phone numbers in project tables, or send any real SMS messages. Before using SMS, an authorized billing owner must explicitly approve the recurring Advanced MFA Phone charge (listed by Supabase as about $75/month for the first eligible paid-plan project) **plus** SMS provider charges, then configure Phone MFA and an SMS provider in Supabase Auth. Pricing and product availability must be rechecked before activation.
+
+The existing PostgreSQL authorization model is unchanged: protected decisions require an enabled, specifically authorized supervisor **and** a verified JWT `aal2`, regardless of whether the second factor was SMS or TOTP. Neither SMS delivery nor a browser button is evidence of authority to approve. For sensitive police operational information, complete an agency policy/CJIS review of the chosen factor and messaging provider before any production use.
+
+References: [Supabase Phone MFA](https://supabase.com/docs/guides/auth/auth-mfa/phone), [Advanced MFA Phone pricing](https://supabase.com/docs/guides/platform/manage-your-usage/advanced-mfa-phone).
+
+**Testing gate:** Automated fake-session browser tests may verify the UI without using real phone numbers or sending texts. A separate authorized live test must prove actual SMS delivery, code verification, `aal2` issuance, denied `aal1` decisions, and permitted scoped `aal2` decisions before enabling SMS for users.
