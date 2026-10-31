@@ -8,10 +8,15 @@ const pages: Record<string, {body:string, contentType:string}> = {
 Deno.serve((request:Request) => {
  const url=new URL(request.url);
  if(request.method!=="GET"&&request.method!=="HEAD")return new Response("Method not allowed",{status:405,headers:{"Allow":"GET, HEAD"}});
- const pathname=url.pathname.split("/").slice(4).join("/");
- const route="/"+pathname;
- if(route==="/"||route==="/secure.html")return Response.redirect(url.origin+"/functions/v1/nipd-staging-login/staging-login.html",302);
- const page=pages[route];
+ // Supabase's edge gateway may provide either the complete public path or
+ // a function-relative pathname. Match explicit allowlisted terminal paths;
+ // never redirect an unrecognized path (that could cause an infinite loop).
+ const path=url.pathname.replace(/\/+$/,"")||"/";
+ const route=Object.keys(pages).find(key=>path===key||path.endsWith(key))||null;
+ if(!route && ["/","/functions/v1/nipd-staging-login","/nipd-staging-login"].includes(path)){
+  return new Response(pages["/staging-login.html"].body,{status:200,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","X-Content-Type-Options":"nosniff"}});
+ }
+ const page=route?pages[route]:null;
  if(!page)return new Response("Not found",{status:404,headers:{"Cache-Control":"no-store"}});
  return new Response(request.method==="HEAD"?null:page.body,{status:200,headers:{"Content-Type":page.contentType,"Cache-Control":"no-store, max-age=0","X-Content-Type-Options":"nosniff","X-Frame-Options":"DENY","Referrer-Policy":"no-referrer","Permissions-Policy":"camera=(), microphone=(), geolocation=()"}});
 });
