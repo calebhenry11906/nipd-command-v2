@@ -165,11 +165,14 @@ begin
    'status',r.status,'employee',sa.display_label))
   from public.wf_leave_requests r join public.staff_access sa on sa.user_id=r.employee_id
   where r.agency_id=p_agency and viewer.rank in ('Sergeant','Lieutenant','Captain','Chief')
-  and ((r.status='supervisor' and r.reviewer_id=auth.uid()) or
-       (r.status='final' and r.final_reviewer_id=auth.uid()
-        and exists(select 1 from public.wf_leave_authorities a where a.agency_id=p_agency and a.user_id=auth.uid()
-         and a.enabled and a.valid_from<=now() and (a.valid_until is null or a.valid_until>now())))
-       and r.employee_id<>auth.uid() and r.first_approved_by is distinct from auth.uid()
+   and r.employee_id<>auth.uid() and r.first_approved_by is distinct from auth.uid()
+   and (
+    (r.status='supervisor' and r.reviewer_id=auth.uid())
+    or (r.status='final' and r.final_reviewer_id=auth.uid()
+     and exists(select 1 from public.wf_leave_authorities a
+       where a.agency_id=p_agency and a.user_id=auth.uid()
+       and a.enabled and a.valid_from<=now() and (a.valid_until is null or a.valid_until>now())))
+   )
  ),'[]'::jsonb)) into out_value;
  return out_value;
 end $$;
