@@ -62,6 +62,16 @@ const rpc=async(name,args={})=>{
  return data;
 };
 const agencyId=()=>document.getElementById("agency").value;
+const SUPERVISORS=new Set(["Sergeant","Lieutenant","Captain","Chief"]);
+const STAFF_COORDINATORS=new Set(["Corporal","Sergeant","Lieutenant","Captain","Chief"]);
+function applyRankPresentation(){
+ const selected=$("agency").selectedOptions[0];const rank=selected?.dataset.rank||"Officer";
+ for(const id of ["approvals","detailApprovals","leaveApprovals","coverageApprovals"]){
+  const panel=$(id)?.closest(".panel");if(panel)panel.hidden=!SUPERVISORS.has(rank);
+ }
+ const staffing=$("staffing")?.closest(".panel");if(staffing)staffing.hidden=!STAFF_COORDINATORS.has(rank);
+ const label=document.querySelector("header p");if(label)label.textContent="Secured development preview · "+rank+" dashboard · Agency-scoped data";
+}
 const item=(root,title,body,extra)=>{const art=make("article","");art.className="item";art.append(make("h3",title),make("p",body));if(extra)art.append(extra);root.append(art)};
 const btn=(label,handler)=>{const b=make("button",label);b.type="button";b.onclick=async()=>{b.disabled=true;try{await handler();await load()}catch(e){status(e.message,true)}finally{b.disabled=false}};return b};
 function renderList(id,rows,renderer,empty="No matching records."){
@@ -71,6 +81,7 @@ function renderList(id,rows,renderer,empty="No matching records."){
 }
 async function load(){
  const agency=agencyId();if(!agency)return;
+ applyRankPresentation();
  status("Loading agency-scoped workforce records…");
  try{
  const [b,d,l,c]=await Promise.all([rpc("wf_board",{p_agency:agency}),rpc("wf_employee_directory",{p_agency:agency}),rpc("wf_leave_board",{p_agency:agency}),rpc("wf_coverage_board",{p_agency:agency})]);
@@ -172,7 +183,7 @@ async function init(){
   const agencies=await rpc("wf_my_agencies");
   const select=$("agency");select.replaceChildren();
   if(!agencies.length){status("No active workforce agency membership configured for this account. No operational data is available.",true);return}
-  for(const a of agencies){const opt=make("option",a.name+" · "+a.rank);opt.value=a.id;select.append(opt)}
+  for(const a of agencies){const opt=make("option",a.name+" · "+a.rank);opt.value=a.id;opt.dataset.rank=a.rank;select.append(opt)}
   select.disabled=false;$("reload").disabled=false;select.onchange=load;$("reload").onclick=load;
   await load();
  }catch(e){status(e.message,true)}
