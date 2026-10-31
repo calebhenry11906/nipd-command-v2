@@ -34,7 +34,9 @@ small{color:#52687b}
 <section class="panel"><h2>My assigned shifts</h2><div id="mine"></div></section>
 <section class="panel"><h2>Available for pickup</h2><div id="available"></div></section>
 <section class="panel"><h2>Supervisor action center</h2><div id="approvals"></div></section>
-<section class="panel"><h2>My security details</h2><div id="myDetails"></div></section><section class="panel"><h2>Available security details</h2><div id="availableDetails"></div></section><section class="panel"><h2>Detail approval queue</h2><div id="detailApprovals"></div></section><section class="panel"><h2>Leave &amp; Training Requests</h2>
+<section class="panel"><h2>My security details</h2><div id="myDetails"></div></section><section class="panel"><h2>Available security details</h2><div id="availableDetails"></div></section><section class="panel"><h2>Detail approval queue</h2><div id="detailApprovals"></div></section><section class="panel"><h2>Open Staffing Vacancies</h2><div id="vacancies"></div><h3>My Coverage Requests</h3><div id="coverageMine"></div></section>
+<section class="panel"><h2>Coverage Approval Queue</h2><div id="coverageApprovals"></div></section>
+<section class="panel"><h2>Leave &amp; Training Requests</h2>
 <form id="leaveForm" class="item"><label>Request type <select id="leaveKind"><option value="vacation">Vacation</option><option value="training">Training</option><option value="other">Other leave</option></select></label>
 <label>Start <input id="leaveStart" type="datetime-local" required></label>
 <label>End <input id="leaveEnd" type="datetime-local" required></label>
@@ -71,7 +73,7 @@ async function load(){
  const agency=agencyId();if(!agency)return;
  status("Loading agency-scoped workforce records…");
  try{
- const [b,d,l]=await Promise.all([rpc("wf_board",{p_agency:agency}),rpc("wf_employee_directory",{p_agency:agency}),rpc("wf_leave_board",{p_agency:agency})]);
+ const [b,d,l,c]=await Promise.all([rpc("wf_board",{p_agency:agency}),rpc("wf_employee_directory",{p_agency:agency}),rpc("wf_leave_board",{p_agency:agency}),rpc("wf_coverage_board",{p_agency:agency})]);
  renderList("mine",b.my_assignments,(root,x)=>{
   const row=make("div","");row.className="row";row.append(btn("Release for pickup",async()=>{if(confirm("Offer your assigned shift for pickup? You remain responsible until approvals complete."))await rpc("wf_offer_shift",{p_assignment:x.id})}));
   item(root,x.shift,datetime(x.start)+" – "+datetime(x.end),row);
@@ -102,6 +104,27 @@ async function load(){
   row.append(btn("Approve detail",async()=>{if(confirm("Approve MFA-protected detail transfer?"))await rpc("wf_decide_detail",{p_transfer:x.id,p_approve:true})}));
   row.append(btn("Deny detail",async()=>{let reason=prompt("Denial reason:");if(reason?.trim())await rpc("wf_decide_detail",{p_transfer:x.id,p_approve:false,p_reason:reason})}));
   item(root,x.description,datetime(x.start)+" – "+datetime(x.end),row);
+ });
+ renderList("vacancies",c.vacancies,(root,x)=>{
+  const row=make("div","");row.className="row";
+  row.append(btn("Request coverage",async()=>{
+   if(confirm("Request this fictional staffing vacancy? The supervisor must approve."))
+    await rpc("wf_request_coverage",{p_shift:x.shift_id});
+  }));
+  item(root,x.shift+" · "+x.vacancies+" vacant",datetime(x.start)+" – "+datetime(x.end)+(x.supervisor_required?" · supervisor coverage missing":""),row);
+ });
+ renderList("coverageMine",c.mine,(root,x)=>item(root,"Coverage request · "+x.status,"Reference "+x.id));
+ renderList("coverageApprovals",c.review,(root,x)=>{
+  const row=make("div","");row.className="row";
+  row.append(btn("Approve coverage",async()=>{
+   if(confirm("Approve this MFA-protected staffing assignment?"))
+    await rpc("wf_decide_coverage",{p_request:x.id,p_approve:true});
+  }));
+  row.append(btn("Deny coverage",async()=>{
+   const reason=prompt("Denial reason:");if(reason?.trim())
+    await rpc("wf_decide_coverage",{p_request:x.id,p_approve:false,p_reason:reason});
+  }));
+  item(root,x.employee+" · pending coverage","Shift reference "+x.shift_id,row);
  });
  renderList("leaveMine",l.mine,(root,x)=>{
   const row=make("div","");row.className="row";
