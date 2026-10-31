@@ -321,3 +321,43 @@ do $$begin
  then raise exception 'FAIL: retried message did not record successful delivery';end if;
  raise notice 'PASS successful retry logged without duplicating notification record';
 end$$;
+
+-- Same-supervisor scenario: one decision can satisfy both roles, with both audit flags set.
+update public.wf_members set supervisor_id='00000000-0000-4000-8000-000000000003'
+ where agency_id='10000000-0000-4000-8000-000000000001'
+ and user_id='00000000-0000-4000-8000-000000000002';
+insert into public.wf_shifts(id,agency_id,shift_name,begins_at,ends_at) values
+ ('20000000-0000-4000-8000-000000000004','10000000-0000-4000-8000-000000000001',
+ 'Alpha',now()+interval '20 days',now()+interval '20 days 12 hours');
+insert into public.wf_shift_assignments(id,agency_id,shift_id,user_id) values
+ ('30000000-0000-4000-8000-000000000004','10000000-0000-4000-8000-000000000001',
+ '20000000-0000-4000-8000-000000000004','00000000-0000-4000-8000-000000000001');
+begin;set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","aal":"aal1"}',true);
+select public.wf_offer_shift('30000000-0000-4000-8000-000000000004');
+commit;
+select set_config('test.same_supervisor_transfer',id::text,false) from public.wf_transfer_requests
+ where assignment_id='30000000-0000-4000-8000-000000000004';
+begin;set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","aal":"aal1"}',true);
+select public.wf_claim_shift(current_setting('test.same_supervisor_transfer')::uuid);
+commit;
+do $$begin
+ if (select user_id from public.wf_shift_assignments where id='30000000-0000-4000-8000-000000000004')
+ <>'00000000-0000-4000-8000-000000000001'::uuid
+ then raise exception 'FAIL: shared supervisor pickup prematurely reassigned shift';end if;
+ raise notice 'PASS same-supervisor pickup retains original assignee before decision';
+end$$;
+begin;set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","aal":"aal2"}',true);
+select public.wf_decide_shift(current_setting('test.same_supervisor_transfer')::uuid,true);
+commit;
+do $$begin
+ if (select user_id from public.wf_shift_assignments where id='30000000-0000-4000-8000-000000000004')
+ <>'00000000-0000-4000-8000-000000000002'::uuid
+ or not exists(select 1 from public.wf_transfer_requests
+ where id=current_setting('test.same_supervisor_transfer')::uuid
+ and status='approved' and releasing_approved and receiving_approved)
+ then raise exception 'FAIL: shared supervisor did not satisfy both approval roles';end if;
+ raise notice 'PASS same authorized supervisor recorded approval for both transfer responsibilities';
+end$$;
