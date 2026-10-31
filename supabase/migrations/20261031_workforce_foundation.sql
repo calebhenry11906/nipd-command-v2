@@ -93,6 +93,17 @@ create table if not exists public.wf_transfer_requests (
  foreign key(agency_id,receiving_supervisor) references public.wf_members(agency_id,user_id)
 );
 create unique index if not exists wf_one_open_transfer_per_assignment on public.wf_transfer_requests(assignment_id) where status in ('available','pickup_requested','awaiting_releasing_supervisor','awaiting_receiving_supervisor');
+create table if not exists public.wf_shortages (
+ shift_id uuid primary key references public.wf_shifts(id),
+ agency_id uuid not null references public.wf_agencies(id),
+ available_count integer not null default 0 check(available_count>=0),
+ vacancies integer not null default 0 check(vacancies>=0),
+ has_supervisor boolean not null default false,
+ status text not null default 'open' check(status in ('open','resolved')),
+ revision integer not null default 1,
+ updated_at timestamptz not null default now(),
+ foreign key(agency_id,shift_id) references public.wf_shifts(agency_id,id)
+);
 create table if not exists public.wf_audit (
  id bigint generated always as identity primary key,
  agency_id uuid not null references public.wf_agencies(id),
@@ -156,11 +167,12 @@ alter table public.wf_shift_assignments enable row level security;
 alter table public.wf_absences enable row level security;
 alter table public.wf_transfer_requests enable row level security;
 alter table public.wf_audit enable row level security;
+alter table public.wf_shortages enable row level security;
 alter table public.wf_notification_outbox enable row level security;
 alter table public.wf_details enable row level security;
 alter table public.wf_detail_transfers enable row level security;
 revoke all on public.wf_agencies,public.wf_members,public.wf_private_contacts,public.wf_shifts,
  public.wf_shift_assignments,public.wf_absences,public.wf_transfer_requests,public.wf_audit,
- public.wf_notification_outbox,public.wf_details,public.wf_detail_transfers from anon,authenticated,public;
+ public.wf_notification_outbox,public.wf_details,public.wf_detail_transfers,public.wf_shortages from anon,authenticated,public;
 
 commit;
