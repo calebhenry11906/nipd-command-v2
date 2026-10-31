@@ -34,7 +34,7 @@ small{color:#52687b}
 <section class="panel"><h2>My assigned shifts</h2><div id="mine"></div></section>
 <section class="panel"><h2>Available for pickup</h2><div id="available"></div></section>
 <section class="panel"><h2>Supervisor action center</h2><div id="approvals"></div></section>
-<section class="panel"><h2>Staffing coverage</h2><div id="staffing"></div></section>
+<section class="panel"><h2>My security details</h2><div id="myDetails"></div></section><section class="panel"><h2>Available security details</h2><div id="availableDetails"></div></section><section class="panel"><h2>Detail approval queue</h2><div id="detailApprovals"></div></section><section class="panel"><h2>Staffing coverage</h2><div id="staffing"></div></section>
 <section class="panel"><h2>Notifications</h2><div id="notifications"></div></section>
 <section class="panel"><h2>Employee directory</h2><div id="directory"></div><div id="profile"></div></section>
 </div>
@@ -80,6 +80,22 @@ async function load(){
   buttons.append(btn("Approve",async()=>{if(confirm("Submit an MFA-protected supervisor approval?"))await rpc("wf_decide_shift",{p_transfer:x.id,p_approve:true})}));
   buttons.append(btn("Deny",async()=>{const reason=prompt("Required reason for denial:");if(reason?.trim())await rpc("wf_decide_shift",{p_transfer:x.id,p_approve:false,p_reason:reason})}));
   item(root,x.shift+" · "+x.status,datetime(x.start)+" · releasing approved: "+x.releasing_approved+" · receiving approved: "+x.receiving_approved,buttons);
+ });
+ renderList("myDetails",b.my_details,(root,x)=>{
+  const row=make("div","");row.className="row";
+  row.append(btn("Release detail",async()=>{if(confirm("Make this fictional detail available? You remain assigned until approved."))await rpc("wf_release_detail",{p_detail:x.id})}));
+  item(root,x.description,datetime(x.start)+" – "+datetime(x.end),row);
+ });
+ renderList("availableDetails",b.available_details,(root,x)=>{
+  const row=make("div","");row.className="row";
+  if(x.status==="available"&&!x.mine)row.append(btn("Request detail",async()=>{if(confirm("Request this fictional detail? Supervisor approval required."))await rpc("wf_claim_detail",{p_transfer:x.id})}));
+  item(root,x.description+" · "+x.status,datetime(x.start)+" – "+datetime(x.end),row);
+ });
+ renderList("detailApprovals",b.detail_approvals,(root,x)=>{
+  const row=make("div","");row.className="row";
+  row.append(btn("Approve detail",async()=>{if(confirm("Approve MFA-protected detail transfer?"))await rpc("wf_decide_detail",{p_transfer:x.id,p_approve:true})}));
+  row.append(btn("Deny detail",async()=>{let reason=prompt("Denial reason:");if(reason?.trim())await rpc("wf_decide_detail",{p_transfer:x.id,p_approve:false,p_reason:reason})}));
+  item(root,x.description,datetime(x.start)+" – "+datetime(x.end),row);
  });
  renderList("staffing",b.staffing,(root,x)=>{
   const deficit=Math.max(0,Number(x.minimum)-Number(x.assigned));
