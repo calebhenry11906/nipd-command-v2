@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NIPD Command — Workforce Review Preview</title>
+<style>
+:root{color-scheme:light;font:16px/1.5 system-ui,Arial;background:#edf3f7;color:#15324b}
+*{box-sizing:border-box}body{margin:0}header{background:#102d49;color:#fff;padding:18px clamp(16px,4vw,48px)}
+header h1{margin:0;font-size:1.4rem}header p{margin:3px 0;color:#cbdbe8}
+main{max-width:1250px;margin:auto;padding:22px 16px 80px}
+.notice{background:#fff5dc;border:1px solid #e4c88a;border-radius:12px;padding:14px;margin:0 0 18px;color:#6a4b1b}
+.toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+select,button{font:inherit;min-height:43px;border-radius:8px;padding:8px 12px}
+button{background:#206096;color:#fff;border:0;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}
+select{border:1px solid #bdcddc;background:white}a{color:#286a9d}
+.panel{background:#fff;border:1px solid #d1dce6;border-radius:14px;padding:18px;min-width:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,370px),1fr));gap:16px}
+h2{font-size:1.1rem;margin:0 0 12px}h3{font-size:1rem;margin:0 0 7px}
+.item{border-top:1px solid #e5edf3;padding:12px 0}.item:first-child{border-top:0}
+.item p{color:#556a7d;margin:5px 0}.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.badge{display:inline-block;padding:3px 9px;border-radius:9px;background:#ecf4fa;font-size:.8rem}
+.error{color:#a32327}.ok{color:#17623d}#message{min-height:25px}
+small{color:#52687b}
+</style>
+</head><body>
+<header><h1>NIPD COMMAND · Workforce Management</h1><p>Secured development preview · Agency-scoped data</p></header>
+<main>
+<p class="notice"><strong>Not authorized for official records.</strong> This preview reads fictional workforce records only after the proposed SQL migrations, explicit agency provisioning, and security tests. It does not send emails or bypass the current secure approval system.</p>
+<div class="toolbar">
+<label for="agency">Current agency</label><select id="agency" aria-label="Agency" disabled><option>Checking account…</option></select>
+<button id="reload" type="button" disabled>Refresh dashboard</button>
+<a href="./secure.html">Secure equipment and timesheet workflow</a>
+</div>
+<p id="message" role="status" aria-live="polite"></p>
+<div class="grid">
+<section class="panel"><h2>My assigned shifts</h2><div id="mine"></div></section>
+<section class="panel"><h2>Available for pickup</h2><div id="available"></div></section>
+<section class="panel"><h2>Supervisor action center</h2><div id="approvals"></div></section>
+<section class="panel"><h2>Staffing coverage</h2><div id="staffing"></div></section>
+<section class="panel"><h2>Notifications</h2><div id="notifications"></div></section>
+<section class="panel"><h2>Employee directory</h2><div id="directory"></div><div id="profile"></div></section>
+</div>
+</main>
+<script type="module">
+const $=id=>document.getElementById(id);
+const make=(tag,text)=>{let el=document.createElement(tag);el.textContent=String(text??"");return el};
+const status=(message,error=false)=>{$("message").textContent=message;$("message").className=error?"error":"ok"};
+const datetime=v=>v?new Date(v).toLocaleString():"Unknown";
+const clientModule=await import("https://esm.sh/@supabase/supabase-js@2.108.0");
+const client=clientModule.createClient("https://czdrsblgwmovhoznlxvm.supabase.co",
+ "sb_publishable_6qhGc7WuKaCRH5yfmQ787w_YB-VEfn5",
+ {auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:true}});
+const rpc=async(name,args={})=>{
+ const {data,error}=await client.rpc(name,args);
+ if(error)throw Error(error.message||"Request failed");
+ return data;
+};
+const agencyId=()=>document.getElementById("agency").value;
+const item=(root,title,body,extra)=>{const art=make("article","");art.className="item";art.append(make("h3",title),make("p",body));if(extra)art.append(extra);root.append(art)};
+const btn=(label,handler)=>{const b=make("button",label);b.type="button";b.onclick=async()=>{b.disabled=true;try{await handler();await load()}catch(e){status(e.message,true)}finally{b.disabled=false}};return b};
+function renderList(id,rows,renderer,empty="No matching records."){
+ const target=$(id);target.replaceChildren();
+ if(!Array.isArray(rows)||!rows.length){target.append(make("p",empty));return}
+ rows.forEach(row=>renderer(target,row));
+}
+async function load(){
+ const agency=agencyId();if(!agency)return;
+ status("Loading agency-scoped workforce records…");
+ try{
+ const [b,d]=await Promise.all([rpc("wf_board",{p_agency:agency}),rpc("wf_employee_directory",{p_agency:agency})]);
+ renderList("mine",b.my_assignments,(root,x)=>{
+  const row=make("div","");row.className="row";row.append(btn("Release for pickup",async()=>{if(confirm("Offer your assigned shift for pickup? You remain responsible until approvals complete."))await rpc("wf_offer_shift",{p_assignment:x.id})}));
+  item(root,x.shift,datetime(x.start)+" – "+datetime(x.end),row);
+ });
+ renderList("available",b.available_shifts,(root,x)=>{
+  const row=make("div","");row.className="row";
+  if(x.status==="available"&&!x.mine)row.append(btn("Request pickup",async()=>{if(confirm("Request this shift? Eligibility and approvals are checked by the server."))await rpc("wf_claim_shift",{p_transfer:x.id})}));
+  item(root,x.shift+" · "+x.status,datetime(x.start)+" – "+datetime(x.end),row);
+ });
+ renderList("approvals",b.approvals,(root,x)=>{
+  const buttons=make("div","");buttons.className="row";
+  buttons.append(btn("Approve",async()=>{if(confirm("Submit an MFA-protected supervisor approval?"))await rpc("wf_decide_shift",{p_transfer:x.id,p_approve:true})}));
+  buttons.append(btn("Deny",async()=>{const reason=prompt("Required reason for denial:");if(reason?.trim())await rpc("wf_decide_shift",{p_transfer:x.id,p_approve:false,p_reason:reason})}));
+  item(root,x.shift+" · "+x.status,datetime(x.start)+" · releasing approved: "+x.releasing_approved+" · receiving approved: "+x.receiving_approved,buttons);
+ });
+ renderList("staffing",b.staffing,(root,x)=>{
+  const deficit=Math.max(0,Number(x.minimum)-Number(x.assigned));
+  item(root,x.shift,datetime(x.start)+" · "+x.assigned+"/"+x.minimum+" available · "+(deficit?deficit+" short":"Minimum met"));
+ });
+ renderList("notifications",b.notifications,(root,x)=>item(root,x.subject,x.body+" · "+datetime(x.created)));
+ renderList("directory",d,(root,x)=>{
+  const row=make("div","");row.className="row";row.append(btn("View profile",async()=>{
+   const profile=await rpc("wf_employee_profile",{p_agency:agency,p_employee:x.user_id});
+   const box=$("profile");box.replaceChildren(make("h3",profile.name));
+   for(const [key,value] of Object.entries(profile)){if(key==="user_id"||key==="name")continue;box.append(make("p",key.replaceAll("_"," ")+": "+(value??"Not provided")))}
+  }));
+  item(root,x.name,x.rank+" · "+x.division+" · "+(x.shift||"Unassigned"),row);
+ });
+ status("Workforce data loaded. All changes require server authorization.");
+ }catch(e){status("Workforce data not available: "+e.message+". The workforce migrations and agency provisioning may not be installed.",true)}
+}
+async function init(){
+ try{
+  const {data:{user},error}=await client.auth.getUser();
+  if(error||!user)throw Error("Sign in from the secure portal before opening this preview.");
+  const agencies=await rpc("wf_my_agencies");
+  const select=$("agency");select.replaceChildren();
+  if(!agencies.length){status("No active workforce agency membership configured for this account. No operational data is available.",true);return}
+  for(const a of agencies){const opt=make("option",a.name+" · "+a.rank);opt.value=a.id;select.append(opt)}
+  select.disabled=false;$("reload").disabled=false;select.onchange=load;$("reload").onclick=load;
+  await load();
+ }catch(e){status(e.message,true)}
+}
+await init();
+</script>
+</body></html>
