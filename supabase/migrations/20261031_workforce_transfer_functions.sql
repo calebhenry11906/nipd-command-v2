@@ -84,7 +84,18 @@ begin
  select * into actor from public.wf_members where agency_id=t.agency_id and user_id=auth.uid() and enabled
  and rank in ('Sergeant','Lieutenant','Captain','Chief');
  if not found or auth.uid() not in (t.releasing_supervisor,t.receiving_supervisor)
- then raise exception 'Not the assigned authorized supervisor'; end if;
+ or not exists(select 1 from public.staff_access sa where sa.user_id=auth.uid() and sa.enabled)
+ then raise exception 'Not the assigned active authorized supervisor'; end if;
+ if not exists(select 1 from public.wf_members m join public.staff_access sa on sa.user_id=m.user_id and sa.enabled
+  where m.agency_id=t.agency_id and m.user_id=t.releasing_user and m.enabled)
+ or not exists(select 1 from public.wf_members m join public.staff_access sa on sa.user_id=m.user_id and sa.enabled
+  where m.agency_id=t.agency_id and m.user_id=t.receiving_user and m.enabled)
+ then raise exception 'Either the releasing or receiving employee is no longer active'; end if;
+ if not exists(select 1 from public.wf_members m join public.staff_access sa on sa.user_id=m.user_id and sa.enabled
+  where m.agency_id=t.agency_id and m.user_id=t.releasing_supervisor and m.enabled and m.rank in ('Sergeant','Lieutenant','Captain','Chief'))
+ or not exists(select 1 from public.wf_members m join public.staff_access sa on sa.user_id=m.user_id and sa.enabled
+  where m.agency_id=t.agency_id and m.user_id=t.receiving_supervisor and m.enabled and m.rank in ('Sergeant','Lieutenant','Captain','Chief'))
+ then raise exception 'A required supervisor is no longer authorized'; end if;
  if not p_approve then
   if length(trim(coalesce(p_reason,'')))<4 then raise exception 'Reason required'; end if;
   update public.wf_transfer_requests set status='denied',reason=left(p_reason,500),updated_at=now() where id=t.id;
@@ -103,6 +114,10 @@ begin
     where x.user_id=t.receiving_user and x.agency_id=t.agency_id and x.state='assigned'
     and h.begins_at<h2.ends_at and h.ends_at>h2.begins_at)
   then raise exception 'Receiving employee now has a scheduling conflict'; end if;
+  if exists(select 1 from public.wf_absences z join public.wf_shifts target on target.id=a.shift_id
+   where z.agency_id=t.agency_id and z.user_id=t.receiving_user and z.approved
+   and z.begins_at<target.ends_at and z.ends_at>target.begins_at)
+  then raise exception 'Receiving employee now has an approved absence';end if;
   update public.wf_shift_assignments set user_id=t.receiving_user where id=a.id;
   update public.wf_transfer_requests set releasing_approved=true,receiving_approved=true,status='approved',updated_at=now() where id=t.id;
  else
