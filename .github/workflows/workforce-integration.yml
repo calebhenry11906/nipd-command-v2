@@ -43,6 +43,8 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y postgresql-client
+      - name: Verify workforce dashboard wiring
+        run: node tests/workforce-html-smoke.cjs
       - name: Apply migrations and exercise synthetic authorization
         run: |
           set -euo pipefail
