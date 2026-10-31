@@ -66,13 +66,25 @@ create or replace function app_private.wf_on_absence_change()
 returns trigger language plpgsql security definer set search_path='' as $$
 declare x record;
 begin
- for x in select distinct id from public.wf_shifts sh where
- (tg_op<>'DELETE' and sh.agency_id=new.agency_id and sh.begins_at<new.ends_at and sh.ends_at>new.begins_at)
- or (tg_op<>'INSERT' and sh.agency_id=old.agency_id and sh.begins_at<old.ends_at and sh.ends_at>old.begins_at)
- loop
-  perform app_private.wf_refresh_shortage(x.id);
- end loop;
- return coalesce(new,old);
+ if tg_op='INSERT' then
+  for x in select id from public.wf_shifts sh where sh.agency_id=new.agency_id
+  and sh.begins_at<new.ends_at and sh.ends_at>new.begins_at loop
+   perform app_private.wf_refresh_shortage(x.id);
+  end loop;
+ elsif tg_op='DELETE' then
+  for x in select id from public.wf_shifts sh where sh.agency_id=old.agency_id
+  and sh.begins_at<old.ends_at and sh.ends_at>old.begins_at loop
+   perform app_private.wf_refresh_shortage(x.id);
+  end loop;
+ else
+  for x in select id from public.wf_shifts sh where
+    (sh.agency_id=new.agency_id and sh.begins_at<new.ends_at and sh.ends_at>new.begins_at)
+    or (sh.agency_id=old.agency_id and sh.begins_at<old.ends_at and sh.ends_at>old.begins_at)
+  loop
+   perform app_private.wf_refresh_shortage(x.id);
+  end loop;
+ end if;
+ if tg_op='DELETE' then return old;else return new;end if;
 end $$;
 create trigger wf_absence_staffing_changed after insert or update or delete on public.wf_absences
  for each row execute function app_private.wf_on_absence_change();
