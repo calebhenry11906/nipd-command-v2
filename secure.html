@@ -27,7 +27,7 @@ button:disabled{opacity:.6;cursor:wait}.outline{background:#eaf2fa;color:#225881
 <form id="login" hidden><label class="field">Approved account email <input name="email" type="email" required autocomplete="email" maxlength="200" placeholder="Your authorized department account"></label><button type="submit">Send secure sign-in email</button><div id="resetArea" hidden><p class="muted">Only if this browser has a broken saved session: resetting removes its local sign-in and may require a fresh email link.</p><button id="resetBrowser" type="button" class="outline">Reset this browser sign-in</button></div></form>
 <form id="verify" hidden><label class="field">Email verification code (if your email contains one)<input name="token" type="text" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="12" required placeholder="Enter the code you received"></label><div class="row"><button type="submit">Verify and sign in</button><button type="button" class="outline" id="changeEmail">Change email</button></div></form>
 <div id="notProvisioned" hidden><p>You have authenticated, but this account is not enabled for department access. Contact an authorized administrator. No operational data is accessible.</p><button id="lockedSignOut" class="outline">Sign out</button></div>
-<div id="portal" hidden><div class="row"><div><h2 id="identity"></h2><p id="scope"></p></div><button id="signOut" class="outline">Sign out</button></div><div class="notice">Approval records below are for testing with fictional examples only. MFA verification is mandatory for protected decisions. Production use still requires security review and agency authorization.</div><section class="panel" id="mfaPanel" aria-label="Multifactor authentication"><h2>Authenticator verification</h2><p id="mfaStatus">Checking authentication assurance…</p><div id="mfaEnrollArea" hidden><p>Scan this QR code using an authenticator application, then enter its six-digit code to activate MFA for this account.</p><img id="mfaQr" alt="MFA authenticator enrollment QR code" style="width:min(200px,100%);height:auto"><p id="mfaSecret" class="muted"></p></div><div class="row"><button id="mfaEnroll" type="button" class="outline">Set up authenticator</button><button id="mfaVerify" type="button" class="outline">Verify authenticator code</button></div></section><div class="row"><h2>Protected request records</h2><button id="refresh" class="outline">Refresh</button></div><div id="requestList"></div><div class="row"><h2>Test database workflow</h2><button id="createTest">Create fictional equipment test</button></div><p class="muted">This test writes a fictional example to the central database and uses real server-enforced approval permissions. It never represents an official request.</p></div>
+<div id="portal" hidden><div class="row"><div><h2 id="identity"></h2><p id="scope"></p></div><button id="signOut" class="outline">Sign out</button></div><div class="notice">Approval records below are for testing with fictional examples only. MFA verification is mandatory for protected decisions. Production use still requires security review and agency authorization.</div><section class="panel" id="mfaPanel" aria-label="Multifactor authentication"><h2>Authenticator verification</h2><p id="mfaStatus">Checking authentication assurance…</p><div id="mfaEnrollArea" hidden><p>Scan this QR code using an authenticator application, then enter its six-digit code to activate MFA for this account.</p><img id="mfaQr" alt="MFA authenticator enrollment QR code" style="width:min(200px,100%);height:auto"><p id="mfaSecret" class="muted"></p></div><div class="row"><button id="mfaEnroll" type="button" class="outline">Set up authenticator</button><button id="mfaVerify" type="button" class="outline">Verify authenticator code</button></div></section><div class="row"><h2>Protected request records</h2><button id="refresh" class="outline">Refresh</button></div><div id="requestList"></div><div class="row"><h2>Test database workflow</h2><button id="createTest" type="button" class="outline">Create equipment test</button><button id="createTimesheetTest" type="button" class="outline">Create timesheet test</button><button id="createBatchTests" type="button">Create test batch (3 requests)</button></div><p class="muted">Submit fictional equipment and timesheet requests in one Officer session, then switch to the Sergeant account to review each one. The three-request batch submits two equipment requests and one timesheet request. Other dashboard sections are not yet connected to this protected database. Existing approvals remain unchanged.</p></div>
 </section>
 </main>
 <script>
@@ -171,8 +171,8 @@ async function loadRequests(){
  if(error){fail(error);list.replaceChildren();return}
  list.replaceChildren();
  if(!data?.length){list.append(el("p","No accessible protected requests. Records are not shared unless database authorization permits."));return}
- const {data:{user},error:userError}=await client.auth.getUser();if(userError||!user){message("Your session is no longer valid. Please sign in again.",true);show("login");return}
- for(const r of data){const card=el("article","");card.className="record";const info=el("div","");info.append(el("strong",r.kind+" · "+r.stage),el("small",r.division+" · "+new Date(r.created_at).toLocaleString()),el("small",r.id));card.append(info);
+ const {data:{user},error:userError}=await withTimeout(client.auth.getUser(),12000,"Session verification timed out. Please refresh.");if(userError||!user){message("Your session is no longer valid. Please sign in again.",true);show("login");return}
+ for(const r of data){const card=el("article","");card.className="record";const info=el("div","");info.append(el("strong",r.kind.charAt(0).toUpperCase()+r.kind.slice(1)+" · "+r.stage),el("small",r.division+" · "+new Date(r.created_at).toLocaleString()),el("small",r.id));card.append(info);
  if(r.owner_id!==user.id&&!["approved","denied","returned","policy_hold"].includes(r.stage)){
  const buttons=el("div","");buttons.className="row";
  for(const [action,title] of [["approve","Approve"],["return","Return"],["deny","Deny"]]){
@@ -210,7 +210,32 @@ async function logout(){
 }
 $("signOut").onclick=logout;$("lockedSignOut").onclick=logout;
 $("refresh").onclick=loadRequests;
-$("createTest").onclick=async()=>{if(!confirm("Create a fictional test request in the protected database?"))return;const b=$("createTest");b.disabled=true;const {error}=await client.rpc("submit_secure_request",{p_kind:"equipment",p_details:{demo:true,description:"Fictional equipment workflow security test; no real officer or property information."}});b.disabled=false;if(error)fail(error);else{message("Fictional request created in central database.");await loadRequests()}};
+const submitFictionalRequest=async(kind,label)=>{
+ const {error}=await withTimeout(client.rpc("submit_secure_request",{
+  p_kind:kind,p_details:{demo:true,description:"Fictional "+label+" batch workflow test; no real personnel, pay or equipment information."}
+ }),12000,"Test request submission timed out. Refresh your records before retrying.");
+ if(error)throw error;
+};
+async function createTestRequests(buttonId,items){
+ if(!staff?.enabled)return message("Only an enabled account may submit fictional requests.",true);
+ if(!confirm("Create "+items.length+" fictional protected test request(s) in the database? They will require separate Sergeant decisions."))return;
+ const buttons=["createTest","createTimesheetTest","createBatchTests"].map($);
+ buttons.forEach(b=>b.disabled=true);
+ let completed=0;
+ try{
+  for(const [kind,label] of items){
+   await submitFictionalRequest(kind,label);
+   completed++;
+   message("Submitted "+completed+" of "+items.length+" fictional requests…");
+  }
+  message("Submitted "+completed+" fictional protected request(s). Sign out and use Demo Sergeant A to review them separately.");
+ }catch(e){
+  fail(e);message("Submitted "+completed+" of "+items.length+" requests before the error: "+(e?.message||"Unable to submit")+". Refresh the list to avoid duplicate submissions.",true);
+ }finally{buttons.forEach(b=>b.disabled=false);await loadRequests()}
+}
+$("createTest").onclick=()=>createTestRequests("createTest",[["equipment","equipment"]]);
+$("createTimesheetTest").onclick=()=>createTestRequests("createTimesheetTest",[["timesheet","timesheet"]]);
+$("createBatchTests").onclick=()=>createTestRequests("createBatchTests",[["equipment","equipment A"],["timesheet","timesheet"],["equipment","equipment B"]]);
 $("resetBrowser").onclick=()=>{
  if(!confirm("Reset the saved NIPD Command login on THIS browser? You may need a fresh email sign-in link afterward. This does not change the department account."))return;
  const key="sb-"+new URL(url).hostname.split(".")[0]+"-auth-token";
