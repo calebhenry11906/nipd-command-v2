@@ -8,9 +8,9 @@ header h1{margin:0;font-size:1.4rem}header p{margin:3px 0;color:#cbdbe8}
 main{max-width:1250px;margin:auto;padding:22px 16px 80px}
 .notice{background:#fff5dc;border:1px solid #e4c88a;border-radius:12px;padding:14px;margin:0 0 18px;color:#6a4b1b}
 .toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
-select,button{font:inherit;min-height:43px;border-radius:8px;padding:8px 12px}
+select,button,input{font:inherit;min-height:43px;border-radius:8px;padding:8px 12px}
 button{background:#206096;color:#fff;border:0;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}
-select{border:1px solid #bdcddc;background:white}a{color:#286a9d}
+select,input{border:1px solid #bdcddc;background:white;max-width:100%}#leaveForm label{display:block;margin-bottom:10px}a{color:#286a9d}
 .panel{background:#fff;border:1px solid #d1dce6;border-radius:14px;padding:18px;min-width:0}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,370px),1fr));gap:16px}
 h2{font-size:1.1rem;margin:0 0 12px}h3{font-size:1rem;margin:0 0 7px}
@@ -34,7 +34,13 @@ small{color:#52687b}
 <section class="panel"><h2>My assigned shifts</h2><div id="mine"></div></section>
 <section class="panel"><h2>Available for pickup</h2><div id="available"></div></section>
 <section class="panel"><h2>Supervisor action center</h2><div id="approvals"></div></section>
-<section class="panel"><h2>My security details</h2><div id="myDetails"></div></section><section class="panel"><h2>Available security details</h2><div id="availableDetails"></div></section><section class="panel"><h2>Detail approval queue</h2><div id="detailApprovals"></div></section><section class="panel"><h2>Staffing coverage</h2><div id="staffing"></div></section>
+<section class="panel"><h2>My security details</h2><div id="myDetails"></div></section><section class="panel"><h2>Available security details</h2><div id="availableDetails"></div></section><section class="panel"><h2>Detail approval queue</h2><div id="detailApprovals"></div></section><section class="panel"><h2>Leave &amp; Training Requests</h2>
+<form id="leaveForm" class="item"><label>Request type <select id="leaveKind"><option value="vacation">Vacation</option><option value="training">Training</option><option value="other">Other leave</option></select></label>
+<label>Start <input id="leaveStart" type="datetime-local" required></label>
+<label>End <input id="leaveEnd" type="datetime-local" required></label>
+<button type="submit">Submit leave request</button></form>
+<div id="leaveMine"></div></section>
+<section class="panel"><h2>Leave &amp; Training Approvals</h2><div id="leaveApprovals"></div></section><section class="panel"><h2>Staffing coverage</h2><div id="staffing"></div></section>
 <section class="panel"><h2>Notifications</h2><div id="notifications"></div></section>
 <section class="panel"><h2>Employee directory</h2><div id="directory"></div><div id="profile"></div></section>
 </div>
@@ -65,7 +71,7 @@ async function load(){
  const agency=agencyId();if(!agency)return;
  status("Loading agency-scoped workforce records…");
  try{
- const [b,d]=await Promise.all([rpc("wf_board",{p_agency:agency}),rpc("wf_employee_directory",{p_agency:agency})]);
+ const [b,d,l]=await Promise.all([rpc("wf_board",{p_agency:agency}),rpc("wf_employee_directory",{p_agency:agency}),rpc("wf_leave_board",{p_agency:agency})]);
  renderList("mine",b.my_assignments,(root,x)=>{
   const row=make("div","");row.className="row";row.append(btn("Release for pickup",async()=>{if(confirm("Offer your assigned shift for pickup? You remain responsible until approvals complete."))await rpc("wf_offer_shift",{p_assignment:x.id})}));
   item(root,x.shift,datetime(x.start)+" – "+datetime(x.end),row);
@@ -97,6 +103,17 @@ async function load(){
   row.append(btn("Deny detail",async()=>{let reason=prompt("Denial reason:");if(reason?.trim())await rpc("wf_decide_detail",{p_transfer:x.id,p_approve:false,p_reason:reason})}));
   item(root,x.description,datetime(x.start)+" – "+datetime(x.end),row);
  });
+ renderList("leaveMine",l.mine,(root,x)=>{
+  const row=make("div","");row.className="row";
+  if(["supervisor","final"].includes(x.status))row.append(btn("Cancel pending request",async()=>{if(confirm("Cancel this fictional request?"))await rpc("wf_cancel_leave",{p_request:x.id})}));
+  item(root,x.kind+" · "+x.status,datetime(x.start)+" – "+datetime(x.end),row);
+ });
+ renderList("leaveApprovals",l.review,(root,x)=>{
+  const row=make("div","");row.className="row";
+  row.append(btn("Approve leave",async()=>{if(confirm("Submit an MFA-protected leave decision?"))await rpc("wf_decide_leave",{p_request:x.id,p_approve:true})}));
+  row.append(btn("Deny leave",async()=>{const reason=prompt("Reason for denial:");if(reason?.trim())await rpc("wf_decide_leave",{p_request:x.id,p_approve:false,p_reason:reason})}));
+  item(root,x.employee+" · "+x.kind+" · "+x.status,datetime(x.start)+" – "+datetime(x.end),row);
+ });
  renderList("staffing",b.staffing,(root,x)=>{
   const deficit=Math.max(0,Number(x.minimum)-Number(x.assigned));
   item(root,x.shift,datetime(x.start)+" · "+x.assigned+"/"+x.minimum+" available · "+(deficit?deficit+" short":"Minimum met"));
@@ -113,6 +130,18 @@ async function load(){
  status("Workforce data loaded. All changes require server authorization.");
  }catch(e){status("Workforce data not available: "+e.message+". The workforce migrations and agency provisioning may not be installed.",true)}
 }
+const asUtc=v=>new Date(v).toISOString();
+$("leaveForm").onsubmit=async e=>{
+ e.preventDefault();
+ const button=e.target.querySelector('button[type="submit"]');
+ button.disabled=true;
+ try{
+  const begin=$("leaveStart").value,end=$("leaveEnd").value;
+  if(!begin||!end||new Date(end)<=new Date(begin))throw Error("Choose a valid start and end.");
+  await rpc("wf_request_leave",{p_agency:agencyId(),p_kind:$("leaveKind").value,p_start:asUtc(begin),p_end:asUtc(end)});
+  e.target.reset();await load();status("Fictional leave request submitted for first-level review.");
+ }catch(err){status(err.message,true)}finally{button.disabled=false}
+};
 async function init(){
  try{
   const {data:{user},error}=await client.auth.getUser();
