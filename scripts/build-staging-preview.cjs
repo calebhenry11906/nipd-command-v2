@@ -25,7 +25,7 @@ let html=source.replace(probe[0],guard);
 assert.ok(!html.includes("https://"+production+".supabase.co"),"Production URL still appears in secure staging build");
 assert.ok(!html.includes("sb_publishable_6qhGc7WuKaCRH5yfmQ787w_YB-VEfn5"),"Production publishable key still present");
 fs.writeFileSync(path.join(output,"secure.html"),html);
-const list=["workforce-preview.html","index.html","assets/nipd-shield.svg","employee-directory.css","employee-directory.js","equipment.css","equipment.js","leave-training.css","leave-training.js","security-details.css","security-details.js","shift-assignments.css","shift-assignments.js","timesheets.js"];
+const list=["workforce-preview.html","staging-login.html","index.html","assets/nipd-shield.svg","employee-directory.css","employee-directory.js","equipment.css","equipment.js","leave-training.css","leave-training.js","security-details.css","security-details.js","shift-assignments.css","shift-assignments.js","timesheets.js"];
 for(const file of list){const to=path.join(output,file);fs.mkdirSync(path.dirname(to),{recursive:true});fs.copyFileSync(file,to)}
 const main=path.join(output,"index.html");
 let index=fs.readFileSync(main,"utf8");
