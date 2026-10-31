@@ -104,3 +104,58 @@ do $$begin
  raise notice 'PASS cross-agency access blocked';
 end$$;
 commit;
+
+-- Security detail transfer: the original employee stays assigned until authorized review.
+insert into public.wf_details(id,agency_id,safe_description,begins_at,ends_at,assigned_user)
+values ('40000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001',
+'Fictional community event',now()+interval '6 days',now()+interval '6 days 4 hours',
+'00000000-0000-4000-8000-000000000001');
+begin;set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","aal":"aal1"}',true);
+select public.wf_release_detail('40000000-0000-4000-8000-000000000001');
+commit;
+select set_config('test.detail_id',id::text,false) from public.wf_detail_transfers
+where detail_id='40000000-0000-4000-8000-000000000001';
+do $$begin
+ if (select assigned_user from public.wf_details where id='40000000-0000-4000-8000-000000000001')
+ <>'00000000-0000-4000-8000-000000000001'::uuid then raise exception 'FAIL: detail release removed responsible officer';end if;
+ raise notice 'PASS original detail owner retained on release';
+end$$;
+begin;set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","aal":"aal1"}',true);
+select public.wf_claim_detail(current_setting('test.detail_id')::uuid);
+commit;
+do $$begin
+ if (select assigned_user from public.wf_details where id='40000000-0000-4000-8000-000000000001')
+ <>'00000000-0000-4000-8000-000000000001'::uuid then raise exception 'FAIL: detail claimed without approval';end if;
+ raise notice 'PASS detail pickup preserved original assignment';
+end$$;
+begin;set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","aal":"aal2"}',true);
+do $$begin
+ begin
+  perform public.wf_decide_detail(current_setting('test.detail_id')::uuid,true);
+  raise exception 'FAIL: detail self-approval';
+ exception when others then if sqlerrm like 'FAIL:%' then raise;end if;end;
+ raise notice 'PASS detail self approval denied';
+end$$;
+commit;
+begin;set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000004","aal":"aal2"}',true);
+select public.wf_decide_detail(current_setting('test.detail_id')::uuid,true);
+commit;
+do $$begin
+ if (select assigned_user from public.wf_details where id='40000000-0000-4000-8000-000000000001')
+ <>'00000000-0000-4000-8000-000000000002'::uuid then raise exception 'FAIL: detail not transferred after approval';end if;
+ if (select count(*) from public.wf_notification_outbox where agency_id='10000000-0000-4000-8000-000000000001'
+ and event_key like 'detail-available:%')<>4 then raise exception 'FAIL: per-employee detail notifications not queued';end if;
+ raise notice 'PASS security detail transferred with isolated outbox notifications';
+end$$;
+-- Recalculation of unchanged shortage state must not produce another event with the same key.
+select app_private.wf_refresh_shortage('20000000-0000-4000-8000-000000000001');
+do $$begin
+ if exists(select agency_id,event_key,recipient_id from public.wf_notification_outbox
+  group by agency_id,event_key,recipient_id having count(*)>1) then
+ raise exception 'FAIL: duplicate outbox events';end if;
+ raise notice 'PASS idempotent notification outbox';
+end$$;
