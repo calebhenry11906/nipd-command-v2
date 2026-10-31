@@ -32,10 +32,10 @@ do $$begin
  then raise exception 'FAIL: offered shift missing';end if;
  raise notice 'PASS shift release did not abandon assignment';
 end$$;
-select id as transfer_id from public.wf_transfer_requests where assignment_id='30000000-0000-4000-8000-000000000001' \gset
+select set_config('test.transfer_id',id::text,false) from public.wf_transfer_requests where assignment_id='30000000-0000-4000-8000-000000000001';
 begin;set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","aal":"aal1"}',true);
-select public.wf_claim_shift(:'transfer_id'::uuid);
+select public.wf_claim_shift(current_setting('test.transfer_id')::uuid);
 commit;
 do $$begin
  if (select user_id from public.wf_shift_assignments where id='30000000-0000-4000-8000-000000000001')
@@ -46,7 +46,7 @@ begin;set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","aal":"aal1"}',true);
 do $$begin
  begin
- perform public.wf_decide_shift(:'transfer_id'::uuid,true);
+ perform public.wf_decide_shift(current_setting('test.transfer_id')::uuid,true);
  raise exception 'FAIL: aal1 MFA bypass';
  exception when others then
   if sqlerrm like 'FAIL:%' then raise;end if;
@@ -56,7 +56,7 @@ end$$;
 commit;
 begin;set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","aal":"aal2"}',true);
-select public.wf_decide_shift(:'transfer_id'::uuid,true);
+select public.wf_decide_shift(current_setting('test.transfer_id')::uuid,true);
 commit;
 do $$begin
  if (select user_id from public.wf_shift_assignments where id='30000000-0000-4000-8000-000000000001')
@@ -65,7 +65,7 @@ do $$begin
 end$$;
 begin;set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000004","aal":"aal2"}',true);
-select public.wf_decide_shift(:'transfer_id'::uuid,true);
+select public.wf_decide_shift(current_setting('test.transfer_id')::uuid,true);
 commit;
 do $$begin
  if (select user_id from public.wf_shift_assignments where id='30000000-0000-4000-8000-000000000001')
