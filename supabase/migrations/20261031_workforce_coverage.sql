@@ -91,7 +91,7 @@ end $$;
 
 create or replace function public.wf_decide_coverage(p_request uuid,p_approve boolean,p_reason text default null)
 returns text language plpgsql security definer set search_path='' as $$
-declare req public.wf_coverage_requests; sh public.wf_shifts; available integer; supervisor_count integer;
+declare req public.wf_coverage_requests; sh public.wf_shifts; available integer; supervisor_count integer; receiving_rank text; continuous numeric;
 begin
  if auth.uid() is null or coalesce(auth.jwt()->>'aal','aal1')<>'aal2'
  then raise exception 'Verified MFA required';end if;
@@ -130,6 +130,20 @@ begin
   or exists(select 1 from public.wf_absences z where z.agency_id=req.agency_id and z.user_id=req.employee_id
   and z.approved and z.begins_at<sh.ends_at and z.ends_at>sh.begins_at)
   then raise exception 'New schedule or absence conflict prevents approval';end if;
+  select m.rank into receiving_rank from public.wf_members m where m.agency_id=req.agency_id
+   and m.user_id=req.employee_id and m.enabled;
+  if receiving_rank not in ('Officer','Corporal','Sergeant','Lieutenant','Captain','Chief')
+  then raise exception 'Receiving employee rank is not eligible';end if;
+  if sh.require_supervisor and available>=sh.required_count and supervisor_count=0
+   and receiving_rank not in ('Sergeant','Lieutenant','Captain','Chief')
+  then raise exception 'Only an eligible supervisor can satisfy this vacancy';end if;
+  select coalesce(sum(extract(epoch from(s.ends_at-s.begins_at))/3600),0)
+   into continuous from public.wf_shift_assignments x join public.wf_shifts s on s.id=x.shift_id
+   where x.agency_id=req.agency_id and x.user_id=req.employee_id and x.state='assigned'
+   and s.ends_at>=sh.begins_at-interval '18 hours' and s.begins_at<=sh.ends_at+interval '18 hours';
+  if continuous+extract(epoch from(sh.ends_at-sh.begins_at))/3600>
+   (select max_continuous_hours from public.wf_agencies where id=req.agency_id)
+  then raise exception 'Continuous working hours now exceed conservative agency limit';end if;
   insert into public.wf_shift_assignments(agency_id,shift_id,user_id)
   values(req.agency_id,req.shift_id,req.employee_id);
   update public.wf_coverage_requests set status='approved',decided_at=now() where id=req.id;
