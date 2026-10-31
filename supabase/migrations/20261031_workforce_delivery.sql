@@ -40,10 +40,10 @@ begin
  ), logged as (
   insert into public.wf_delivery_attempts(agency_id,notification_id,attempt_number,outcome)
   select c.agency_id,c.id,c.attempts,'claimed' from claimed c
-  returning notification_id
+  returning public.wf_delivery_attempts.notification_id as logged_id
  )
  select c.id,c.agency_id,c.recipient_id,c.event_key,c.subject,c.safe_body,c.attempts
- from claimed c join logged l on l.notification_id=c.id;
+ from claimed c join logged l on l.logged_id=c.id;
 end $$;
 
 create or replace function public.wf_record_notification_delivery(
