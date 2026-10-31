@@ -159,3 +159,83 @@ do $$begin
  raise exception 'FAIL: duplicate outbox events';end if;
  raise notice 'PASS idempotent notification outbox';
 end$$;
+
+-- Two-stage leave and training workflow (synthetic authorized final reviewer).
+insert into public.wf_members(agency_id,user_id,rank,division,shift_name,enabled)
+values ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000006','Lieutenant','Patrol','Alpha',true);
+insert into public.wf_leave_authorities(agency_id,user_id,enabled)
+values ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000006',true);
+begin;set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","aal":"aal1"}',true);
+select public.wf_request_leave('10000000-0000-4000-8000-000000000001','vacation',
+ now()+interval '3 days',now()+interval '3 days 12 hours');
+commit;
+select set_config('test.leave_id',id::text,false) from public.wf_leave_requests where employee_id='00000000-0000-4000-8000-000000000001';
+do $$begin
+ if (select count(*) from public.wf_absences where user_id='00000000-0000-4000-8000-000000000001')<>0 then raise exception 'FAIL: unapproved leave affected staffing';end if;
+ raise notice 'PASS initial leave request did not change staffing';
+end$$;
+begin;set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","aal":"aal1"}',true);
+do $$begin
+ begin
+  perform public.wf_decide_leave(current_setting('test.leave_id')::uuid,true);
+  raise exception 'FAIL: first-level leave MFA bypass';
+ exception when others then if sqlerrm like 'FAIL:%' then raise; end if;end;
+ raise notice 'PASS leave reviewer AAL1 denied';
+end$$;
+commit;
+begin;set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","aal":"aal2"}',true);
+select public.wf_decide_leave(current_setting('test.leave_id')::uuid,true);
+commit;
+do $$begin
+ if (select status from public.wf_leave_requests where id=current_setting('test.leave_id')::uuid)<>'final'
+ or (select count(*) from public.wf_absences where user_id='00000000-0000-4000-8000-000000000001')<>0
+ then raise exception 'FAIL: initial approval incorrectly finalized leave';end if;
+ raise notice 'PASS first-level leave review requires second supervisor';
+end$$;
+begin;set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","aal":"aal2"}',true);
+do $$begin
+ begin
+  perform public.wf_decide_leave(current_setting('test.leave_id')::uuid,true);
+  raise exception 'FAIL: duplicate leave reviewer';
+ exception when others then if sqlerrm like 'FAIL:%' then raise;end if;end;
+ raise notice 'PASS duplicate leave reviewer denied';
+end$$;
+commit;
+begin;set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000006","aal":"aal2"}',true);
+select public.wf_decide_leave(current_setting('test.leave_id')::uuid,true);
+commit;
+do $$begin
+ if (select status from public.wf_leave_requests where id=current_setting('test.leave_id')::uuid)<>'approved'
+ or (select count(*) from public.wf_absences where user_id='00000000-0000-4000-8000-000000000001' and approved)<>1
+ then raise exception 'FAIL: final leave approval did not produce approved absence';end if;
+ if (select available_count from public.wf_shortages where shift_id='20000000-0000-4000-8000-000000000001')<>0
+ then raise exception 'FAIL: approved leave did not recalculate staffing';end if;
+ raise notice 'PASS final leave approval created absence and updated staffing';
+end$$;
+-- Revoked final authority must be denied even if a queued final review references it.
+begin;set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","aal":"aal1"}',true);
+select public.wf_request_leave('10000000-0000-4000-8000-000000000001','training',
+ now()+interval '8 days',now()+interval '8 days 6 hours');
+commit;
+select set_config('test.training_id',id::text,false) from public.wf_leave_requests where kind='training';
+begin;set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","aal":"aal2"}',true);
+select public.wf_decide_leave(current_setting('test.training_id')::uuid,true);
+commit;
+update public.wf_leave_authorities set enabled=false where user_id='00000000-0000-4000-8000-000000000006';
+begin;set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000006","aal":"aal2"}',true);
+do $$begin
+ begin
+  perform public.wf_decide_leave(current_setting('test.training_id')::uuid,true);
+  raise exception 'FAIL: revoked final authority approved training';
+ exception when others then if sqlerrm like 'FAIL:%' then raise;end if;end;
+ raise notice 'PASS revoked final-level leave authority denied';
+end$$;
+commit;
