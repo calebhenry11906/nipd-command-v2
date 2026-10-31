@@ -12,7 +12,7 @@ assert.match(moduleCode,/@supabase\/supabase-js@2\.108\.0/);
 assert.match(moduleCode,/cdn\.jsdelivr\.net/);
 assert.match(html,/decide_secure_request/);
 assert.match(html,/challengeAndVerify/);
-const fakeSdk="export function createClient() {\n const scenario=new URLSearchParams(location.search).get(\"scenario\")||\"\";\n const id=\"00000000-0000-4000-8000-000000000001\";\n const owner=\"00000000-0000-4000-8000-000000000002\";\n const signedIn=[\"sergeant\",\"mfa\",\"disabled\",\"hung\"].includes(scenario);\n const profile={user_id:id,display_label:\"Demo Sergeant A\",rank:\"Sergeant\",division:\"Patrol\",enabled:scenario!==\"disabled\"};\n const request={id:\"11111111-1111-4111-8111-111111111111\",kind:\"equipment\",stage:\"supervisor\",division:\"Patrol\",owner_id:owner,created_at:\"2026-10-30T12:00:00Z\"};\n return {\n  auth:{\n   getUser:()=>scenario===\"hung\"?new Promise(()=>{}):Promise.resolve({data:{user:signedIn?{id}:null},error:null}),\n   mfa:{\n    getAuthenticatorAssuranceLevel:async()=>({data:{currentLevel:scenario===\"mfa\"?\"aal2\":\"aal1\"},error:null}),\n    enroll:async()=>({data:{id:\"factor-1\",totp:{qr_code:\"data:image/svg+xml,%3Csvg/%3E\",secret:\"FICTIONAL-TEST-ONLY\"}},error:null}),\n    listFactors:async()=>({data:{totp:[]},error:null}),\n    challengeAndVerify:async()=>({data:{},error:null})\n   },\n   signInWithOtp:async()=>({error:null}),\n   verifyOtp:async()=>({error:null}),\n   signOut:async()=>({error:null})\n  },\n  from(table) {\n   if(table===\"staff_access\")return {select:()=>({eq:()=>({maybeSingle:async()=>({data:profile,error:null})})})};\n   if(table===\"secure_requests\")return {select:()=>({order:()=>({limit:async()=>({data:[request],error:null})})})};\n   throw Error(\"Unexpected mocked table: \"+table);\n  },\n  rpc:async()=>({error:{message:\"Tests must never submit real decisions\"}})\n };\n}";
+const fakeSdk="export function createClient() {\n const scenario=new URLSearchParams(location.search).get(\"scenario\")||\"\";\n const id=\"00000000-0000-4000-8000-000000000001\";\n const owner=\"00000000-0000-4000-8000-000000000002\";\n const signedIn=[\"sergeant\",\"mfa\",\"disabled\",\"hung\",\"officer-batch\"].includes(scenario);\n const profile={user_id:id,display_label:scenario===\"officer-batch\"?\"Demo Officer A\":\"Demo Sergeant A\",rank:scenario===\"officer-batch\"?\"Officer\":\"Sergeant\",division:\"Patrol\",enabled:scenario!==\"disabled\"};\n const request={id:\"11111111-1111-4111-8111-111111111111\",kind:\"equipment\",stage:\"supervisor\",division:\"Patrol\",owner_id:owner,created_at:\"2026-10-30T12:00:00Z\"};\n return {\n  auth:{\n   getUser:()=>scenario===\"hung\"?new Promise(()=>{}):Promise.resolve({data:{user:signedIn?{id}:null},error:null}),\n   mfa:{\n    getAuthenticatorAssuranceLevel:async()=>({data:{currentLevel:scenario===\"mfa\"?\"aal2\":\"aal1\"},error:null}),\n    enroll:async()=>({data:{id:\"factor-1\",totp:{qr_code:\"data:image/svg+xml,%3Csvg/%3E\",secret:\"FICTIONAL-TEST-ONLY\"}},error:null}),\n    listFactors:async()=>({data:{totp:[]},error:null}),\n    challengeAndVerify:async()=>({data:{},error:null})\n   },\n   signInWithOtp:async()=>({error:null}),\n   verifyOtp:async()=>({error:null}),\n   signOut:async()=>({error:null})\n  },\n  from(table) {\n   if(table===\"staff_access\")return {select:()=>({eq:()=>({maybeSingle:async()=>({data:profile,error:null})})})};\n   if(table===\"secure_requests\")return {select:()=>({order:()=>({limit:async()=>({data:[request],error:null})})})};\n   throw Error(\"Unexpected mocked table: \"+table);\n  },\n  rpc:async(name,args)=>{if(name!==\"submit_secure_request\"||scenario!==\"officer-batch\")return {error:{message:\"Test mock blocks unexpected RPC\"}};(window.__fictionalSubmissions??=[]).push(args);return {data:\"fictional-only\",error:null}}\n };\n}";
 const server=http.createServer((req,res)=>{
  if(req.url.startsWith("/secure.html")){
   res.writeHead(200,{"content-type":"text/html; charset=utf-8","cache-control":"no-store"});
@@ -96,6 +96,27 @@ async function run(){
    await page.goto(base);
    await page.waitForFunction(()=>!document.querySelector("#login").hidden,null,{timeout:30000});
    assert.equal(await page.locator("#loading").isHidden(),true);
+   await ctx.close();
+  });
+  await check("Officer fictional batch submits 2 equipment and 1 timesheet requests",async()=>{
+   const {ctx,page}=await open("officer-batch");
+   await page.waitForFunction(()=>!document.querySelector("#portal").hidden);
+   page.once("dialog",dialog=>dialog.accept());
+   await page.locator("#createBatchTests").click();
+   await page.waitForFunction(()=>window.__fictionalSubmissions?.length===3);
+   const kinds=await page.evaluate(()=>window.__fictionalSubmissions.map(v=>v.p_kind));
+   assert.deepEqual(kinds,["equipment","timesheet","equipment"]);
+   assert.equal(await page.locator("#createBatchTests").isDisabled(),false);
+   await ctx.close();
+  });
+  await check("single fictional timesheet request is offered",async()=>{
+   const {ctx,page}=await open("officer-batch");
+   await page.waitForFunction(()=>!document.querySelector("#portal").hidden);
+   page.once("dialog",dialog=>dialog.accept());
+   await page.locator("#createTimesheetTest").click();
+   await page.waitForFunction(()=>window.__fictionalSubmissions?.length===1);
+   const kinds=await page.evaluate(()=>window.__fictionalSubmissions.map(v=>v.p_kind));
+   assert.deepEqual(kinds,["timesheet"]);
    await ctx.close();
   });
   await check("published GitHub Pages serves repaired secure HTML",async()=>{
