@@ -4,11 +4,17 @@ on:
     paths:
       - 'supabase/migrations/20261031_workforce_*.sql'
       - 'tests/workforce_*.sql'
+      - 'tests/workforce-html-smoke.cjs'
+      - 'workforce-preview.html'
+      - 'index.html'
       - '.github/workflows/workforce-integration.yml'
   pull_request:
     paths:
       - 'supabase/migrations/20261031_workforce_*.sql'
       - 'tests/workforce_*.sql'
+      - 'tests/workforce-html-smoke.cjs'
+      - 'workforce-preview.html'
+      - 'index.html'
       - '.github/workflows/workforce-integration.yml'
   workflow_dispatch:
 permissions:
