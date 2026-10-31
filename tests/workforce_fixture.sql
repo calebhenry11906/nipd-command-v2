@@ -1,6 +1,7 @@
 -- Disposable local PostgreSQL fixture. Never run against the live Supabase project.
 create role authenticated nologin;
 create role anon nologin;
+create role service_role nologin;
 create schema auth;
 create schema app_private;
 create table auth.users(id uuid primary key, email text);
