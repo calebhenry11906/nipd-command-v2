@@ -160,6 +160,13 @@ do $$begin
  raise notice 'PASS idempotent notification outbox';
 end$$;
 
+-- Give Officer A an independent, genuinely assigned shift to verify absence impacts available staffing.
+insert into public.wf_shifts(id,agency_id,shift_name,begins_at,ends_at) values
+ ('20000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000001',
+ 'Charlie',now()+interval '3 days',now()+interval '3 days 12 hours');
+insert into public.wf_shift_assignments(id,agency_id,shift_id,user_id) values
+ ('30000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000001',
+ '20000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000001');
 -- Two-stage leave and training workflow (synthetic authorized final reviewer).
 insert into public.wf_members(agency_id,user_id,rank,division,shift_name,enabled)
 values ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000006','Lieutenant','Patrol','Alpha',true);
@@ -213,7 +220,7 @@ do $$begin
  if (select status from public.wf_leave_requests where id=current_setting('test.leave_id')::uuid)<>'approved'
  or (select count(*) from public.wf_absences where user_id='00000000-0000-4000-8000-000000000001' and approved)<>1
  then raise exception 'FAIL: final leave approval did not produce approved absence';end if;
- if (select available_count from public.wf_shortages where shift_id='20000000-0000-4000-8000-000000000001')<>0
+ if (select available_count from public.wf_shortages where shift_id='20000000-0000-4000-8000-000000000002')<>0
  then raise exception 'FAIL: approved leave did not recalculate staffing';end if;
  raise notice 'PASS final leave approval created absence and updated staffing';
 end$$;
