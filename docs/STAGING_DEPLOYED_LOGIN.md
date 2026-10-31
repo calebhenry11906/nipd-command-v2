@@ -25,3 +25,10 @@ Supabase confirmed the function is `ACTIVE`, version 1, and returned its deploye
 6. Do not interpret mocked acceptance results as genuine browser login. Record any errors to diagnose safely.
 
 This public staging environment is for fictional data only; do not enter actual officers or operational information.
+
+
+## Hosting correction — 2026-10-31
+
+**The Supabase Edge Function URL is NOT a supported staging website URL.** Supabase explicitly rewrites `text/html` to `text/plain` on shared `*.supabase.co` domains, so even a correctly routed function displays raw HTML source instead of a functioning page. Official documentation: https://supabase.com/docs/guides/functions/limits#other-limits--restrictions . The previous staging link must not be given to users as a working login.
+
+Deploy the standalone staging frontend via an independent static web host such as Vercel, Netlify, or Cloudflare Pages. Use `staging-login.html` with `staging-config.js`, `workforce-preview.html`, and the staging-only secure portal build. Ensure deployed staging Supabase URL is `https://qvnldjidqyuwglksdtlm.supabase.co`, not production; the staging publishable key is safe to embed client-side, but never embed service-role secrets. Configure allowed redirect origins in staging Supabase Auth as required, then verify login and real TOTP MFA in a browser. Keep production GitHub Pages untouched.
