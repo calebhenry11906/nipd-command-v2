@@ -290,3 +290,34 @@ do $$begin
  then raise exception 'FAIL: approved coverage did not change shortage';end if;
  raise notice 'PASS authorized coverage pickup created assignment and updated shortage';
 end$$;
+
+-- Provider-neutral delivery worker simulation; no email sent or address retrieved.
+select set_config('test.delivery_id',notification_id::text,false),
+ set_config('test.delivery_attempt',attempt_number::text,false)
+from public.wf_claim_notifications(1);
+do $$begin
+ if (select state from public.wf_notification_outbox where id=current_setting('test.delivery_id')::uuid)<>'retrying'
+ then raise exception 'FAIL: outbox delivery was not claimed';end if;
+ raise notice 'PASS notification job claimed by trusted worker';
+end$$;
+select public.wf_record_notification_delivery(current_setting('test.delivery_id')::uuid,
+ current_setting('test.delivery_attempt')::integer,false,'synthetic provider timeout');
+do $$begin
+ if (select state from public.wf_notification_outbox where id=current_setting('test.delivery_id')::uuid)<>'queued'
+ or (select attempts from public.wf_notification_outbox where id=current_setting('test.delivery_id')::uuid)<>1
+ or not exists(select 1 from public.wf_delivery_attempts where notification_id=current_setting('test.delivery_id')::uuid and outcome='retry_queued')
+ then raise exception 'FAIL: unsuccessful message did not queue retry';end if;
+ raise notice 'PASS failed delivery recorded and scheduled retry';
+end$$;
+-- Fast-forward synthetic attempt only; real jobs use server time.
+update public.wf_notification_outbox set available_at=now()-interval '1 minute' where id=current_setting('test.delivery_id')::uuid;
+select set_config('test.delivery_attempt',attempt_number::text,false)
+ from public.wf_claim_notifications(1) where notification_id=current_setting('test.delivery_id')::uuid;
+select public.wf_record_notification_delivery(current_setting('test.delivery_id')::uuid,
+ current_setting('test.delivery_attempt')::integer,true,null);
+do $$begin
+ if (select state from public.wf_notification_outbox where id=current_setting('test.delivery_id')::uuid)<>'sent'
+ or (select count(*) from public.wf_delivery_attempts where notification_id=current_setting('test.delivery_id')::uuid and outcome='sent')<>1
+ then raise exception 'FAIL: retried message did not record successful delivery';end if;
+ raise notice 'PASS successful retry logged without duplicating notification record';
+end$$;
