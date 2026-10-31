@@ -20,7 +20,7 @@ const guard=[
  'const url=stagedUrl.origin,publishable=cfg.publishableKey;',
  'document.querySelector("header small").textContent="NIPD COMMAND V2 — STAGING";',
  'document.querySelector("h1").textContent="FICTIONAL TEST DATA ONLY — NOT FOR OPERATIONAL USE";'
-].join("\\n").replaceAll("\\\\n","\\n");
+].join("\n");
 let html=source.replace(probe[0],guard);
 assert.ok(!html.includes("https://"+production+".supabase.co"),"Production URL still appears in secure staging build");
 assert.ok(!html.includes("sb_publishable_6qhGc7WuKaCRH5yfmQ787w_YB-VEfn5"),"Production publishable key still present");
