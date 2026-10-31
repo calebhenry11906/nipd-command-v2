@@ -4,6 +4,7 @@ on:
     paths:
       - 'supabase/migrations/20261031_workforce_*.sql'
       - 'tests/workforce_*.sql'
+      - 'tests/workforce_concurrency.py'
       - 'tests/workforce-html-smoke.cjs'
       - 'workforce-preview.html'
       - 'index.html'
@@ -12,6 +13,7 @@ on:
     paths:
       - 'supabase/migrations/20261031_workforce_*.sql'
       - 'tests/workforce_*.sql'
+      - 'tests/workforce_concurrency.py'
       - 'tests/workforce-html-smoke.cjs'
       - 'workforce-preview.html'
       - 'index.html'
@@ -64,3 +66,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261031_workforce_coverage.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261031_workforce_delivery.sql
           psql -v ON_ERROR_STOP=1 -f tests/workforce_integration.sql
+      - name: Verify true simultaneous shift pickup safety
+        run: |
+          python -m pip install --user 'psycopg[binary]==3.2.10'
+          python tests/workforce_concurrency.py
