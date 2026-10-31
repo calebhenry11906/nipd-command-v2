@@ -53,4 +53,5 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261031_workforce_staffing_triggers.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261031_workforce_detail_transfers.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261031_workforce_leave.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261031_workforce_coverage.sql
           psql -v ON_ERROR_STOP=1 -f tests/workforce_integration.sql
