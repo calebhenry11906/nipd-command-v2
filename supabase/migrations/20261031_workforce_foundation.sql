@@ -148,11 +148,14 @@ create table if not exists public.wf_detail_transfers (
  foreign key(agency_id,detail_id) references public.wf_details(agency_id,id),
  releasing_user uuid not null,
  receiving_user uuid,
+ reviewer_id uuid,
+ reason text,
  status text not null default 'available' check(status in ('available','pickup_requested','approved','denied','cancelled','expired')),
  created_at timestamptz not null default now(),
  -- Multiple denied/cancelled transfer histories are allowed.
  foreign key(agency_id,releasing_user) references public.wf_members(agency_id,user_id),
- foreign key(agency_id,receiving_user) references public.wf_members(agency_id,user_id)
+ foreign key(agency_id,receiving_user) references public.wf_members(agency_id,user_id),
+ foreign key(agency_id,reviewer_id) references public.wf_members(agency_id,user_id)
 );
 
 -- All workforce information remains inaccessible until enrollment and RLS review.
