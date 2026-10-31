@@ -12,6 +12,6 @@ for(const id of ["agency","mine","available","approvals","staffing","notificatio
 for(const action of ["wf_board","wf_employee_directory","wf_employee_profile","wf_offer_shift","wf_claim_shift","wf_decide_shift","wf_release_detail","wf_claim_detail","wf_decide_detail","wf_request_leave","wf_leave_board","wf_decide_leave","wf_cancel_leave","wf_coverage_board","wf_request_coverage","wf_decide_coverage"]){
  assert.ok(source.includes('"'+action+'"'),"Missing server-side action: "+action);
 }
-assert.ok(!/localStorage\.(setItem|removeItem)/.test(module),"Workforce records must not use local storage");
+assert.ok(!/localStorage\.(setItem|removeItem)/.test(source),"Workforce records must not use local storage");
 assert.ok(!/service_role|service_role_key|serviceRoleKey/.test(module),"Browser must not reference service role key");
 console.log("PASS: workforce preview parses and required protected workflows are present (static check, not live end-to-end).");
