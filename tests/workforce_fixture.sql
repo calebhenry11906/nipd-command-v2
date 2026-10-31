@@ -23,7 +23,8 @@ insert into auth.users(id,email) values
  ('00000000-0000-4000-8000-000000000002','officer-b@example.invalid'),
  ('00000000-0000-4000-8000-000000000003','sergeant-a@example.invalid'),
  ('00000000-0000-4000-8000-000000000004','sergeant-b@example.invalid'),
- ('00000000-0000-4000-8000-000000000005','outsider@example.invalid');
+ ('00000000-0000-4000-8000-000000000005','outsider@example.invalid'),
+ ('00000000-0000-4000-8000-000000000006','synthetic-lieutenant@example.invalid');
 insert into public.staff_access(user_id,display_label,division,rank,enabled)
  select id,split_part(email,'@',1),'Patrol',
- case when id::text like '%0003' or id::text like '%0004' then 'Sergeant' else 'Officer' end,true from auth.users;
+ case when id::text like '%0006' then 'Lieutenant' when id::text like '%0003' or id::text like '%0004' then 'Sergeant' else 'Officer' end,true from auth.users;
