@@ -10,10 +10,6 @@ create table public.staff_access(
  enabled boolean not null default false
 );
 create or replace function auth.uid() returns uuid language sql stable as $$
- select nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'sub'
-$$;
--- Override the stub to cast to UUID; the separate expression avoids CREATE FUNCTION type ambiguity.
-create or replace function auth.uid() returns uuid language sql stable as $$
  select (nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'sub')::uuid
 $$;
 create or replace function auth.jwt() returns jsonb language sql stable as $$
