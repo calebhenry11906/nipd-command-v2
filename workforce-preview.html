@@ -52,10 +52,29 @@ const $=id=>document.getElementById(id);
 const make=(tag,text)=>{let el=document.createElement(tag);el.textContent=String(text??"");return el};
 const status=(message,error=false)=>{$("message").textContent=message;$("message").className=error?"error":"ok"};
 const datetime=v=>v?new Date(v).toLocaleString():"Unknown";
-const clientModule=await import("https://esm.sh/@supabase/supabase-js@2.108.0");
-const client=clientModule.createClient("https://czdrsblgwmovhoznlxvm.supabase.co",
- "sb_publishable_6qhGc7WuKaCRH5yfmQ787w_YB-VEfn5",
+// Fail closed: this branch must never connect to the existing NIPD Supabase project.
+// staging-config.js is produced only for an explicitly isolated test deployment.
+let client;
+try{
+ const {STAGING_CONFIG}=await import("./staging-config.js");
+ const cfg=STAGING_CONFIG;
+ const url=new URL(cfg?.supabaseUrl||"");
+ if(cfg?.environment!=="staging" || cfg?.notificationMode!=="mock" ||
+  url.protocol!=="https:" || !/^[a-z0-9-]+\.supabase\.co$/.test(url.hostname) ||
+  url.hostname==="czdrsblgwmovhoznlxvm.supabase.co" ||
+  !String(cfg?.publishableKey||"").startsWith("sb_publishable_") ||
+  /service_role|secret/i.test(cfg.publishableKey))
+  throw Error("Invalid or production-linked staging configuration.");
+ const clientModule=await import("https://esm.sh/@supabase/supabase-js@2.108.0");
+ client=clientModule.createClient(url.origin,cfg.publishableKey,
  {auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:true}});
+ document.querySelector("header h1").textContent="NIPD COMMAND V2 — STAGING";
+ document.querySelector(".notice").textContent="FICTIONAL TEST DATA ONLY — NOT FOR OPERATIONAL USE. Email delivery is simulated.";
+}catch(err){
+ document.querySelector("#message").textContent="Staging is not configured. No Supabase connection was opened. "+err.message;
+ document.querySelector("#message").className="error";
+ throw err;
+}
 const rpc=async(name,args={})=>{
  const {data,error}=await client.rpc(name,args);
  if(error)throw Error(error.message||"Request failed");
