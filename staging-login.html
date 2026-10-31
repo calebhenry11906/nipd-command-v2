@@ -4,7 +4,7 @@
 </head><body><header><strong>NIPD COMMAND V2 — STAGING</strong><div>FICTIONAL TEST DATA ONLY — NOT FOR OPERATIONAL USE</div></header><main>
 <p class="warning">Independent staging Auth only. Never enter an operational police password. This account is for synthetic workflow testing.</p>
 <section class="panel" id="login"><h2>Staging sign-in</h2><form id="loginForm"><label for="email">Fictional test account email</label><input id="email" type="email" autocomplete="username" required><label for="password">Staging-only password</label><input id="password" type="password" autocomplete="current-password" required><button type="submit">Sign in</button></form></section>
-<section class="panel" id="mfa" hidden><h2>Authenticator verification</h2><p id="aal"></p><div id="enroll" hidden><p>Enroll your authenticator app using the QR code. This secret is unique to staging.</p><div id="qrcode"></div></div><form id="verifyForm"><label for="code">6-digit authenticator code</label><input id="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required><button type="submit">Verify authenticator</button></form><button id="startEnroll" type="button" hidden>Enroll authenticator</button><button id="logout" type="button">Sign out</button></section>
+<section class="panel" id="mfa" hidden><h2>Authenticator verification</h2><p id="aal"></p><div id="enroll" hidden><p>Enroll your authenticator app using the QR code. This secret is unique to staging.</p><div id="qrcode"></div><p>For CI automation only, securely save this test-only authenticator seed in your GitHub Actions secret <code>STAGING_SERGEANT_TOTP_SECRET</code>. Never paste it into chat.</p><input id="enrollmentSecret" type="text" readonly autocomplete="off" aria-label="Staging-only authenticator seed"></div><form id="verifyForm"><label for="code">6-digit authenticator code</label><input id="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required><button type="submit">Verify authenticator</button></form><button id="startEnroll" type="button" hidden>Enroll authenticator</button><button id="logout" type="button">Sign out</button></section>
 <section class="panel" id="ready" hidden><h2>MFA verified</h2><p>Your staging session has AAL2 assurance. The backend independently checks authorization on protected approvals.</p><a href="./workforce-preview.html">Open Workforce Management</a><p><a href="./secure.html">Open staging equipment and timesheets</a></p><button id="logoutReady" type="button">Sign out</button></section>
 <p id="feedback" role="status" aria-live="polite"></p></main>
 <script type="module">
@@ -49,7 +49,7 @@ $("startEnroll").onclick=async()=>{
   const qr=data.totp?.qr_code;
   if(!qr||!qr.startsWith("data:image/svg+xml"))throw Error("Authenticator QR code unavailable");
   const image=document.createElement("img");image.alt="Staging authenticator enrollment QR code";image.src=qr;
-  $("qrcode").replaceChildren(image);$("enroll").hidden=false;$("verifyForm").hidden=false;$("startEnroll").hidden=true;
+  $("qrcode").replaceChildren(image);$("enrollmentSecret").value=data.totp?.secret||"";$("enroll").hidden=false;$("verifyForm").hidden=false;$("startEnroll").hidden=true;
   $("feedback").textContent="Scan the staging QR code, then enter the code to finish enrollment.";
  }catch(e){showError(e)}
 };
