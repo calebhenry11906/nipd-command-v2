@@ -47,7 +47,8 @@ create table if not exists public.wf_shifts (
  required_count integer not null default 5 check(required_count between 1 and 40),
  require_supervisor boolean not null default true,
  check(ends_at>begins_at and ends_at<=begins_at+interval '24 hours'),
- unique(agency_id,shift_name,begins_at)
+ unique(agency_id,shift_name,begins_at),
+ unique(agency_id,id)
 );
 create table if not exists public.wf_shift_assignments (
  id uuid primary key default gen_random_uuid(),
@@ -56,6 +57,8 @@ create table if not exists public.wf_shift_assignments (
  user_id uuid not null,
  state text not null default 'assigned' check(state in ('assigned','absent','cancelled')),
  unique(shift_id,user_id),
+ unique(agency_id,id),
+ foreign key(agency_id,shift_id) references public.wf_shifts(agency_id,id),
  foreign key(agency_id,user_id) references public.wf_members(agency_id,user_id)
 );
 create table if not exists public.wf_absences (
@@ -72,7 +75,8 @@ create table if not exists public.wf_absences (
 create table if not exists public.wf_transfer_requests (
  id uuid primary key default gen_random_uuid(),
  agency_id uuid not null references public.wf_agencies(id),
- assignment_id uuid not null references public.wf_shift_assignments(id),
+ assignment_id uuid not null,
+ foreign key(agency_id,assignment_id) references public.wf_shift_assignments(agency_id,id),
  releasing_user uuid not null,
  receiving_user uuid,
  releasing_supervisor uuid,
@@ -122,18 +126,20 @@ create table if not exists public.wf_details (
  begins_at timestamptz not null,
  ends_at timestamptz not null,
  assigned_user uuid,
+ unique(agency_id,id),
  check(ends_at>begins_at),
  foreign key(agency_id,assigned_user) references public.wf_members(agency_id,user_id)
 );
 create table if not exists public.wf_detail_transfers (
  id uuid primary key default gen_random_uuid(),
  agency_id uuid not null references public.wf_agencies(id),
- detail_id uuid not null references public.wf_details(id),
+ detail_id uuid not null,
+ foreign key(agency_id,detail_id) references public.wf_details(agency_id,id),
  releasing_user uuid not null,
  receiving_user uuid,
  status text not null default 'available' check(status in ('available','pickup_requested','approved','denied','cancelled','expired')),
  created_at timestamptz not null default now(),
- unique(detail_id,status),
+ -- Multiple denied/cancelled transfer histories are allowed.
  foreign key(agency_id,releasing_user) references public.wf_members(agency_id,user_id),
  foreign key(agency_id,receiving_user) references public.wf_members(agency_id,user_id)
 );
@@ -141,6 +147,7 @@ create table if not exists public.wf_detail_transfers (
 -- All workforce information remains inaccessible until enrollment and RLS review.
 -- RLS is intentionally deny-all for new tables: no exposure via REST until reviewed
 -- policies and RPCs are separately installed and tested.
+create unique index if not exists wf_one_open_detail_transfer on public.wf_detail_transfers(detail_id) where status in ('available','pickup_requested');
 alter table public.wf_agencies enable row level security;
 alter table public.wf_members enable row level security;
 alter table public.wf_private_contacts enable row level security;
