@@ -39,7 +39,7 @@ begin
  (tenant,'7572e719-10ac-4b81-a62f-c2e0e7f8c890',true);
  insert into public.wf_shifts(agency_id,shift_name,begins_at,ends_at,required_count) values
  (tenant,'Alpha','2026-11-12 18:00:00+00','2026-11-13 06:00:00+00',5),
- (tenant,'Bravo','2026-11-13 18:00:00+00','2026-11-14 06:00:00+00',5),
+ (tenant,'Bravo','2026-11-20 18:00:00+00','2026-11-21 06:00:00+00',5),
  (tenant,'Delta','2026-11-15 00:00:00+00','2026-11-15 12:00:00+00',5),
  (tenant,'Charlie','2026-11-16 12:00:00+00','2026-11-17 00:00:00+00',5);
  insert into public.wf_shift_assignments(agency_id,shift_id,user_id)
