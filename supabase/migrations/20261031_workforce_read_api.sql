@@ -51,6 +51,24 @@ begin
     )))
    from public.wf_shifts s where s.agency_id=p_agency and s.ends_at>now() and s.begins_at<now()+interval '14 days'
   ),'[]'::jsonb),
+  'available_details',coalesce((
+   select jsonb_agg(jsonb_build_object('id',t.id,'description',d.safe_description,'start',d.begins_at,
+   'end',d.ends_at,'status',t.status,'mine',t.releasing_user=auth.uid()))
+   from public.wf_detail_transfers t join public.wf_details d on d.id=t.detail_id and d.agency_id=p_agency
+   where t.agency_id=p_agency and t.status in ('available','pickup_requested')
+  ),'[]'::jsonb),
+  'my_details',coalesce((
+   select jsonb_agg(jsonb_build_object('id',d.id,'description',d.safe_description,
+   'start',d.begins_at,'end',d.ends_at))
+   from public.wf_details d where d.agency_id=p_agency and d.assigned_user=auth.uid() and d.ends_at>now()
+  ),'[]'::jsonb),
+  'detail_approvals',coalesce((
+   select jsonb_agg(jsonb_build_object('id',t.id,'description',d.safe_description,'start',d.begins_at,
+    'end',d.ends_at))
+   from public.wf_detail_transfers t join public.wf_details d on d.id=t.detail_id and d.agency_id=p_agency
+   where t.agency_id=p_agency and t.status='pickup_requested' and t.reviewer_id=auth.uid()
+    and m.rank in ('Sergeant','Lieutenant','Captain','Chief') and auth.uid() not in (t.releasing_user,t.receiving_user)
+  ),'[]'::jsonb),
   'notifications',coalesce((
    select jsonb_agg(jsonb_build_object('category',n.category,'subject',n.subject,'body',n.safe_body,'created',n.created_at))
    from (select category,subject,safe_body,created_at from public.wf_notification_outbox
