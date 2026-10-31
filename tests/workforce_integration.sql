@@ -246,3 +246,47 @@ do $$begin
  raise notice 'PASS revoked final-level leave authority denied';
 end$$;
 commit;
+
+-- Vacant shift coverage pickup: receiving shift supervisor approval, no release required.
+insert into public.wf_shifts(id,agency_id,shift_name,begins_at,ends_at,required_count) values
+ ('20000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000001',
+ 'Delta',now()+interval '12 days',now()+interval '12 days 12 hours',5);
+insert into public.wf_shift_supervisors(agency_id,shift_id,supervisor_id,enabled) values
+ ('10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000003',
+ '00000000-0000-4000-8000-000000000003',true);
+do $$begin
+ if (select vacancies from public.wf_shortages where shift_id='20000000-0000-4000-8000-000000000003')<>5
+ then raise exception 'FAIL: new vacant shift not detected';end if;
+ raise notice 'PASS unfilled shift generated staffing vacancies';
+end$$;
+begin;set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","aal":"aal1"}',true);
+select public.wf_request_coverage('20000000-0000-4000-8000-000000000003');
+commit;
+select set_config('test.coverage_id',id::text,false) from public.wf_coverage_requests
+ where shift_id='20000000-0000-4000-8000-000000000003';
+do $$begin
+ if exists(select 1 from public.wf_shift_assignments where shift_id='20000000-0000-4000-8000-000000000003')
+ then raise exception 'FAIL: pending coverage created assignment';end if;
+ raise notice 'PASS pending vacancy pickup does not create assignment';
+end$$;
+begin;set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","aal":"aal2"}',true);
+do $$begin
+ begin
+ perform public.wf_decide_coverage(current_setting('test.coverage_id')::uuid,true);
+ raise exception 'FAIL: coverage self approval';
+ exception when others then if sqlerrm like 'FAIL:%' then raise;end if;end;
+ raise notice 'PASS coverage self approval denied';
+end$$;
+commit;
+begin;set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","aal":"aal2"}',true);
+select public.wf_decide_coverage(current_setting('test.coverage_id')::uuid,true);
+commit;
+do $$begin
+ if (select status from public.wf_coverage_requests where id=current_setting('test.coverage_id')::uuid)<>'approved'
+ or (select vacancies from public.wf_shortages where shift_id='20000000-0000-4000-8000-000000000003')<>4
+ then raise exception 'FAIL: approved coverage did not change shortage';end if;
+ raise notice 'PASS authorized coverage pickup created assignment and updated shortage';
+end$$;
