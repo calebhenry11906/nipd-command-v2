@@ -15,7 +15,7 @@ Deno.serve(async (request: Request) => {
   const sender = env("NIPD_TEST_EMAIL_FROM");
   const key = env("RESEND_API_KEY");
   const serviceKey = env("SUPABASE_SERVICE_ROLE_KEY");
-  if (!recipient || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(recipient) ||
+  if (!recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient) ||
       !sender || !key || !serviceKey) return json({error:"Missing staging-only email configuration"},503);
   // Always send only to a fixed test address, never recipient addresses from the queue.
   const rpc = async (name: string, args: Record<string,unknown>) => {
