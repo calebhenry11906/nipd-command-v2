@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - 'supabase/migrations/20261031_workforce_*.sql'
+      - 'supabase/migrations/20261101_workforce_*.sql'
       - 'tests/workforce_*.sql'
       - 'tests/workforce_concurrency.py'
       - 'tests/workforce-html-smoke.cjs'
@@ -12,6 +13,7 @@ on:
   pull_request:
     paths:
       - 'supabase/migrations/20261031_workforce_*.sql'
+      - 'supabase/migrations/20261101_workforce_*.sql'
       - 'tests/workforce_*.sql'
       - 'tests/workforce_concurrency.py'
       - 'tests/workforce-html-smoke.cjs'
@@ -65,7 +67,13 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261031_workforce_leave.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261031_workforce_coverage.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261031_workforce_delivery.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261101_workforce_permissions_foundation.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261101_workforce_permissions_enforcement_phase2.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261101_workforce_permissions_enforcement_phase2_boards.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261101_workforce_permissions_leave_denial_repair.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261101_workforce_command_scope_phase2.sql
           psql -v ON_ERROR_STOP=1 -f tests/workforce_integration.sql
+          psql -v ON_ERROR_STOP=1 -f tests/workforce_phase2_permissions.sql
       - name: Verify true simultaneous shift pickup safety
         run: |
           python -m pip install --user 'psycopg[binary]==3.2.10'
