@@ -28,16 +28,16 @@ Deno.serve(async (request: Request) => {
   };
   try {
     const jobs = await rpc("wf_claim_notifications",{p_limit:5}) as Array<{notification_id:string;agency_id:string;recipient_id:string;event_key:string;subject:string;safe_body:string;attempt_number:number}>;
-    let sent=0,failed=0;
+    let sent=0,failed=0,held_for_review=0;
     for(const job of jobs) {
       const subject="[FICTIONAL NIPD STAGING] "+String(job.subject).slice(0,130);
       const message="TEST MESSAGE — NOT AN OPERATIONAL ALERT.\\n"+
         "Original fictional recipient: "+job.recipient_id+"\\n\\n"+
         String(job.safe_body).slice(0,1000);
-      let success=false, safeError="Test provider error";
+      // Resend stores keys for only 24 hours. Retried messages older than 23h\n      // must be held, not resent with an expired provider deduplication key.\n      if (job.attempt_number > 1) {\n        const withinWindow=await rpc("wf_notification_retry_safe",{p_notification:job.notification_id}) as boolean;\n        if (!withinWindow) {\n          await rpc("wf_record_notification_delivery",{\n            p_notification:job.notification_id,p_attempt:job.attempt_number,\n            p_success:false,p_safe_error:"Retry outside idempotency window: manual review required"\n          });\n          held_for_review++;\n          continue;\n        }\n      }\n      // Stable across attempts/restarts; never include an attempt number.\n      const idempotencyKey="nipd-staging-email/"+job.notification_id;\n      let success=false, safeError="Test provider error";
       try {
         const res=await fetch("https://api.resend.com/emails",{
-          method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},
+          method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json",\n            "Idempotency-Key":idempotencyKey},
           body:JSON.stringify({from:sender,to:[recipient],subject,text:message})
         });
         success=res.ok;
@@ -50,6 +50,6 @@ Deno.serve(async (request: Request) => {
       });
       if(success)sent++; else failed++;
     }
-    return json({environment:"fictional-staging",claimed:jobs.length,accepted_by_provider:sent,failed});
+    return json({environment:"fictional-staging",claimed:jobs.length,accepted_by_provider:sent,failed,held_for_review});
   } catch { return json({error:"Staging email dispatch failed; see private logs"},500); }
 });
