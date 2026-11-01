@@ -4,7 +4,7 @@ const AGENCY="0364257b-f54f-40cb-a34a-0cb125afb16d";
 const root=document.getElementById("leaveRoot");
 const label={supervisor:"Pending Sergeant Approval",final:"Pending Lieutenant Approval",approved:"Approved",denied:"Denied",cancelled:"Cancelled"};
 const kind={vacation:"Vacation",training:"Training",other:"Other Leave"};
-let overview=null,board=null,user=null,active="Calendar",month=new Date(),loading=false;
+let overview=null,board=null,user=null,active="Calendar",month=new Date(2026,10,1),loading=false,deciding=false;
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n};
 const button=(text,fn)=>{const b=el("button",text,"lt-outline");b.type="button";b.onclick=fn;return b};
 const line=(text)=>el("p",text,"moduleIntro");
@@ -19,14 +19,14 @@ function shell(){
  root.append(el("p","", "moduleIntro"));root.lastChild.id="lt2message";
  if(!user){root.append(line("Sign in with your authorized staging account to view protected leave records."));root.append(button("Sign In",()=>{location.href="leave-secure.html"}));return}
  const identity=el("div",undefined,"lt-toolbar");const identityName=el("strong",user.email);identityName.id="lt2identity";identity.append(identityName);identity.append(button("Sign Out",async()=>{await db.auth.signOut();user=null;overview=null;board=null;shell()}));root.append(identity);
- const tabs=el("div",undefined,"lt-tabs");for(const t of ["Calendar","My Requests","Approvals","History","Staffing Impact"]){const b=button(t,()=>{active=t;render()});if(t===active)b.classList.add("current");tabs.append(b)}root.append(tabs);
+ const tabs=el("div",undefined,"lt-tabs");tabs.id="lt2tabs";for(const t of ["Calendar","My Requests","Approvals","History","Staffing Impact"]){const b=button(t,()=>{active=t;render()});b.dataset.tab=t;if(t===active)b.classList.add("current");tabs.append(b)}root.append(tabs);
  const body=el("section",undefined,"panel");body.id="lt2body";root.append(body);render();
 }
 async function reload(){if(loading)return;loading=true;notice("Loading authorized records…");try{
  const [a,b]=await Promise.all([rpc("wf_leave_overview",{p_agency:AGENCY}),rpc("wf_leave_board",{p_agency:AGENCY})]);overview=a;board=b;const identityLabel=document.getElementById("lt2identity");if(identityLabel)identityLabel.textContent=a.profile.name+" · "+a.profile.rank+" · "+user.email;notice("");render();document.dispatchEvent(new CustomEvent("nipd-leave-loaded",{detail:{rank:a.profile.rank,pending:(b.review||[]).length}}));
 }catch(e){notice("Unable to load authorized records. Please sign in again or contact your system administrator.");}finally{loading=false}}
 function card(r,actions=[]){const c=el("div",undefined,"lt-record"),info=el("div");info.append(el("strong",(r.employee||overview?.profile?.name||"My Request")+" · "+(kind[r.kind]||r.kind)));info.append(el("small",date(r.start)+" – "+date(r.end)+" · "+(label[r.status]||r.status)));if(r.reason)info.append(line("Denial Reason: "+r.reason));c.append(info);for(const a of actions)c.append(a);return c}
-function render(){const body=document.getElementById("lt2body");if(!body)return;body.replaceChildren();const entries=overview?.requests||[];if(!overview){body.append(line("Loading your authorized leave information…"));return}
+function render(){const body=document.getElementById("lt2body");if(!body)return;document.querySelectorAll("#lt2tabs [data-tab]").forEach(b=>{const current=b.dataset.tab===active;b.classList.toggle("current",current);b.setAttribute("aria-current",current?"page":"false")});body.replaceChildren();const entries=overview?.requests||[];if(!overview){body.append(line("Loading your authorized leave information…"));return}
 if(active==="My Requests"){
  body.append(el("h3","Submit a Leave Request"));
  const form=el("form");form.style.display="grid";form.style.gap="10px";
@@ -48,7 +48,7 @@ const onDay=records.filter(r=>new Date(r.start)<end&&new Date(r.end)>start);for(
 if(!records.length)body.append(line("No authorized approved leave entries for this month."));else{body.append(el("h3","Approved Entries"));for(const r of records)body.append(card(r))}
 body.append(line("Calendar displays approved absences you are authorized to view. Detailed staffing coverage is not yet available."));
 }
-async function decide(r,approve){let reason=null;if(!approve){reason=prompt("Reason for Denial (at least four characters)");if(reason===null)return;if(reason.trim().length<4){notice("A denial reason of at least four characters is required.");return}}try{await rpc("wf_decide_leave",{p_request:r.id,p_approve:approve,p_reason:reason});await reload();notice(approve?"Approval recorded.":"Denial recorded.")}catch(e){notice("Decision rejected by server authorization or validation rules.")}}
+async function decide(r,approve){if(deciding)return;let reason=null;if(!approve){reason=prompt("Reason for Denial (at least four characters)");if(reason===null)return;if(reason.trim().length<4){notice("A denial reason of at least four characters is required.");return}}deciding=true;try{await rpc("wf_decide_leave",{p_request:r.id,p_approve:approve,p_reason:reason});await reload();notice(approve?"Approval recorded.":"Denial recorded.")}catch(e){notice("Decision rejected by server authorization or validation rules.")}finally{deciding=false}}
 const original=window.navigate;
 if(typeof original==="function"){
  window.navigate=function(id){original(id);if(id==="leave"){document.getElementById("module")?.classList.remove("active");root?.classList.add("active");document.getElementById("title").textContent="Leave & Training";shell();if(user)reload()}};
