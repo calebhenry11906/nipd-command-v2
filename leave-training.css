@@ -20,3 +20,13 @@
 @media(max-width:840px){.lt-filter-area{grid-template-columns:repeat(2,minmax(0,1fr))}.lt-day{min-height:85px;padding:5px}.lt-month-grid .lt-entry{font-size:9px;padding:3px}.lt-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.lt-content{padding:10px}.lt-hero h2{font-size:22px}.lt-tabs{width:100%;justify-content:space-between}.lt-tabs button{flex:1;font-size:11px;padding:11px 7px}.lt-toolbar{padding:10px}.lt-monthbar strong{font-size:18px}.lt-month-actions{width:100%;justify-content:space-between}.lt-day{min-height:68px;gap:5px;padding:4px 2px}.lt-daynum{font-size:11px;margin-left:4px}.lt-dow{font-size:9px;padding:9px 0}.lt-entry-name{display:none}.lt-entry{font-size:0;width:9px;height:8px;border-radius:50%;padding:0;align-self:center}.lt-dayentries{flex-direction:row;flex-wrap:wrap;justify-content:center;gap:3px}.lt-more{font-size:8px}.lt-filter-area{grid-template-columns:1fr}.lt-stat{padding:13px}.lt-stat strong{font-size:24px}.lt-modal{height:min(88dvh,780px);margin-top:auto;width:100%;border-radius:19px 19px 0 0;padding:18px}.lt-dialog{align-items:flex-end}.lt-list-day>span:first-child{min-width:95px}.lt-formdates{grid-template-columns:1fr}.lt-monthbar small{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.lt-content,.lt-dialog{animation:none}.lt-day{transition:none}}
+
+/* Phase 2B: Authorized monthly calendar */
+.lt2-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid #d7e3ee;border-radius:12px;overflow:hidden;margin:16px 0 22px;background:#fff}
+.lt2-dayhead{background:#eaf2f9;text-align:center;padding:10px 2px;font-weight:750;color:#294e74;font-size:12px}
+.lt2-cell{min-height:88px;border-top:1px solid #dce6f0;border-right:1px solid #dce6f0;padding:7px;min-width:0}
+.lt2-cell:nth-child(7n){border-right:0}
+.lt2-cell strong{display:block;color:#244966;font-size:12px;margin-bottom:6px}
+.lt2-outside{background:#f5f8fb}
+.lt2-chip{display:block;background:#e4f0fc;border:1px solid #bcd7ee;color:#205787;border-radius:6px;font-size:10px;padding:4px;margin:3px 0;overflow-wrap:anywhere}
+@media(max-width:650px){.lt2-cell{min-height:58px;padding:3px}.lt2-dayhead{font-size:10px;padding:8px 0}.lt2-chip{font-size:9px;padding:3px}.lt2-grid{margin:10px 0 16px}}
