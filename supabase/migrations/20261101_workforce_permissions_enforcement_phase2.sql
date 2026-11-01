@@ -42,13 +42,22 @@ BEGIN
   SELECT pg_get_functiondef('public.wf_decide_leave(uuid,boolean,text)'::regprocedure) INTO fn;
   IF position('if r.status=''supervisor'' then' in fn)=0
   THEN RAISE EXCEPTION 'wf_decide_leave has changed'; END IF;
-  altered := replace(fn,
+  altered := overlay(fn placing
+    'if not exists(select 1 from public.wf_role_permissions rp'
+    || ' where rp.role_name=actor.rank and rp.permission_key='
+    || 'case when r.status=''supervisor'' then ''leave.approve_first'' else ''leave.approve_final'' end)'
+    || ' then raise exception ''Rank lacks leave approval permission''; end if;'
+    || chr(10) || ' if r.status=''supervisor'' then'
+    from position('if r.status=''supervisor'' then' in fn)
+    for length('if r.status=''supervisor'' then'));
+  /* original replacement disabled:
     'if r.status=''supervisor'' then',
     'if not exists(select 1 from public.wf_role_permissions rp'
     || ' where rp.role_name=actor.rank and rp.permission_key='
     || 'case when r.status=''supervisor'' then ''leave.approve_first'' else ''leave.approve_final'' end)'
     || ' then raise exception ''Rank lacks leave approval permission''; end if;'
     || chr(10) || ' if r.status=''supervisor'' then');
+  */
   -- Final reviewers must be Lieutenant or higher. Existing stage-specific authority remains mandatory.
   altered := replace(altered,
     'and m.rank in (''Sergeant'',''Lieutenant'',''Captain'',''Chief'')',
