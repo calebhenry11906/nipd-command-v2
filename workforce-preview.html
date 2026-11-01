@@ -81,15 +81,23 @@ const rpc=async(name,args={})=>{
  return data;
 };
 const agencyId=()=>document.getElementById("agency").value;
-const SUPERVISORS=new Set(["Sergeant","Lieutenant","Captain","Chief"]);
-const STAFF_COORDINATORS=new Set(["Corporal","Sergeant","Lieutenant","Captain","Chief"]);
-function applyRankPresentation(){
- const selected=$("agency").selectedOptions[0];const rank=selected?.dataset.rank||"Officer";
- for(const id of ["approvals","leaveApprovals","coverageApprovals"]){
-  const panel=$(id)?.closest(".panel");if(panel)panel.hidden=!SUPERVISORS.has(rank);
+// Visible panels follow the authenticated permission catalog; server RPCs remain authoritative.
+function applyPermissionPresentation(keys){
+ const permitted=new Set(Array.isArray(keys)?keys:[]);
+ const may=(permission)=>permitted.has(permission);
+ const visibility={
+  approvals:may("shift.approve"),
+  leaveApprovals:may("leave.approve_first")||may("leave.approve_final"),
+  coverageApprovals:may("coverage.approve"),
+  staffing:may("staffing.read_assigned")||may("staffing.read_department")
+ };
+ for(const [id,visible] of Object.entries(visibility)){
+  const panel=$(id)?.closest(".panel");if(panel)panel.hidden=!visible;
  }
- const staffing=$("staffing")?.closest(".panel");if(staffing)staffing.hidden=!STAFF_COORDINATORS.has(rank);
- const label=document.querySelector("header p");if(label)label.textContent="Secured development preview · "+rank+" dashboard · Agency-scoped data";
+ const selected=$("agency").selectedOptions[0];
+ const rank=selected?.dataset.rank||"Unknown";
+ const label=document.querySelector("header p");
+ if(label)label.textContent="Secured development preview · "+rank+" dashboard · Server-authorized panels";
 }
 const item=(root,title,body,extra)=>{const art=make("article","");art.className="item";art.append(make("h3",title),make("p",body));if(extra)art.append(extra);root.append(art)};
 const btn=(label,handler)=>{const b=make("button",label);b.type="button";b.onclick=async()=>{b.disabled=true;try{await handler();await load()}catch(e){status(e.message,true)}finally{b.disabled=false}};return b};
@@ -100,10 +108,10 @@ function renderList(id,rows,renderer,empty="No matching records."){
 }
 async function load(){
  const agency=agencyId();if(!agency)return;
- applyRankPresentation();
  status("Loading agency-scoped workforce records…");
  try{
- const [b,d,l,c]=await Promise.all([rpc("wf_board",{p_agency:agency}),rpc("wf_employee_directory",{p_agency:agency}),rpc("wf_leave_board",{p_agency:agency}),rpc("wf_coverage_board",{p_agency:agency})]);
+ const [grants,b,d,l,c]=await Promise.all([rpc("wf_my_permissions",{p_agency:agency}),rpc("wf_board",{p_agency:agency}),rpc("wf_employee_directory",{p_agency:agency}),rpc("wf_leave_board",{p_agency:agency}),rpc("wf_coverage_board",{p_agency:agency})]);
+ applyPermissionPresentation(grants);
  renderList("mine",b.my_assignments,(root,x)=>{
   const row=make("div","");row.className="row";row.append(btn("Release for pickup",async()=>{if(confirm("Offer your assigned shift for pickup? You remain responsible until approvals complete."))await rpc("wf_offer_shift",{p_assignment:x.id})}));
   item(root,x.shift,datetime(x.start)+" – "+datetime(x.end),row);
