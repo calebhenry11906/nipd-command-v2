@@ -68,3 +68,42 @@ button,a,input,select,textarea{touch-action:manipulation}
  .heading{align-items:flex-start}
 }
 @media(min-width:651px) and (max-width:1020px){#sideNav .navbtn{padding:10px 7px}}
+
+/* Phase 2D: module-level layout improvements */
+#leaveRoot .lt-hero{padding:18px 20px;background:#fff;border:1px solid var(--nipd-border);border-radius:14px;margin-bottom:14px}
+#leaveRoot .lt-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px;background:#f6f9fc;border:1px solid var(--nipd-border);border-radius:12px;margin-bottom:16px;overflow-wrap:anywhere}
+#leaveRoot .lt-tabs{display:flex;flex-wrap:wrap;gap:8px;padding:8px;background:#eef3f8;border-radius:12px;margin-bottom:16px}
+#leaveRoot .lt-tabs button{flex:0 1 auto;padding:10px 14px;border-radius:9px;min-height:44px}
+#leaveRoot .lt-tabs button.current{font-weight:750}
+#lt2body{min-width:0}
+#lt2body h3{margin:0 0 15px;color:var(--nipd-navy);font-size:clamp(17px,1.8vw,20px)}
+#lt2body .lt2-request-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:18px;border:1px solid var(--nipd-border);border-radius:12px;background:#f8fafc;margin-bottom:24px}
+#lt2body .lt2-form-field{display:flex;flex-direction:column;gap:7px;min-width:0;color:var(--nipd-ink);font-weight:650;font-size:13px}
+#lt2body .lt2-form-field:first-child{grid-column:1 / -1}
+#lt2body .lt2-form-field select,#lt2body .lt2-form-field input{display:block;width:100%;padding:10px 12px;background:#fff;border:1px solid #bdcedd;color:var(--nipd-ink)}
+#lt2body .lt2-form-actions{grid-column:1 / -1;display:flex;justify-content:flex-end}
+#lt2body .lt2-form-actions button{min-width:160px}
+#lt2body .lt-record{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:15px 17px;margin:0 0 12px;border:1px solid var(--nipd-border);border-radius:12px;background:#fff}
+#lt2body .lt-record strong{color:var(--nipd-navy);font-size:14px}
+#lt2body .lt-record small{display:block;margin-top:6px;color:var(--nipd-muted);font-size:12px;line-height:1.55}
+#lt2body .lt2-grid{max-width:100%;overflow:hidden}
+#securityRoot .sd-head{padding:20px;background:#fff;border:1px solid var(--nipd-border);border-radius:14px}
+#securityRoot .sd-stats{gap:12px}
+#securityRoot .sd-stat{box-shadow:none;border:1px solid var(--nipd-border);border-radius:12px;min-width:0}
+#securityRoot .sd-person{border-radius:12px;gap:12px;flex-wrap:wrap}
+#securityRoot .sd-tabs{display:flex;flex-wrap:wrap;gap:7px;padding:8px;background:#eef3f8;border-radius:12px}
+#securityRoot .sd-tabs button{min-height:44px;border-radius:9px;white-space:normal}
+#securityRoot .sd-body{min-width:0}
+#securityRoot .sd-calendarbar,#securityRoot .sd-bar{gap:12px;flex-wrap:wrap}
+#securityRoot .sd-controls{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+#directoryRoot .ed-heading,#equipmentRoot .eq-head{padding:18px;border:1px solid var(--nipd-border);background:#fff;border-radius:14px}
+:where(.ed-root,.eq-root) :where(.ed-stat,.eq-stat){box-shadow:none;border-color:var(--nipd-border)}
+:where(.ed-root,.eq-root) :where(.ed-panel,.eq-panel){min-width:0}
+@media(max-width:690px){
+ #lt2body .lt2-request-form{grid-template-columns:1fr;padding:14px}
+ #lt2body .lt2-form-field:first-child,#lt2body .lt2-form-actions{grid-column:auto}
+ #lt2body .lt2-form-actions button{width:100%}
+ #leaveRoot .lt-tabs button,#securityRoot .sd-tabs button{flex:1 1 auto}
+ #securityRoot .sd-head{padding:15px}
+ #lt2body .lt-record{padding:12px}
+}
