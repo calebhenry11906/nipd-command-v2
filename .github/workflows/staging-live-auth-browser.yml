@@ -1,0 +1,41 @@
+name: REAL staging Auth and MFA browser acceptance
+on:
+  push:
+    branches:
+      - feature/workforce-management-v2
+    paths:
+      - tests/staging-live-auth-browser.cjs
+      - .github/workflows/staging-live-auth-browser.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  staging-live-auth:
+    if: ${{ vars.STAGING_LIVE_TEST_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      STAGING_OFFICER_EMAIL: ${{ secrets.STAGING_OFFICER_EMAIL }}
+      STAGING_OFFICER_PASSWORD: ${{ secrets.STAGING_OFFICER_PASSWORD }}
+      STAGING_SERGEANT_EMAIL: ${{ secrets.STAGING_SERGEANT_EMAIL }}
+      STAGING_SERGEANT_PASSWORD: ${{ secrets.STAGING_SERGEANT_PASSWORD }}
+      STAGING_SERGEANT_TOTP_SECRET: ${{ secrets.STAGING_SERGEANT_TOTP_SECRET }}
+      STAGING_SUPABASE_PUBLISHABLE_KEY: ${{ vars.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+      STAGING_SUPABASE_URL: https://qvnldjidqyuwglksdtlm.supabase.co
+      STAGING_PUBLIC_ORIGIN: https://staging-ci.example.invalid
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate strictly isolated staging configuration
+        run: |
+          node scripts/build-staging-config.cjs
+          node scripts/build-staging-preview.cjs
+          node tests/staging-bundle-smoke.cjs
+      - name: Install real browser testing dependencies
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Exercise live Supabase staging Officer to Sergeant MFA approval
+        run: node tests/staging-live-auth-browser.cjs

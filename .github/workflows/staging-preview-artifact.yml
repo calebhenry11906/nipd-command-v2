@@ -1,0 +1,37 @@
+name: Build isolated staging preview artifact
+on:
+  push:
+    paths:
+      - 'scripts/build-staging-preview.cjs'
+      - 'scripts/build-staging-config.cjs'
+      - 'tests/staging-bundle-smoke.cjs'
+      - '.github/workflows/staging-preview-artifact.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preview-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Construct isolated staging application
+        run: |
+          if [ -n "${STAGING_PUBLISHABLE_KEY}" ]; then
+            STAGING_SUPABASE_URL="https://qvnldjidqyuwglksdtlm.supabase.co" \
+            STAGING_SUPABASE_PUBLISHABLE_KEY="${STAGING_PUBLISHABLE_KEY}" \
+            STAGING_PUBLIC_ORIGIN="https://staging.example.invalid" \
+            node scripts/build-staging-config.cjs
+          fi
+          node scripts/build-staging-preview.cjs
+          node tests/staging-bundle-smoke.cjs
+        env:
+          STAGING_PUBLISHABLE_KEY: ${{ vars.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nipd-workforce-staging-preview
+          path: .staging-dist/
+          retention-days: 7

@@ -1,0 +1,43 @@
+name: Workforce staging browser safety tests
+on:
+  push:
+    paths:
+      - 'workforce-preview.html'
+      - 'index.html'
+      - 'scripts/build-staging-config.cjs'
+      - 'tests/workforce-browser-staging.cjs'
+      - '.github/workflows/workforce-staging-browser.yml'
+  pull_request:
+    paths:
+      - 'workforce-preview.html'
+      - 'index.html'
+      - 'scripts/build-staging-config.cjs'
+      - 'tests/workforce-browser-staging.cjs'
+      - '.github/workflows/workforce-staging-browser.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-staging-mock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify staging config denies live project
+        run: |
+          if STAGING_SUPABASE_URL=https://czdrsblgwmovhoznlxvm.supabase.co STAGING_SUPABASE_PUBLISHABLE_KEY=sb_publishable_synthetic STAGING_PUBLIC_ORIGIN=https://staging.example.invalid node scripts/build-staging-config.cjs; then
+            echo "FAIL: production Supabase staging safeguard was bypassed"
+            exit 1
+          fi
+          STAGING_SUPABASE_URL=https://isolated-fixture.supabase.co STAGING_SUPABASE_PUBLISHABLE_KEY=sb_publishable_synthetic STAGING_PUBLIC_ORIGIN=https://staging.example.invalid node scripts/build-staging-config.cjs
+          test -f staging-config.js
+          rm staging-config.js
+      - name: Install pinned browser test dependencies
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Test staging browser and mobile fail-closed guards
+        run: node tests/workforce-browser-staging.cjs

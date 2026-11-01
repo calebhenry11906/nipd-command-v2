@@ -1,0 +1,20 @@
+"use strict";
+const fs=require("node:fs");
+const assert=require("node:assert/strict");
+const html=fs.readFileSync("workforce-preview.html","utf8");
+const match=html.match(/<script type="module">([\s\S]*?)<\/script>/);
+assert.ok(match,"Missing workforce dashboard module");
+const source=match[1];
+new Function("return (async()=>{"+source+"\n})");
+for(const id of ["agency","mine","available","approvals","staffing","notifications","directory","profile","myDetails","availableDetails","leaveMine","leaveApprovals","vacancies","coverageMine","coverageApprovals"]){
+ assert.ok(html.includes('id="'+id+'"'),"Missing dashboard section: "+id);
+}
+for(const action of ["wf_board","wf_employee_directory","wf_employee_profile","wf_offer_shift","wf_claim_shift","wf_decide_shift","wf_release_detail","wf_claim_detail","wf_request_leave","wf_leave_board","wf_decide_leave","wf_cancel_leave","wf_coverage_board","wf_request_coverage","wf_decide_coverage"]){
+ assert.ok(source.includes('"'+action+'"'),"Missing server-side action: "+action);
+}
+assert.ok(source.includes('"Pick up detail"'),"Security details should finish on eligible pickup");
+assert.ok(!source.includes('"wf_decide_detail"'),"Security details must not ask for supervisor approval");
+assert.ok(!/localStorage\.(setItem|removeItem)/.test(source),"Workforce records must not use local storage");
+assert.ok(!/createClient\([^,]+,\s*(?:process\.env|Deno\.env|serviceRoleKey)/.test(source),"Browser must not use a server credential");
+assert.ok(source.includes("sb_publishable_"),"Browser must require a publishable client key");
+console.log("PASS: workforce preview parses and required protected workflows are present (static check, not live end-to-end).");

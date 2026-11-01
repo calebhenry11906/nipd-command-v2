@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NIPD Command v2 — Staging Authentication</title>
+<style>body{margin:0;font:16px system-ui,Arial;background:#eaf1f7;color:#15324b}header{background:#112e4b;color:#fff;padding:20px}main{max-width:600px;margin:24px auto;padding:0 15px}.panel{background:white;border:1px solid #cbd8e3;border-radius:14px;padding:22px;margin-bottom:12px}label{display:block;margin:12px 0 5px;font-weight:600}input,button{font:inherit;padding:12px;border-radius:8px;box-sizing:border-box;min-height:44px}input{border:1px solid #9fb5c5;width:100%}button{background:#205f93;color:white;border:0;margin:10px 7px 0 0}button:disabled{opacity:.5}a{color:#225f92}.warning{background:#fff5dd;padding:12px;border-radius:8px}#feedback{white-space:pre-wrap;overflow-wrap:anywhere}img{max-width:240px}section[hidden]{display:none}</style>
+</head><body><header><strong>NIPD COMMAND V2 — STAGING</strong><div>FICTIONAL TEST DATA ONLY — NOT FOR OPERATIONAL USE</div></header><main>
+<p class="warning">Independent staging Auth only. Never enter an operational police password. This account is for synthetic workflow testing.</p>
+<section class="panel" id="login"><h2>Staging sign-in</h2><form id="loginForm"><label for="email">Fictional test account email</label><input id="email" type="email" autocomplete="username" required><label for="password">Staging-only password</label><input id="password" type="password" autocomplete="current-password" required><button type="submit">Sign in</button></form></section>
+<section class="panel" id="mfa" hidden><h2>Authenticator verification</h2><p id="aal"></p><div id="enroll" hidden><p>Enroll your authenticator app using the QR code. This secret is unique to staging.</p><div id="qrcode"></div><p>For CI automation only, securely save this test-only authenticator seed in your GitHub Actions secret <code>STAGING_SERGEANT_TOTP_SECRET</code>. Never paste it into chat.</p><input id="enrollmentSecret" type="text" readonly autocomplete="off" aria-label="Staging-only authenticator seed"></div><form id="verifyForm"><label for="code">6-digit authenticator code</label><input id="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required><button type="submit">Verify authenticator</button></form><button id="startEnroll" type="button" hidden>Enroll authenticator</button><button id="logout" type="button">Sign out</button></section>
+<section class="panel" id="ready" hidden><h2>MFA verified</h2><p>Your staging session has AAL2 assurance. The backend independently checks authorization on protected approvals.</p><a href="./workforce-preview.html">Open Workforce Management</a><p><a href="./secure.html">Open staging equipment and timesheets</a></p><button id="logoutReady" type="button">Sign out</button></section>
+<p id="feedback" role="status" aria-live="polite"></p></main>
+<script type="module">
+const $=id=>document.getElementById(id);
+const showError=e=>{$("feedback").textContent=e?.message||String(e)};
+const cfg=(await import("./staging-config.js")).STAGING_CONFIG;
+const project=new URL(cfg?.supabaseUrl||"");
+if(cfg?.environment!=="staging" || cfg?.notificationMode!=="mock" || project.protocol!=="https:" ||
+ project.hostname==="czdrsblgwmovhoznlxvm.supabase.co" || !/^[a-z0-9-]+\.supabase\.co$/.test(project.hostname) ||
+ !String(cfg?.publishableKey||"").startsWith("sb_publishable_"))throw Error("Invalid staging environment; no login allowed.");
+const {createClient}=await import("https://esm.sh/@supabase/supabase-js@2.108.0");
+const client=createClient(project.origin,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+let factorId=null;
+async function sync(){
+ const {data:{user}}=await client.auth.getUser();
+ if(!user){$("login").hidden=false;$("mfa").hidden=true;$("ready").hidden=true;return}
+ $("login").hidden=true;
+ const {data:level,error}=await client.auth.mfa.getAuthenticatorAssuranceLevel();
+ if(error)throw error;
+ const verified=level.currentLevel==="aal2";
+ $("mfa").hidden=verified;$("ready").hidden=!verified;
+ if(verified){$("password").value="";$("feedback").textContent="Verified staging session";return}
+ $("aal").textContent="Your session is AAL1. Authenticator verification is required before approvals.";
+ const {data:factors,error:factorError}=await client.auth.mfa.listFactors();
+ if(factorError)throw factorError;
+ const usable=[...(factors?.totp||[])].filter(f=>f.status==="verified");
+ factorId=usable[0]?.id||null;
+ $("startEnroll").hidden=!!factorId;
+ $("verifyForm").hidden=!factorId;
+ $("feedback").textContent=factorId?"Enter your current authenticator code":"No verified authenticator factor. Enroll one for this staging account.";
+}
+$("loginForm").onsubmit=async event=>{
+ event.preventDefault();$("feedback").textContent="Authenticating…";
+ const email=$("email").value.trim(),password=$("password").value;
+ try{const {error}=await client.auth.signInWithPassword({email,password});if(error)throw error;await sync()}
+ catch(e){showError(e)}
+};
+$("startEnroll").onclick=async()=>{
+ try{
+  const {data,error}=await client.auth.mfa.enroll({factorType:"totp",friendlyName:"NIPD Staging"});
+  if(error)throw error;factorId=data.id;
+  const qr=data.totp?.qr_code;
+  if(!qr||!qr.startsWith("data:image/svg+xml"))throw Error("Authenticator QR code unavailable");
+  const image=document.createElement("img");image.alt="Staging authenticator enrollment QR code";image.src=qr;
+  $("qrcode").replaceChildren(image);$("enrollmentSecret").value=data.totp?.secret||"";$("enroll").hidden=false;$("verifyForm").hidden=false;$("startEnroll").hidden=true;
+  $("feedback").textContent="Scan the staging QR code, then enter the code to finish enrollment.";
+ }catch(e){showError(e)}
+};
+$("verifyForm").onsubmit=async event=>{
+ event.preventDefault();
+ try{
+  const code=$("code").value.trim();if(!factorId||!/^[0-9]{6}$/.test(code))throw Error("Select your authenticator and enter six digits");
+  const {error}=await client.auth.mfa.challengeAndVerify({factorId,code});if(error)throw error;
+  $("code").value="";await sync();
+ }catch(e){showError(e)}
+};
+async function signOut(){const {error}=await client.auth.signOut();if(error)showError(error);else await sync()}
+$("logout").onclick=signOut;$("logoutReady").onclick=signOut;
+await sync();
+</script></body></html>

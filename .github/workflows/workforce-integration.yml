@@ -1,0 +1,82 @@
+name: Workforce PostgreSQL integration tests
+on:
+  push:
+    paths:
+      - 'supabase/migrations/20261031_workforce_*.sql'
+      - 'supabase/migrations/20261101_workforce_*.sql'
+      - 'tests/workforce_*.sql'
+      - 'tests/workforce_concurrency.py'
+      - 'tests/workforce-html-smoke.cjs'
+      - 'workforce-preview.html'
+      - 'index.html'
+      - '.github/workflows/workforce-integration.yml'
+  pull_request:
+    paths:
+      - 'supabase/migrations/20261031_workforce_*.sql'
+      - 'supabase/migrations/20261101_workforce_*.sql'
+      - 'tests/workforce_*.sql'
+      - 'tests/workforce_concurrency.py'
+      - 'tests/workforce-html-smoke.cjs'
+      - 'workforce-preview.html'
+      - 'index.html'
+      - '.github/workflows/workforce-integration.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: synthetic-ci-only
+          POSTGRES_DB: workforce_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: synthetic-ci-only
+      PGDATABASE: workforce_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL command-line client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+      - name: Verify workforce dashboard wiring
+        run: node tests/workforce-html-smoke.cjs
+      - name: Apply migrations and exercise synthetic authorization
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -f tests/workforce_fixture.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261031_workforce_foundation.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261031_workforce_transfer_functions.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261031_workforce_read_api.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261031_workforce_staffing_triggers.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261031_workforce_detail_transfers.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261031_workforce_leave.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261031_workforce_coverage.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261031_workforce_delivery.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261101_workforce_permissions_foundation.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261101_workforce_permissions_enforcement_phase2.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261101_workforce_permissions_enforcement_phase2_boards.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261101_workforce_permissions_leave_denial_repair.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261101_workforce_command_scope_phase2.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261101_workforce_permission_dashboard_api.sql
+          psql -v ON_ERROR_STOP=1 -f tests/workforce_integration.sql
+          psql -v ON_ERROR_STOP=1 -f tests/workforce_permissions_phase2.sql
+          psql -v ON_ERROR_STOP=1 -f tests/workforce_phase2_permissions.sql
+      - name: Verify true simultaneous shift pickup safety
+        run: |
+          python -m pip install --user 'psycopg[binary]==3.2.10'
+          python tests/workforce_concurrency.py
