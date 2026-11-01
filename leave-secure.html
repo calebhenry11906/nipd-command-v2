@@ -10,7 +10,7 @@
 <section class="panel" id="board" hidden><h2>My Leave & Training</h2><p>Approvals require an authorized signed-in supervisor account. Rank and assignment rules are enforced by the database.</p>
 <form id="newLeave"><h3>New Fictional Request</h3><label>Type <select id="kind"><option value="vacation">Vacation</option><option value="training">Training</option><option value="other">Other leave</option></select></label><label>Start <input id="start" type="datetime-local" required></label><label>End <input id="end" type="datetime-local" required></label><button>Submit Fictional Request</button></form>
 <h3>My Requests</h3><div id="mine"></div><h3>Assigned Approval Queue</h3><p>Only requests assigned to you appear here. The database enforces approval permissions.</p><div id="review"></div><button id="refresh">Refresh Requests</button></section>
-<p id="feedback" role="status" aria-live="polite"></p></main>
+<p id="feedback" role="status" aria-live="polite"></p><p><a href="index.html" style="color:#1c568e;font-weight:700">Return to NIPD Command Dashboard</a></p></main>
 <script type="module">
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2.108.0";
 const db=createClient("https://qvnldjidqyuwglksdtlm.supabase.co","sb_publishable_LovOph-C6UpNNq1oNR4TQQ_1VYEiChB");
