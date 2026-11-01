@@ -30,3 +30,6 @@
 .lt2-outside{background:#f5f8fb}
 .lt2-chip{display:block;background:#e4f0fc;border:1px solid #bcd7ee;color:#205787;border-radius:6px;font-size:10px;padding:4px;margin:3px 0;overflow-wrap:anywhere}
 @media(max-width:650px){.lt2-cell{min-height:58px;padding:3px}.lt2-dayhead{font-size:10px;padding:8px 0}.lt2-chip{font-size:9px;padding:3px}.lt2-grid{margin:10px 0 16px}}
+
+/* Phase 2B: accessible request-stage history */
+.lt2-timeline{display:flex;flex-wrap:wrap;gap:8px 16px;margin:8px 0 16px;padding:10px 12px;border-left:3px solid #647e9e;background:#f3f6fa;border-radius:4px}.lt2-stage{font-size:.86rem;color:#25435f}.lt2-stage strong{font-weight:600}
