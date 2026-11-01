@@ -68,7 +68,7 @@ begin
  'Leave or training request updated','Your request status is now '||result||'. Sign in to review.')
  on conflict do nothing;
  return result;
-end $function$
+end $function$;
 
 CREATE OR REPLACE FUNCTION public.wf_leave_board(p_agency uuid)
  RETURNS jsonb
@@ -103,7 +103,7 @@ begin
    )
  ),'[]'::jsonb)) into out_value;
  return out_value;
-end $function$
+end $function$;
 
 CREATE OR REPLACE FUNCTION public.wf_request_leave(p_agency uuid, p_kind text, p_start timestamp with time zone, p_end timestamp with time zone)
  RETURNS uuid
@@ -138,5 +138,5 @@ begin
  'Leave or training approval required','A fictional leave or training request awaits your review. Sign in to NIPD Command.')
  on conflict do nothing;
  return v_id;
-end $function$
+end $function$;
 
