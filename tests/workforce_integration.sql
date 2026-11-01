@@ -322,7 +322,7 @@ do $$begin
  raise notice 'PASS successful retry logged without duplicating notification record';
 end$$;
 
--- Same-supervisor scenario: one decision can satisfy both roles, with both audit flags set.
+-- Same supervisor cannot approve both sides; independent escalation is required.
 update public.wf_members set supervisor_id='00000000-0000-4000-8000-000000000003'
  where agency_id='10000000-0000-4000-8000-000000000001'
  and user_id='00000000-0000-4000-8000-000000000002';
@@ -342,22 +342,28 @@ begin;set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","aal":"aal1"}',true);
 select public.wf_claim_shift(current_setting('test.same_supervisor_transfer')::uuid);
 commit;
-do $$begin
- if (select user_id from public.wf_shift_assignments where id='30000000-0000-4000-8000-000000000004')
- <>'00000000-0000-4000-8000-000000000001'::uuid
- then raise exception 'FAIL: shared supervisor pickup prematurely reassigned shift';end if;
- raise notice 'PASS same-supervisor pickup retains original assignee before decision';
-end$$;
 begin;set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","aal":"aal2"}',true);
-select public.wf_decide_shift(current_setting('test.same_supervisor_transfer')::uuid,true);
+do $$begin
+ begin
+   perform public.wf_decide_shift(current_setting('test.same_supervisor_transfer')::uuid,true);
+   raise exception 'FAIL: shared supervisor unexpectedly approved both sides';
+ exception when others then
+   if sqlerrm like 'FAIL:%' then raise;end if;
+   if sqlerrm not like '%Independent releasing and receiving supervisors required%'
+   then raise exception 'FAIL: wrong rejection reason: %',sqlerrm;end if;
+ end;
+ raise notice 'PASS same-supervisor pickup requires independent escalation';
+end$$;
 commit;
 do $$begin
  if (select user_id from public.wf_shift_assignments where id='30000000-0000-4000-8000-000000000004')
- <>'00000000-0000-4000-8000-000000000002'::uuid
- or not exists(select 1 from public.wf_transfer_requests
- where id=current_setting('test.same_supervisor_transfer')::uuid
- and status='approved' and releasing_approved and receiving_approved)
- then raise exception 'FAIL: shared supervisor did not satisfy both approval roles';end if;
- raise notice 'PASS same authorized supervisor recorded approval for both transfer responsibilities';
+ <>'00000000-0000-4000-8000-000000000001'::uuid
+ or (select status from public.wf_transfer_requests where id=current_setting('test.same_supervisor_transfer')::uuid)<>'awaiting_releasing_supervisor'
+ then raise exception 'FAIL: shared supervisor changed assignment despite rejection';end if;
+ raise notice 'PASS original assignee remains responsible until escalation';
 end$$;
+-- Restore synthetic reporting chain for later scoped-role checks.
+update public.wf_members set supervisor_id='00000000-0000-4000-8000-000000000004'
+ where agency_id='10000000-0000-4000-8000-000000000001'
+ and user_id='00000000-0000-4000-8000-000000000002';
