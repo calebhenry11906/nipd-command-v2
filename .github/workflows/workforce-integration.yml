@@ -72,6 +72,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261101_workforce_permissions_enforcement_phase2_boards.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261101_workforce_permissions_leave_denial_repair.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261101_workforce_command_scope_phase2.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261101_workforce_permission_dashboard_api.sql
           psql -v ON_ERROR_STOP=1 -f tests/workforce_integration.sql
           psql -v ON_ERROR_STOP=1 -f tests/workforce_phase2_permissions.sql
       - name: Verify true simultaneous shift pickup safety
