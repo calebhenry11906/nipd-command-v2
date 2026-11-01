@@ -31,7 +31,7 @@ button:disabled{opacity:.6;cursor:wait}.outline{background:#eaf2fa;color:#225881
 </section>
 </main>
 <script>
-window.__nipdAuthStep="Loading authentication library";
+window.__nipdAuthStep="Loading Authentication Library";
 (function(){
   const loading=document.getElementById("loading");
   const watchdog=setTimeout(function(){
@@ -42,7 +42,7 @@ window.__nipdAuthStep="Loading authentication library";
     const detail=document.createElement("p");
     detail.textContent="Last connection step: "+(window.__nipdAuthStep||"Unknown")+". Please report this step to the app administrator; do not share sign-in codes or invitation links.";
     const retry=document.createElement("button");
-    retry.type="button";retry.textContent="Retry secure connection";
+    retry.type="button";retry.textContent="Retry Secure Connection";
     retry.addEventListener("click",function(){location.reload()});
     loading.append(heading,detail,retry);
     loading.setAttribute("role","alert");
@@ -63,7 +63,7 @@ const sdkSources=[
 ];
 let createClient=null;
 for(const [label,source] of sdkSources){
- window.__nipdAuthStep="Loading authentication library ("+label.toLowerCase()+")";
+ window.__nipdAuthStep="Loading Authentication Library ("+label.toLowerCase()+")";
  try{
   const module=await withTimeout(import(source),8000,"Authentication library download timed out");
   if(typeof module.createClient!=="function")throw new Error("Authentication library did not export createClient");
@@ -76,15 +76,15 @@ const showStartupError=()=>{
  const loading=$("loading");
  loading.replaceChildren(el("p","Secure sign-in could not load its authentication library. Your account has not been changed."));
  loading.append(el("p","Please retry. If this continues, the browser may be blocking both JavaScript providers. No login information has been sent."));
- const retry=el("button","Retry secure connection");
+ const retry=el("button","Retry Secure Connection");
  retry.type="button";retry.onclick=()=>location.reload();loading.append(retry);
 };
 if(!createClient)showStartupError();
-window.__nipdAuthStep="Initializing Supabase client";
+window.__nipdAuthStep="Initializing Secure Connection";
 let client=null;
 if(createClient){
  try{client=createClient(url,publishable,{auth:{detectSessionInUrl:true,autoRefreshToken:true,persistSession:true}})}
- catch(e){window.__nipdAuthStep="Supabase client initialization failed";showStartupError()}
+ catch(e){window.__nipdAuthStep="Secure connection initialization failed";showStartupError()}
 }
 const signInError=()=>{
   const hash=new URLSearchParams(location.hash.startsWith("#")?location.hash.slice(1):"");
@@ -205,7 +205,7 @@ async function logout(){
  try{
   const {error}=await withTimeout(client.auth.signOut(),12000,"Sign-out timed out; the browser session may still be active.");
   if(error)throw error;
-  staff=null;mfaVerified=false;mfaEnrollment=null;$("resetArea").hidden=true;message("Signed out.");show("login");
+  staff=null;mfaVerified=false;mfaEnrollment=null;$("resetArea").hidden=true;message("Successfully signed out.");show("login");
  }catch(err){fail(err)}
 }
 $("signOut").onclick=logout;$("lockedSignOut").onclick=logout;
