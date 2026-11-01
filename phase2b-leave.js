@@ -18,12 +18,12 @@ function shell(){
  const hero=el("div",undefined,"lt-hero"),intro=el("div");intro.append(el("h2","Leave & Training"),line("Secure staging workspace · Fictional data only"));hero.append(intro);root.append(hero);
  root.append(el("p","", "moduleIntro"));root.lastChild.id="lt2message";
  if(!user){root.append(line("Sign in with your authorized staging account to view protected leave records."));root.append(button("Sign In",()=>{location.href="leave-secure.html"}));return}
- const identity=el("div",undefined,"lt-toolbar");identity.append(el("strong",user.email));identity.append(button("Sign Out",async()=>{await db.auth.signOut();user=null;overview=null;board=null;shell()}));root.append(identity);
+ const identity=el("div",undefined,"lt-toolbar");const identityName=el("strong",user.email);identityName.id="lt2identity";identity.append(identityName);identity.append(button("Sign Out",async()=>{await db.auth.signOut();user=null;overview=null;board=null;shell()}));root.append(identity);
  const tabs=el("div",undefined,"lt-tabs");for(const t of ["Calendar","My Requests","Approvals","History","Staffing Impact"]){const b=button(t,()=>{active=t;render()});if(t===active)b.classList.add("current");tabs.append(b)}root.append(tabs);
  const body=el("section",undefined,"panel");body.id="lt2body";root.append(body);render();
 }
 async function reload(){if(loading)return;loading=true;notice("Loading authorized records…");try{
- const [a,b]=await Promise.all([rpc("wf_leave_overview",{p_agency:AGENCY}),rpc("wf_leave_board",{p_agency:AGENCY})]);overview=a;board=b;notice("");render();document.dispatchEvent(new CustomEvent("nipd-leave-loaded",{detail:{rank:a.profile.rank,pending:(b.review||[]).length}}));
+ const [a,b]=await Promise.all([rpc("wf_leave_overview",{p_agency:AGENCY}),rpc("wf_leave_board",{p_agency:AGENCY})]);overview=a;board=b;const identityLabel=document.getElementById("lt2identity");if(identityLabel)identityLabel.textContent=a.profile.name+" · "+a.profile.rank+" · "+user.email;notice("");render();document.dispatchEvent(new CustomEvent("nipd-leave-loaded",{detail:{rank:a.profile.rank,pending:(b.review||[]).length}}));
 }catch(e){notice("Unable to load authorized records. Please sign in again or contact your system administrator.");}finally{loading=false}}
 function card(r,actions=[]){const c=el("div",undefined,"lt-record"),info=el("div");info.append(el("strong",(r.employee||overview?.profile?.name||"My Request")+" · "+(kind[r.kind]||r.kind)));info.append(el("small",date(r.start)+" – "+date(r.end)+" · "+(label[r.status]||r.status)));if(r.reason)info.append(line("Denial Reason: "+r.reason));c.append(info);for(const a of actions)c.append(a);return c}
 function render(){const body=document.getElementById("lt2body");if(!body)return;body.replaceChildren();const entries=overview?.requests||[];if(!overview){body.append(line("Loading your authorized leave information…"));return}
