@@ -34,10 +34,26 @@ Deno.serve(async (request: Request) => {
       const message="TEST MESSAGE — NOT AN OPERATIONAL ALERT.\\n"+
         "Original fictional recipient: "+job.recipient_id+"\\n\\n"+
         String(job.safe_body).slice(0,1000);
-      // Resend stores keys for only 24 hours. Retried messages older than 23h\n      // must be held, not resent with an expired provider deduplication key.\n      if (job.attempt_number > 1) {\n        const withinWindow=await rpc("wf_notification_retry_safe",{p_notification:job.notification_id}) as boolean;\n        if (!withinWindow) {\n          await rpc("wf_record_notification_delivery",{\n            p_notification:job.notification_id,p_attempt:job.attempt_number,\n            p_success:false,p_safe_error:"Retry outside idempotency window: manual review required"\n          });\n          held_for_review++;\n          continue;\n        }\n      }\n      // Stable across attempts/restarts; never include an attempt number.\n      const idempotencyKey="nipd-staging-email/"+job.notification_id;\n      let success=false, safeError="Test provider error";
+      // Resend stores keys for only 24 hours. Retried messages older than 23h
+      // must be held, not resent with an expired provider deduplication key.
+      if (job.attempt_number > 1) {
+        const withinWindow=await rpc("wf_notification_retry_safe",{p_notification:job.notification_id}) as boolean;
+        if (!withinWindow) {
+          await rpc("wf_record_notification_delivery",{
+            p_notification:job.notification_id,p_attempt:job.attempt_number,
+            p_success:false,p_safe_error:"Retry outside idempotency window: manual review required"
+          });
+          held_for_review++;
+          continue;
+        }
+      }
+      // Stable across attempts/restarts; never include an attempt number.
+      const idempotencyKey="nipd-staging-email/"+job.notification_id;
+      let success=false, safeError="Test provider error";
       try {
         const res=await fetch("https://api.resend.com/emails",{
-          method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json",\n            "Idempotency-Key":idempotencyKey},
+          method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json",
+            "Idempotency-Key":idempotencyKey},
           body:JSON.stringify({from:sender,to:[recipient],subject,text:message})
         });
         success=res.ok;
