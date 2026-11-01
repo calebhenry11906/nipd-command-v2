@@ -6,7 +6,7 @@ const groups={"Uniforms":["Class A Short-Sleeve Shirt","Class A Long-Sleeve Shir
 const allItems=Object.values(groups).flat();
 const types=["New Equipment","Replacement Equipment","Repair Existing Equipment","Damaged Equipment","Lost Equipment","Additional Equipment","Size Exchange","Other"];
 const captains={"Patrol":"Leland Laseter · 102","Professional Standards":"Seth Pellerin · 104","Criminal Investigations":"Kellen Landry · 103","Records & Maintenance":"Ryan Boutte · 101"};
-const labels={supervisor:"Pending Supervisor Approval",commander:"Pending Division Commander",maintenance:"Pending Maintenance Captain",policy:"Same-Person Policy Required",processing:"Approved — Awaiting Equipment",issued:"Issued / Completed",denied:"Denied",returned:"Returned for Correction"};
+const labels={supervisor:"Pending Supervisor Approval",commander:"Pending Division Commander Approval",maintenance:"Pending Maintenance Captain Approval",policy:"Additional Approval Required",processing:"Approved — Awaiting Equipment",issued:"Issued / Completed",denied:"Denied",returned:"Returned for Correction"};
 const KEY="nipd-equipment-browser-demo-v1";
 let records=[];try{const a=JSON.parse(localStorage.getItem(KEY)||"[]");if(Array.isArray(a))records=a.filter(x=>x&&typeof x.id==="string"&&typeof x.item==="string")}catch(e){}
 let tab="New Request",search="",sig="",sigAt="",editing=null,focusBefore=null;
