@@ -2,6 +2,7 @@
 """Concurrent fictional shift pickup test; disposable PostgreSQL service ONLY."""
 import os
 from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 import psycopg
 
 AGENCY = "10000000-0000-4000-8000-000000000001"
@@ -43,8 +44,10 @@ with connect() as conn:
                   '20000000-0000-4000-8000-000000000077',%s)
         """, (AGENCY, OFFICER_A))
 transfer_id = run_as(OFFICER_A, "SELECT public.wf_offer_shift('30000000-0000-4000-8000-000000000077'::uuid)")
+start_together = Barrier(2, timeout=15)
 def try_claim(employee):
     try:
+        start_together.wait()
         run_as(employee,"SELECT public.wf_claim_shift(%s::uuid)", (str(transfer_id),))
         return "success"
     except psycopg.Error as exc:
