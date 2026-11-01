@@ -20,7 +20,7 @@
 - New repeatable `tests/workforce_permissions_phase2.sql`: **passed** on fictional staging.
 - Negative tests: Officer coverage approval blocked; Sergeant final leave approval blocked by role permission; Lieutenant without MFA blocked.
 - An initially reused previously-approved leave fixture conflicted with existing absence. Repeating with fictional denied request and explicit `false::boolean` demonstrated stored request status `denied` with reason, all in rollback. This is why fixture isolation matters.
-- Regression wired into GitHub Actions `.github/workflows/workforce-integration.yml` alongside existing synthetic workflow tests; see run result before declaring CI fully green.
+- Regression wired into GitHub Actions `.github/workflows/workforce-integration.yml` alongside existing synthetic workflow tests; **PASS**: [GitHub Actions run 41274066945](https://github.com/calebhenry11906/nipd-command-v2/actions/runs/41274066945), after fixing duplicate migration execution in workflow. Includes synthetic authorization, Phase 2 regressions and simultaneous pickup.
 
 ## Known gaps / release gates
 - **Command hierarchy/delegation:** Phase 1 evaluator currently models direct supervisor for restricted contacts. Administrative Lieutenant, Captain and Chief need explicit, auditable delegated command scopes and recursive/reporting-chain read logic. Do not solve with blanket rank access.
