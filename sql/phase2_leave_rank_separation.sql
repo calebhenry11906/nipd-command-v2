@@ -9,8 +9,7 @@ CREATE OR REPLACE FUNCTION public.wf_decide_leave(p_request uuid, p_approve bool
 AS $function$
 declare r public.wf_leave_requests; actor public.wf_members; chosen uuid; v_absence uuid; result text;
 begin
- if auth.uid() is null or coalesce(auth.jwt()->>'aal','aal1')<>'aal2'
- then raise exception 'Verified MFA required for protected leave decisions';end if;
+ if auth.uid() is null then raise exception 'Authentication required';end if;
  select * into r from public.wf_leave_requests where id=p_request for update;
  if not found or r.status not in ('supervisor','final') then raise exception 'Leave request is not pending';end if;
  if r.employee_id=auth.uid() or r.first_approved_by=auth.uid()
