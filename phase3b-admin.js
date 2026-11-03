@@ -80,6 +80,7 @@ async function render(data){
 const previous=window.navigate;
 if(typeof previous==="function")window.navigate=function(id){
  previous(id);
+ panel.hidden=id!=="settings";
  if(id==="settings" && parent){
   if(!parent.contains(panel))parent.append(panel);
   update();
