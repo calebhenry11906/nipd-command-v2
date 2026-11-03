@@ -117,3 +117,4 @@ function show(panel){
  };
 }
 window.NIPD_BULK_IMPORT_MOUNT=show;
+window.dispatchEvent(new Event('nipd-bulk-import-ready'));
