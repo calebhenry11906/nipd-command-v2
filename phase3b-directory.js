@@ -56,7 +56,7 @@ const oldNavigate=window.navigate;
 if(typeof oldNavigate==="function")window.navigate=function(id){
  oldNavigate(id);
  if(id==="directory"){
-  if(root&&!root.contains(panel))root.append(panel);
+  if(root&&!root.contains(panel))root.insertBefore(panel,root.querySelector(".ed-tabs"));
   refresh();
  }
 };
