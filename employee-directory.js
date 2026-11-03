@@ -48,7 +48,7 @@ function allEmployees(){
   unique.set(key,{...prior,...p,id:prior?.id||p.id,employeeNo:"",status:"Organizational chart reference",training:p.unit==="Field Training"?"FTO":""});
  }
  return [...unique.values()].sort((a,b)=>{
- const n=x=>/^\\d+$/.test(String(x.radio))?Number(x.radio):Number.POSITIVE_INFINITY;
+ const n=x=>/^\d+$/.test(String(x.radio))?Number(x.radio):Number.POSITIVE_INFINITY;
  return n(a)-n(b)||a.name.localeCompare(b.name);
  });
 }
