@@ -64,7 +64,7 @@ function render(){
  mount();
  panel.replaceChildren();
  const header=make("div",undefined,"ed-unified-header");
- const title=make("div");title.append(make("h3","Employee Directory"),make("p","One protected roster · two ways to view the same employee profiles"));
+ const title=make("div");title.append(make("h3","Department Roster"),make("p","One protected roster · two ways to view the same employee profiles"));
  header.append(title,make("span","STAGING","ed-secure-badge"));panel.append(header);
  const real=people.filter(p=>!p.is_demo),test=people.filter(p=>p.is_demo);
  const stats=make("p",real.length+" department employees · "+real.filter(p=>p.rcn).length+" assigned RCNs","ed-unified-meta");panel.append(stats);
