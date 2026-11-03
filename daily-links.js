@@ -64,7 +64,15 @@ function render(){
   img.src=new URL("/favicon.ico",link.url).href;
   const fallback=node("span",link.title.trim().slice(0,2).toUpperCase(),"daily-link-fallback");
   fallback.hidden=true;
-  img.onerror=()=>{img.hidden=true;fallback.hidden=false};
+  let fallbackTried=false;
+  img.onerror=()=>{
+   if(!fallbackTried){
+    fallbackTried=true;
+    img.src="https://www.google.com/s2/favicons?domain="+encodeURIComponent(hostName)+"&sz=64";
+    return;
+   }
+   img.hidden=true;fallback.hidden=false;
+  };
   iconWrap.append(img,fallback);
   a.append(iconWrap);
   const title=node("strong",link.title);
