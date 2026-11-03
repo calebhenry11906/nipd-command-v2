@@ -24,7 +24,8 @@ window.NIPD_RENDER_REQUEST_LIST=(host,items)=>{
  if(!found.length){list.append(node("p",items.length?"No matching requests.":"No requests found for your account."));return}
  for(const x of found){
  const card=node("details");card.className="ops-item";
- const summary=node("summary",(x.kind||"Request")+" · "+x.source+" · "+x.status);card.append(summary);
+ const statusText={supervisor:"Awaiting Sergeant Review",final:"Awaiting Lieutenant Review",approved:"Approved",denied:"Denied",cancelled:"Cancelled",pending:"Pending"}[x.status]||String(x.status||"In Progress").replaceAll("_"," ");
+ const summary=node("summary",(x.kind||"Request")+" · "+x.source+" · "+statusText);card.append(summary);
  const body=node("div");body.append(node("p","Submitted: "+new Date(x.created_at).toLocaleDateString()),node("p","Last updated: "+new Date(x.updated_at).toLocaleDateString()),node("p","Reference: "+x.id));
  const button=node("button","Open original module →");button.type="button";button.onclick=()=>window.navigate?.(x.source==="Leave & Training"?"leave":x.source==="Security Details"?"security":"schedule");body.append(button);
  card.append(body);list.append(card);
