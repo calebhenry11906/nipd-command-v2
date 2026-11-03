@@ -67,6 +67,7 @@ $("cancel").onclick=closeModal;$("overlay").onclick=e=>{if(e.target===$("overlay
 $("requestForm").onsubmit=e=>{e.preventDefault();const detail=$("requestDetail").value.trim();if(!detail)return;samples.unshift({title:detail,who:"Demo Employee (browser session)",kind:$("requestType").value,status:"Pending Supervisor Approval"});renderRequests();closeModal();navigate("dashboard");showNotice("Demo request added locally. Refreshing the page resets all changes.")};navigate("dashboard");
 </script>
 <script src="policies-directives.js"></script>
+<script type="module" src="phase4-policy-library.js"></script>
 <script src="daily-links.js"></script>
 <script type="module" src="dashboard-identity.js"></script>
 <script src="shift-assignments.js"></script>
