@@ -29,11 +29,11 @@ async function update(){
  }
  return
 }
-  render(data);
+  await render(data);
  }catch(_){notice("Unable to load the administration console.");}
  finally{loading=false}
 }
-function render(data){
+async function render(data){
  panel.replaceChildren();
  panel.append(el("h3","Website Administration"),el("p","Authorized administrators only. Grants and revocations are enforced by Supabase and audited.","ed-admin-help"));
  const accounts=data.eligible_accounts||[],targets=data.targets||[],admins=data.administrators||[],grants=data.delegations||[];
