@@ -5,8 +5,23 @@
 :root{font:15px system-ui,sans-serif;color:#17314e;background:#edf2f7}*{box-sizing:border-box}body{margin:0}header{background:#102e4e;color:white;padding:20px}main{max-width:950px;margin:auto;padding:20px}.panel{background:white;border:1px solid #d5e0ea;border-radius:12px;padding:22px;margin:16px 0}h1{margin:0}p,small{line-height:1.6;color:#60778d}#feedback{white-space:pre-line}button,input,select,textarea{font:inherit;padding:10px;border-radius:7px;border:1px solid #b9cadb}button{cursor:pointer;background:#1c568e;color:white;border:0}button:disabled{opacity:.55;cursor:not-allowed}label{display:block;margin:12px 0}.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.item{padding:15px;border:1px solid #d4e1ed;border-radius:8px;margin:10px 0}.item strong{display:block}.danger{color:#a43c32}.note{background:#fff6e2;border:1px solid #e4d3a3;padding:12px;border-radius:8px}input[type=datetime-local]{max-width:100%}[hidden]{display:none!important}
 </style></head><body><header><h1>NIPD Command v2</h1><small style="color:#d9e6f4">WORKFORCE STAGING · Leave & Training</small></header>
 <main><p class="note"><strong>Fictional staging data only.</strong> This page is not approved for official law enforcement use. Never enter real personnel information.</p>
-<section class="panel" id="login"><h2>Sign In</h2><form id="signIn"><label>Approved Staging Email <input id="email" type="email" autocomplete="email" required></label><button>Send Sign-In Link</button></form><p>Use your approved staging account to access the authorized workforce board.</p></section>
-<section class="panel" id="otpPanel"><h2>Enter Email Sign-In Code</h2><p>If your department email contains a six-digit login code, enter it here instead of opening a link. This requires the email code template to be enabled in Supabase.</p><form id="otpForm"><label>Email Address <input id="otpEmail" type="email" autocomplete="email" value="chenry@newiberiapolice.com" required></label><label>Six-digit Code <input id="otpCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label><button type="submit">Verify Code &amp; Sign In</button></form></section>
+<section class="panel" id="login"><h2>Sign In</h2>
+<p>Enter your approved department email to request a one-time sign-in code.</p>
+<form id="signIn">
+<label>Department Email <input id="email" type="email" autocomplete="email" value="chenry@newiberiapolice.com" required></label>
+<button id="sendCode" type="submit">Sign In</button>
+</form>
+<div id="codeStep" hidden>
+<hr style="border:0;border-top:1px solid #d5e0ea;margin:22px 0">
+<h3>Enter Your Six-Digit Code</h3>
+<p>Check your email and enter the latest code. Stay on this page while retrieving it.</p>
+<form id="otpForm">
+<label>Six-Digit Verification Code <input id="otpCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label>
+<button id="verifyCode" type="submit">Verify Code &amp; Continue</button>
+</form>
+<button id="changeEmail" type="button" style="margin-top:12px;background:#e8f0f8;color:#17314e;border:1px solid #b9cadb">Change Email / Request New Code</button>
+</div>
+</section>
 <section class="panel" id="setup" hidden><h2>Verified Staging Account</h2><p id="identity"></p><label>Agency ID (Assigned by Staging Administrator) <input id="agency" placeholder="00000000-0000-0000-0000-000000000000" inputmode="text"></label><div class="row"><button id="openBoard">Open Authorized Board</button><a href="index.html" id="dashboardLink" style="display:inline-block;padding:10px 14px;background:#1c568e;color:#fff;border-radius:7px;text-decoration:none">Open NIPD Dashboard</a><button id="signOut">Sign Out</button></div></section>
 <section class="panel" id="board" hidden><h2>My Leave & Training</h2><p>Approvals require an authorized signed-in supervisor account. Rank and assignment rules are enforced by the database.</p>
 <form id="newLeave"><h3>New Fictional Request</h3><label>Type <select id="kind"><option value="vacation">Vacation</option><option value="training">Training</option><option value="other">Other leave</option></select></label><label>Start <input id="start" type="datetime-local" required></label><label>End <input id="end" type="datetime-local" required></label><button>Submit Fictional Request</button></form>
@@ -17,7 +32,7 @@ import {createClient} from "https://esm.sh/@supabase/supabase-js@2.108.0";
 const db=createClient("https://qvnldjidqyuwglksdtlm.supabase.co","sb_publishable_LovOph-C6UpNNq1oNR4TQQ_1VYEiChB");
 const $=id=>document.getElementById(id), say=(s,bad=false)=>{$("feedback").textContent=s;$("feedback").className=bad?"danger":""};
 let agency=null;
-const show=(id)=>{$("login").hidden=id!=="login";$("otpPanel").hidden=id!=="login";$("setup").hidden=id==="login";$("board").hidden=id!=="board"};
+const show=(id)=>{$("login").hidden=id!=="login";$("setup").hidden=id==="login";$("board").hidden=id!=="board"};
 async function init(){
  try{
   const url=new URL(location.href);
@@ -45,10 +60,29 @@ async function init(){
   $("identity").textContent="Signed in as "+(data.user.email||"Account")+". You can now open the NIPD Dashboard.";
  }catch(e){show("login");say("The sign-in callback could not be completed. Open the link directly in Chrome and try again.",true)}
 }
-$("signIn").onsubmit=async e=>{e.preventDefault();const {error}=await db.auth.signInWithOtp({email:$("email").value.trim(),options:{shouldCreateUser:false,emailRedirectTo:new URL("leave-secure.html",location.href).href}});if(error){const limited=error.code==="over_email_send_rate_limit"||error.status===429;say(limited?"Sign-In Temporarily Unavailable\n\nWe\u0027ve reached the temporary limit for sending verification emails. Please try again later or contact your system administrator if the issue continues.":"Could not send sign-in link. Please try again or contact your system administrator.",true)}else say("Check your department email. Open the newest sign-in link in Chrome; after verification this page should show your signed-in account and an Open NIPD Dashboard button.")};
+$("signIn").onsubmit=async e=>{
+ e.preventDefault();
+ const email=$("email").value.trim().toLowerCase();
+ $("sendCode").disabled=true;
+ const {error}=await db.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:new URL("leave-secure.html",location.href).href}});
+ $("sendCode").disabled=false;
+ if(error){
+  const limited=error.code==="over_email_send_rate_limit"||error.status===429;
+  say(limited?"Too many requests. Wait before trying again.":"Unable to send sign-in email: "+error.message,true);
+  return;
+ }
+ $("email").readOnly=true;
+ $("sendCode").hidden=true;
+ $("codeStep").hidden=false;
+ $("otpCode").focus();
+ say("Sign-in email requested. Enter the six-digit code if your email contains one. If your email contains only a link, the Supabase email template still needs to be changed.");
+};
+$("changeEmail").onclick=()=>{
+ $("codeStep").hidden=true;$("email").readOnly=false;$("sendCode").hidden=false;$("otpCode").value="";say("");
+};
 $("otpForm").onsubmit=async e=>{
  e.preventDefault();
- const email=$("otpEmail").value.trim().toLowerCase();
+ const email=$("email").value.trim().toLowerCase();
  const token=$("otpCode").value.trim();
  if(!/^\d{6}$/.test(token)){say("Enter the six-digit code from your email.",true);return}
  const {error}=await db.auth.verifyOtp({email,token,type:"email"});
