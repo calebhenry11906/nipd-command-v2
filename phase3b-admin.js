@@ -52,7 +52,8 @@ function render(data){
   });
   panel.append(form);return form;
  }
- const memberChoices=accounts.map(x=>({id:x.user_id,label:x.label+" · "+x.rank}));
+ const viewer=(await client.auth.getUser()).data.user?.id;
+ const memberChoices=accounts.filter(x=>x.user_id!==viewer).map(x=>({id:x.user_id,label:x.label+" · "+x.rank}));
  const subject=choice(memberChoices,x=>x.label,x=>x.id);
  const adminToggle=choice([{v:"true",label:"Grant Website Administrator"},{v:"false",label:"Revoke Website Administrator"}],x=>x.label,x=>x.v);
  const adminReason=el("input");adminReason.type="text";adminReason.minLength=5;adminReason.maxLength=400;adminReason.required=true;adminReason.placeholder="Administrative authorization / reason";
