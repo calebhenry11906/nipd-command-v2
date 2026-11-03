@@ -61,3 +61,24 @@
 .ed-admin-form button{width:max-content}.ed-admin-status{align-self:center;margin:0;font-size:12px;color:#80551c}
 .ed-admin-current h4{margin:14px 0 8px}.ed-admin-current p{font-size:13px;color:#496985}
 @media(max-width:660px){.ed-admin-form{grid-template-columns:1fr;padding:12px}.ed-admin-panel{padding:14px}}
+
+/* Phase 3B authenticated profile and restricted-personnel views */
+.ed-secure-clickable{font:inherit;cursor:pointer;flex-wrap:wrap;text-align:left}
+.ed-secure-clickable:hover,.ed-secure-clickable:focus-visible{background:#edf5fd;border-color:#8cb6dc;outline-offset:2px}
+.ed-secure-people+h4,.ed-secure-directory h4{margin:20px 0 12px;font-size:15px;color:#173954}
+.ed-profile-overlay{position:fixed;z-index:9999;inset:0;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;background:rgba(7,24,46,.76);padding:24px 12px}
+.ed-profile-sheet{width:min(650px,100%);background:#fff;border-radius:15px;padding:clamp(16px,3vw,26px);color:#1b3b58;box-shadow:0 24px 80px rgba(0,0,0,.28)}
+.ed-profile-sheet>h2{font-size:24px;margin:16px 0 6px}
+.ed-profile-fields{display:grid;grid-template-columns:1fr;gap:0;margin:15px 0}
+.ed-profile-field{display:grid;grid-template-columns:minmax(135px,.6fr) minmax(0,1.4fr);gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid #e3eaf1}
+.ed-profile-field dt{font-size:12px;color:#577089;font-weight:800}
+.ed-profile-field dd{margin:0;font-size:13px;color:#183d5f;overflow-wrap:anywhere}
+.ed-profile-restricted{margin-top:17px;padding:17px;background:#f7fafd;border:1px solid #d9e6f0;border-radius:12px}
+.ed-profile-restricted:empty{display:none}
+.ed-profile-restricted h3{font-size:19px;margin:0 0 10px;color:#153e62}
+.ed-secure-note{font-size:12px;line-height:1.6;color:#577089}
+.ed-profile-form{display:grid;gap:12px;margin-top:15px}
+.ed-profile-form label{font-size:12px;font-weight:750;color:#3d5a76;display:grid;gap:6px}
+.ed-profile-form input{font:inherit;min-height:42px;border:1px solid #c2d3e3;border-radius:8px;padding:10px;width:100%;color:#163954;background:#fff}
+.ed-profile-form button{justify-self:start}
+@media(max-width:540px){.ed-profile-field{grid-template-columns:1fr;gap:4px}.ed-profile-overlay{padding:10px}.ed-profile-sheet{border-radius:10px}}
