@@ -82,3 +82,45 @@
 .ed-profile-form input{font:inherit;min-height:42px;border:1px solid #c2d3e3;border-radius:8px;padding:10px;width:100%;color:#163954;background:#fff}
 .ed-profile-form button{justify-self:start}
 @media(max-width:540px){.ed-profile-field{grid-template-columns:1fr;gap:4px}.ed-profile-overlay{padding:10px}.ed-profile-sheet{border-radius:10px}}
+
+/* Unified authenticated directory — the only personnel roster rendered in Directory tab */
+.ed-root.ed-protected-directory-active .ed-stats{display:none}
+.ed-root.ed-protected-directory-active #edContent{display:none!important}
+.ed-unified-directory{padding:clamp(14px,2.2vw,24px);border:1px solid #d6e2ed;border-top:0;border-radius:0 0 14px 14px;background:#fff;color:#183b59}
+.ed-unified-directory[hidden]{display:none}
+.ed-unified-header{display:flex;align-items:start;justify-content:space-between;gap:12px}
+.ed-unified-header h3{font-size:22px;line-height:1.2;margin:0 0 6px;color:#123957}
+.ed-unified-header p,.ed-unified-meta{font-size:13px;color:#5c758b;line-height:1.5;margin:0}
+.ed-unified-meta{font-weight:650;margin:9px 0 16px}
+.ed-unified-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(155px,240px);gap:12px;margin:0 0 18px}
+.ed-unified-switch{display:flex;flex-wrap:wrap;gap:7px;grid-column:1/-1}
+.ed-unified-toggle{border:1px solid #cbdbe7;color:#315a7c;background:#f5f8fc;border-radius:9px;padding:11px 16px;min-height:44px;font-weight:750;cursor:pointer}
+.ed-unified-toggle.active{background:#215e96;border-color:#215e96;color:white}
+.ed-unified-controls>input,.ed-unified-controls>select{background:#fff;border:1px solid #c9d8e6;border-radius:9px;min-height:46px;padding:10px 13px;color:#173954;width:100%;min-width:0}
+.ed-unified-controls>input::placeholder{color:#8498a9}
+.ed-unified-results{display:grid;gap:8px}
+.ed-unified-person{--level:0;display:flex;gap:12px;align-items:center;width:100%;min-width:0;min-height:65px;padding:11px 14px;border:1px solid #dae6ef;background:#fafdff;border-radius:11px;text-align:left;color:#153b5b;cursor:pointer;font:inherit}
+.ed-unified-person:hover,.ed-unified-person:focus-visible{background:#edf6ff;border-color:#83acd2}
+.ed-unified-avatar{flex:0 0 39px;width:39px;height:39px;display:grid;place-items:center;border-radius:50%;background:#e2edf8;color:#285f92;font-size:12px;font-weight:800}
+.ed-unified-person-text{flex:1;min-width:0;display:grid;gap:4px}
+.ed-unified-person-text strong{font-size:13px;line-height:1.35}
+.ed-unified-person-text small{font-size:11px;color:#71879a;line-height:1.45;overflow-wrap:anywhere}
+.ed-unified-rcn{font-weight:800;font-size:12px;color:#235e96;white-space:nowrap}
+.ed-unified-division{border:1px solid #d8e5f0;background:white;border-radius:12px;padding:14px;margin-bottom:5px;min-width:0}
+.ed-unified-division>h4{font-size:15px;margin:0 0 12px;padding:0 0 10px;border-bottom:1px solid #e1eaf1;color:#163d5e}
+.ed-unified-division>.ed-unified-person{margin:0 0 7px;max-width:100%;width:calc(100% - min(var(--level),5)*15px);margin-left:calc(min(var(--level),5)*15px)}
+.ed-unified-division>.ed-unified-person:last-child{margin-bottom:0}
+.ed-unified-division>.ed-unified-person[style*="--level: 1"],.ed-unified-division>.ed-unified-person[style*="--level: 2"],.ed-unified-division>.ed-unified-person[style*="--level: 3"]{border-left:3px solid #8bb6dd}
+.ed-unified-testing{margin-top:14px;border:1px solid #dddfeb;background:#f8fafd;border-radius:12px;padding:13px}
+.ed-unified-testing>summary{cursor:pointer;font-weight:750;font-size:13px;color:#315a7a;padding:4px 0}
+.ed-unified-testing>.ed-unified-results{margin-top:12px}
+@media(max-width:680px){
+ .ed-unified-controls{grid-template-columns:minmax(0,1fr)}
+ .ed-unified-header h3{font-size:20px}
+ .ed-unified-directory{padding:13px}
+ .ed-unified-person{gap:9px;padding:11px}
+ .ed-unified-avatar{width:36px;height:36px;flex-basis:36px}
+ .ed-unified-division{padding:10px}
+ .ed-unified-division>.ed-unified-person{width:calc(100% - min(var(--level),5)*7px);margin-left:calc(min(var(--level),5)*7px)}
+ .ed-unified-rcn{font-size:11px}
+}
