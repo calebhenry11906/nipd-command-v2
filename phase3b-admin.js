@@ -17,7 +17,18 @@ async function update(){
   if(!user){notice("Sign in to view your administrator status. No website administrators are appointed yet.");return}
   const {data,error}=await client.rpc("wf_admin_access_overview",{p_agency:agency});
   if(error){notice("Administrator status could not be verified.");return}
-  if(!data?.is_admin){notice("Website Administrator access has not been assigned to this account. Police rank does not provide website administration permissions.");return}
+  if(!data?.is_admin){
+ notice("Website Administrator access has not been assigned to this account. Police rank does not provide website administration permissions.");
+ if((user.email||"").toLowerCase()==="chenry@newiberiapolice.com"){
+  const button=el("button","Activate Website Administrator");button.className="ed-primary";button.type="button";
+  button.onclick=async()=>{button.disabled=true;
+   const response=await client.rpc("wf_claim_initial_site_admin",{p_agency:agency});
+   if(response.error){notice("Administrator activation failed: "+response.error.message);return}
+   await update();
+  };panel.append(button);
+ }
+ return
+}
   render(data);
  }catch(_){notice("Unable to load the administration console.");}
  finally{loading=false}
