@@ -1,6 +1,8 @@
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2.108.0";
 const db=createClient("https://qvnldjidqyuwglksdtlm.supabase.co","sb_publishable_LovOph-C6UpNNq1oNR4TQQ_1VYEiChB");
 const AGENCY="0364257b-f54f-40cb-a34a-0cb125afb16d";
+window.NIPD_SECURE_CLIENT=db;
+window.NIPD_SECURE_AGENCY=AGENCY;
 const root=document.getElementById("leaveRoot");
 const label={supervisor:"Pending Sergeant Approval",final:"Pending Lieutenant Approval",approved:"Approved",denied:"Denied",cancelled:"Cancelled"};
 const kind={vacation:"Vacation",training:"Training",other:"Other Leave"};
