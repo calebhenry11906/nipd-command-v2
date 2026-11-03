@@ -50,7 +50,7 @@ $("otpForm").onsubmit=async e=>{
  e.preventDefault();
  const email=$("otpEmail").value.trim().toLowerCase();
  const token=$("otpCode").value.trim();
- if(!/^\\d{6}$/.test(token)){say("Enter the six-digit code from your email.",true);return}
+ if(!/^\d{6}$/.test(token)){say("Enter the six-digit code from your email.",true);return}
  const {error}=await db.auth.verifyOtp({email,token,type:"email"});
  if(error){say("Code verification failed: "+error.message+". Use the most recent code.",true);return}
  say("Email code verified. You are signed in.");
