@@ -2,7 +2,19 @@
 window.NIPD_RENDER_REQUEST_LIST=(host,items)=>{
  host.querySelector("p")?.remove();
  const node=(t,v)=>{const e=document.createElement(t);if(v!==undefined)e.textContent=v;return e};
- const info=node("p",items.length+" submissions · "+items.filter(x=>!["approved","denied","cancelled"].includes(x.status)).length+" pending");host.append(info);
+ if(!items.length){
+  const empty=node("section");empty.className="ops-empty-panel";
+  empty.append(node("h3","You're all caught up"),node("p","No submitted requests are recorded for this account yet. Start a request in its proper department module, and its status will appear here automatically."));
+  const actions=node("div");actions.className="ops-empty-actions";
+  for(const [title,destination] of [["Leave & Training","leave"],["Shift Assignment","schedule"],["Security Details","security"]]){
+   const b=node("button",title+" →");b.type="button";b.onclick=()=>window.navigate?.(destination);actions.append(b);
+  }empty.append(actions);host.append(empty);return;
+ }
+ const info=node("div");info.className="ops-summary";
+ const pending=items.filter(x=>!["approved","denied","cancelled","completed"].includes(x.status)).length;
+ for(const [label,num] of [["Total requests",items.length],["Awaiting decision",pending],["Approved",items.filter(x=>x.status==="approved").length]]){
+  const tile=node("div");tile.className="ops-stat";tile.append(node("strong",String(num)),node("span",label));info.append(tile);
+ }host.append(info);
  const search=node("input");search.placeholder="Search my requests";search.type="search";host.append(search);
  const source=node("select");source.setAttribute("aria-label","Filter by originating module");for(const x of ["All",...new Set(items.map(x=>x.source))]){const option=node("option",x);source.append(option)}host.append(source);
  const list=node("div");list.className="ops-list";host.append(list);
