@@ -11,7 +11,7 @@ function render(message){
  panel.replaceChildren();
  const head=node("div");head.className="ed-secure-head";
  const title=node("div");
- title.append(node("h3","Authenticated Personnel Directory"),node("p","Protected Supabase staging records · Fictional test personnel only"));
+ title.append(node("h3","Authenticated Personnel Directory"),node("p","Protected personnel records · real roster with separate fictional test accounts"));
  head.append(title);
  const tag=node("span","Staging");tag.className="ed-secure-badge";head.append(tag);panel.append(head);
  if(message){const m=node("p",message);m.className="ed-secure-message";panel.append(m);return}
@@ -20,17 +20,25 @@ function render(message){
  const show=()=>{
   list.replaceChildren();
   const q=search.value.toLowerCase().trim();
-  const filtered=members.filter(x=>[x.name,x.rank,x.rcn,x.division,x.unit].join(" ").toLowerCase().includes(q));
-  for(const employee of filtered){
-   const card=node("div");card.className="ed-secure-person";
-   const name=node("strong",employee.name);
-   const detail=node("p",[(employee.rank||"Rank Unverified"),employee.division,employee.unit].filter(Boolean).join(" · "));
-   const rcn=node("span",employee.rcn?"RCN "+employee.rcn:"RCN Pending");rcn.className="ed-secure-rcn";
-   const text=node("div");text.append(name,detail);
-   card.append(text,rcn);
-   list.append(card);
+  const filtered=members.filter(x=>[x.name,x.rank,x.rcn,x.division,x.unit,x.supervisor_name,x.directory_phone].join(" ").toLowerCase().includes(q));
+  for(const demo of [false,true]){
+   const people=filtered.filter(x=>Boolean(x.is_demo)===demo);
+   if(!people.length)continue;
+   list.append(node("h4",demo?"Fictional Test Accounts":"Department Roster"));
+   const grid=node("div");grid.className="ed-secure-people";list.append(grid);
+   for(const employee of people){
+    const card=node("button");card.type="button";card.className="ed-secure-person ed-secure-clickable";
+    const name=node("strong",employee.name);
+    const detail=node("p",[(employee.rank||"Rank Unverified"),employee.division,employee.unit,employee.supervisor_name?"Reports to "+employee.supervisor_name:""].filter(Boolean).join(" · "));
+    const rcn=node("span",employee.rcn?"RCN "+employee.rcn:"RCN Pending");rcn.className="ed-secure-rcn";
+    const text=node("div");text.append(name,detail);
+    card.append(text,rcn);
+    if(employee.directory_phone)card.append(node("small",employee.directory_phone));
+    card.onclick=()=>window.NIPD_PROFILE_OPEN?.(employee);
+    grid.append(card);
+   }
   }
-  if(!filtered.length)list.append(node("p","No authorized personnel match your search."));
+  if(!filtered.length)list.append(node("p","No employees match your search."));
  };
  search.addEventListener("input",show);show();
 }
