@@ -1,8 +1,15 @@
-/* NIPD daily bookmarks: browser-local preferences; no department links prefilled. */
+/* NIPD daily bookmarks: preselected work links with browser-local customizations. */
 (()=>{
 "use strict";
 const KEY="nipd-v2-daily-links-v1";
 const MAX=18;
+const DEFAULTS=[
+ {id:"cloudgavel",title:"CloudGavel",url:"https://app.cloudgavel.com/layout/dashboard"},
+ {id:"lenss",title:"LENSS",url:"https://www.lenss.net/login"},
+ {id:"polaris",title:"Polaris",url:"https://polaris1.utility.com/"},
+ {id:"tailorbuilt",title:"NIPD TailorBuilt CAD",url:"https://nipd.tailorbuilt.software/cad/mobile"},
+ {id:"louisiana-law",title:"Louisiana Revised Statutes — Title 14",url:"https://legis.la.gov/Legis/Laws_Toc.aspx?folder=88&title=14"}
+];
 const target=document.getElementById("quickTiles");
 const editButton=document.getElementById("manageDailyLinks");
 if(!target||!editButton)return;
@@ -17,6 +24,17 @@ const safeUrl=value=>{
 };
 const valid=items=>Array.isArray(items)?items.filter(x=>x&&typeof x.title==="string"&&typeof x.url==="string"&&x.title.trim()&&safeUrl(x.url)).slice(0,MAX).map(x=>({id:String(x.id||"").slice(0,64)||String(Date.now()),title:x.title.trim().slice(0,55),url:safeUrl(x.url)})):[];
 let links=[];try{links=valid(JSON.parse(localStorage.getItem(KEY)||"[]"))}catch(_){}
+const SEED_KEY=KEY+"-presets-2026-11";
+try{
+ if(localStorage.getItem(SEED_KEY)!=="done"){
+  const present=new Set(links.map(x=>x.url));
+  const missing=DEFAULTS.filter(x=>!present.has(safeUrl(x.url)));
+  links=[...missing,...links].slice(0,MAX);
+  localStorage.setItem(KEY,JSON.stringify(links));
+  localStorage.setItem(SEED_KEY,"done");
+ }
+}catch(_){if(!links.length)links=valid(DEFAULTS)}
+
 let editing=false;
 function persist(){
  try{localStorage.setItem(KEY,JSON.stringify(links));return true}
@@ -38,7 +56,17 @@ function render(){
   const a=node("a",undefined,"daily-link");
   a.href=link.url;a.target="_blank";a.rel="noopener noreferrer";
   a.setAttribute("aria-label","Open "+link.title+" in a new tab");
-  a.append(node("span","↗","daily-link-symbol"));
+  const hostName=new URL(link.url).hostname;
+  const iconWrap=node("span",undefined,"daily-link-symbol daily-link-logo");
+  const img=node("img",undefined,"daily-link-favicon");
+  img.alt="";img.width=28;img.height=28;img.loading="lazy";
+  img.referrerPolicy="no-referrer";
+  img.src=new URL("/favicon.ico",link.url).href;
+  const fallback=node("span",link.title.trim().slice(0,2).toUpperCase(),"daily-link-fallback");
+  fallback.hidden=true;
+  img.onerror=()=>{img.hidden=true;fallback.hidden=false};
+  iconWrap.append(img,fallback);
+  a.append(iconWrap);
   const title=node("strong",link.title);
   const host=node("small",new URL(link.url).hostname);
   a.append(title,host);wrap.append(a);
