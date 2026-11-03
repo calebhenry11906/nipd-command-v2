@@ -1,7 +1,7 @@
 /* Read-only view for consolidated submissions. */
 (()=>{const host=document.getElementById("module");const panel=document.createElement("section");panel.id="nipdMyRequests";panel.className="ops-screen";panel.hidden=true;host?.append(panel);async function render(){
  panel.replaceChildren();
- const title=document.createElement("h2");title.textContent="My Requests";
+ const title=document.createElement("h2");title.textContent="Request Tracker";
  const msg=document.createElement("p");msg.textContent="Loading your authorized submissions…";
  panel.append(title,msg);
  try {
