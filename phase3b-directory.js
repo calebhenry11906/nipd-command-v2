@@ -10,6 +10,7 @@ let people=[],mode="rcn",query="",division="All",currentUser=null,loading=false;
 function activeDirectory(){return root?.classList.contains("active")&&root.querySelector('[data-ed-tab="Directory"].active')!==null}
 function mount(){
  if(!root)return;
+ root.classList.toggle("ed-protected-directory-active",activeDirectory());
  const tabs=root.querySelector(".ed-tabs");if(!tabs)return;
  if(panel.parentNode!==root)tabs.insertAdjacentElement("afterend",panel);
  const old=root.querySelector("#edContent");
