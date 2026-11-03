@@ -9,15 +9,48 @@ const fictional=[{id:"demo-a",name:"Demo Officer A",unit:"Alpha",rank:"Officer"}
 let overrides={},logs=[];
 try{const v=JSON.parse(localStorage.getItem(DIRECTORY_KEY)||"{}");if(v&&typeof v==="object"&&!Array.isArray(v))overrides=v}catch(e){}
 try{const v=JSON.parse(localStorage.getItem(ATTENDANCE_KEY)||"[]");if(Array.isArray(v))logs=v.filter(x=>x&&fictional.some(p=>p.id===x.employeeId))}catch(e){}
-let tab="Directory",search="",division="All",rank="All",selected=null,attendancePerson="demo-a",attendanceRange="Month",rolePreview="Employee";
+let directoryMode="rcn";let tab="Directory",search="",division="All",rank="All",selected=null,attendancePerson="demo-a",attendanceRange="Month",rolePreview="Employee";
 const save=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));return true}catch(e){alert("Browser storage unavailable.");return false}};
+function organizationalPeople(){
+ const chart=window.NIPD_COMMAND_CHART;if(!chart)return [];
+ const people=new Map();
+ const normalize=s=>s.toLowerCase().replace(/[^a-z]/g,"");
+ const add=(name,rank,radio,unit,division,supervisor)=>{
+   const key=normalize(name),prev=people.get(key);
+   if(!prev)people.set(key,{id:"chart-"+key,name,rank,radio:radio||"—",unit,division,supervisor:supervisor||"",secondary:""});
+   else if(prev.unit!==unit)prev.secondary=prev.secondary?[prev.secondary,unit].join("; "):unit;
+ };
+ for(const [name,rank,radio,division,unit,supervisor] of chart.leadership)add(name,rank,radio,unit,division,supervisor);
+ for(const division of chart.divisions)for(const [unit,members] of division.units){
+  let supervisor=division.name==="Criminal Investigations"?"Daesha Hughes":"Tyler Sohm";
+  if(unit==="Communications")supervisor="Tyler Sohm";
+  if(["Charlie Shift","Delta Shift"].includes(unit))supervisor="Stoney Penn";
+  if(unit==="Patrol Administration")supervisor="Leland Laseter";
+  if(unit==="CID Command")supervisor="Kellen Landry";
+  for(let i=0;i<members.length;i++){
+    const [name,rank,rcn]=members[i];
+    const chain=unit==="Communications"&&i>0?"Michele Conroy":unit==="Forensic Information Technology & Support"&&i>0?"Alexander Breaux":i>0&&["Alpha Shift","Bravo Shift","Charlie Shift","Delta Shift","Major Crimes","Property Crimes","Direct Patrol"].includes(unit)?members[0][0]:supervisor;
+    add(name,rank,rcn,unit,division.name,chain);
+  }
+ }
+ return [...people.values()];
+}
 function allEmployees(){
  const base=Array.isArray(window.NIPD_DIRECTORY_SEED)?window.NIPD_DIRECTORY_SEED:[];
  const local=(()=>{try{const a=JSON.parse(localStorage.getItem("nipd_v2_shift_assignments_demo_20261029")||"null");return Array.isArray(a)?a:base}catch(e){return base}})();
- const valid=local.filter(x=>x&&typeof x.name==="string"&&typeof x.id==="string");
  const unique=new Map();
- for(const p of valid){const v=overrides[p.id]||{};if(!unique.has(p.name.toLowerCase()))unique.set(p.name.toLowerCase(),{id:p.id,name:p.name,rank:v.rank||p.rank||"",radio:p.radio||"—",unit:v.unit||p.unit||"",division:v.division||group(p.unit),supervisor:v.supervisor||"",employeeNo:v.employeeNo||"",status:v.status||"Assignment listed",training:p.training||"",secondary:v.secondary||""})}
- return [...unique.values()];
+ const normalized=s=>s.toLowerCase().replace(/[^a-z]/g,"");
+ for(const p of local.filter(x=>x&&typeof x.name==="string"&&typeof x.id==="string")){
+   const v=overrides[p.id]||{};const key=normalized(p.name);
+   if(!unique.has(key))unique.set(key,{id:p.id,name:p.name,rank:v.rank||p.rank||"",radio:p.radio||"—",unit:v.unit||p.unit||"",division:v.division||group(p.unit),supervisor:v.supervisor||"",employeeNo:"",status:v.status||"Assignment listed",training:p.training||"",secondary:v.secondary||""});
+ }
+ for(const p of organizationalPeople()){const key=normalized(p.name),prior=unique.get(key);
+  unique.set(key,{...prior,...p,id:prior?.id||p.id,employeeNo:"",status:"Organizational chart reference",training:p.unit==="Field Training"?"FTO":""});
+ }
+ return [...unique.values()].sort((a,b)=>{
+ const n=x=>/^\\d+$/.test(String(x.radio))?Number(x.radio):Number.POSITIVE_INFINITY;
+ return n(a)-n(b)||a.name.localeCompare(b.name);
+ });
 }
 function group(u){if(["Alpha","Bravo","Charlie","Delta","Traffic","Direct Patrol","School Resource","Transportation","FTO","Academy","Oversight","Administration"].includes(u))return"Patrol";if(u==="Professional Standards")return"Professional Standards";if(u==="Criminal Investigations")return"Criminal Investigations";if(u==="Records & Maintenance"||u==="Records")return"Records & Maintenance";if(u==="Command")return"Command";return"Other / Unverified"}
 function metrics(){
