@@ -5,6 +5,7 @@ const parent=document.getElementById("module");
 const panel=document.createElement("section");
 panel.className="ed-admin-panel";
 panel.id="edAdminPanel";
+panel.hidden=true;
 const el=(tag,text,klass)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(klass)n.className=klass;return n};
 const choice=(items,labelFn,valueFn)=>{const s=el("select");for(const item of items){const o=el("option",labelFn(item));o.value=valueFn(item);s.append(o)}return s};
 const control=(label,input)=>{const wrapper=el("label");wrapper.append(el("span",label));wrapper.append(input);return wrapper};
@@ -80,8 +81,8 @@ async function render(data){
 const previous=window.navigate;
 if(typeof previous==="function")window.navigate=function(id){
  previous(id);
- panel.hidden=id!=="settings";
- if(id==="settings" && parent){
+ panel.hidden=id!=="settings"||window.NIPD_ADMIN_ALLOWED!==true;
+ if(id==="settings" && window.NIPD_ADMIN_ALLOWED===true && parent){
   if(!parent.contains(panel))parent.append(panel);
   update();
  }
