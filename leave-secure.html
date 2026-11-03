@@ -13,10 +13,10 @@
 </form>
 <div id="codeStep" hidden>
 <hr style="border:0;border-top:1px solid #d5e0ea;margin:22px 0">
-<h3>Enter Your six- to eight-digit Code</h3>
+<h3>Enter Your six-digit Code</h3>
 <p>Check your email and enter the latest code. Stay on this page while retrieving it.</p>
 <form id="otpForm">
-<label>six- to eight-digit Verification Code <input id="otpCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,8}" minlength="6" maxlength="8" required></label>
+<label>six-digit Verification Code <input id="otpCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label>
 <button id="verifyCode" type="submit">Verify Code &amp; Continue</button>
 </form>
 <button id="changeEmail" type="button" style="margin-top:12px;background:#e8f0f8;color:#17314e;border:1px solid #b9cadb">Change Email / Request New Code</button>
@@ -75,7 +75,7 @@ $("signIn").onsubmit=async e=>{
  $("sendCode").hidden=true;
  $("codeStep").hidden=false;
  $("otpCode").focus();
- say("Sign-in email requested. Enter the six- to eight-digit code if your email contains one. If your email contains only a link, the Supabase email template still needs to be changed.");
+ say("Sign-in email requested. Enter the six-digit code if your email contains one. If your email contains only a link, the Supabase email template still needs to be changed.");
 };
 $("changeEmail").onclick=()=>{
  $("codeStep").hidden=true;$("email").readOnly=false;$("sendCode").hidden=false;$("otpCode").value="";say("");
@@ -84,7 +84,7 @@ $("otpForm").onsubmit=async e=>{
  e.preventDefault();
  const email=$("email").value.trim().toLowerCase();
  const token=$("otpCode").value.trim();
- if(!/^\d{6,8}$/.test(token)){say("Enter the complete 6–8 digit code from your email.",true);return}
+ if(!/^\d{6}$/.test(token)){say("Enter the six-digit code from your email.",true);return}
  const {error}=await db.auth.verifyOtp({email,token,type:"email"});
  if(error){say("Code verification failed: "+error.message+". Use the most recent code.",true);return}
  say("Email code verified. You are signed in.");
