@@ -49,3 +49,15 @@
 .ed-secure-person p{color:#536b83;font-size:12px;margin:5px 0 0}
 .ed-secure-rcn{white-space:nowrap;color:#205b91;font-size:12px;font-weight:750}
 @media(max-width:720px){.ed-secure-people{grid-template-columns:1fr}.ed-secure-person{padding:13px}}
+
+/* Phase 3B: site administrator permission management, server authorized */
+.ed-admin-panel{margin:24px 0 0;padding:clamp(16px,2.4vw,26px);border:1px solid #d5e2ed;border-radius:14px;background:#fff;color:#173954}
+.ed-admin-panel h3{margin:0 0 6px;font-size:22px}.ed-admin-help{margin:0 0 17px;color:#54708a;font-size:13px;line-height:1.6}
+.ed-admin-summary{font-weight:700;background:#eff6fd;border-radius:9px;padding:12px;font-size:13px}
+.ed-admin-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin:17px 0;padding:18px;background:#f7fafd;border:1px solid #dce6ef;border-radius:12px}
+.ed-admin-form h4{grid-column:1/-1;margin:0;font-size:16px}
+.ed-admin-form label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#395d7c;min-width:0}
+.ed-admin-form select,.ed-admin-form input{width:100%;min-height:43px;padding:10px 12px;border:1px solid #c9d8e6;border-radius:8px;background:white;color:#173954}
+.ed-admin-form button{width:max-content}.ed-admin-status{align-self:center;margin:0;font-size:12px;color:#80551c}
+.ed-admin-current h4{margin:14px 0 8px}.ed-admin-current p{font-size:13px;color:#496985}
+@media(max-width:660px){.ed-admin-form{grid-template-columns:1fr;padding:12px}.ed-admin-panel{padding:14px}}
