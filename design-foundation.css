@@ -141,3 +141,10 @@ button,a,input,select,textarea{touch-action:manipulation}
 @media(min-width:1200px){.daily-links-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:650px){.daily-links-grid{grid-template-columns:1fr 1fr;gap:9px}.daily-link{min-height:108px;padding:13px}.daily-links-manage{padding:8px 10px;font-size:11px}}
 @media(max-width:390px){.daily-links-grid{grid-template-columns:1fr}}
+
+/* Website favicon branding for the preselected and custom Daily Links */
+.daily-link-logo{width:38px;height:38px;display:grid;place-items:center;flex:0 0 38px;background:#fff;border:1px solid #dfe8ef;border-radius:10px;overflow:hidden}
+.daily-link-favicon{display:block;width:28px;height:28px;object-fit:contain}
+.daily-link-favicon[hidden]{display:none}
+.daily-link-fallback{font-weight:850;font-size:12px;color:#235f91;letter-spacing:-.02em}
+.daily-link-fallback[hidden]{display:none}
