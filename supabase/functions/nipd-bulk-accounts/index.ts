@@ -44,6 +44,7 @@ async function preview(entries:Entry[]){
   else if(!p){status="not_found";reason="Employee number is not on the existing roster"}
   else if(p.is_demo||!p.active){status="ineligible";reason="Fictional or inactive employee"}
   else if(matchName(p.full_name)!==matchName(e.full_name)){status="name_conflict";reason="Name does not match authoritative roster"}
+  else if(!p.auth_user_id && !["Officer","Corporal","Sergeant","Lieutenant","Captain","Chief","Civilian"].includes(p.rank)){status="role_mapping_required";reason="Department job title needs an approved account-role mapping before invitation"}
   else {
    const found:any=byEmail.get(e.email);
    if(p.auth_user_id){
