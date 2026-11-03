@@ -195,3 +195,13 @@ button,a,input,select,textarea{touch-action:manipulation}
 .pol-dashboard-actions{margin-bottom:22px}.pol-dashboard-row{display:flex;align-items:center;justify-content:space-between;gap:15px}.pol-dashboard-row strong{font-size:15px;color:#173b5e}.pol-dashboard-row p{margin:5px 0;color:#667e95;font-size:13px;line-height:1.6}
 .pol-dashboard-button{white-space:nowrap;border:1px solid #215e95;background:#215e95;color:#fff;border-radius:9px;padding:11px 14px;min-height:44px;font-weight:750}
 @media(max-width:640px){.pol-root{padding:12px}.pol-review{padding:12px}.pol-reader-nav .pol-secondary{font-size:11px;padding:7px}.pol-dashboard-row{flex-direction:column;align-items:stretch}.pol-dashboard-button{width:100%}.pol-steps{gap:4px}.pol-step{font-size:10px}}
+
+/* Authenticated policy records are separate from the nonbinding Policy 418 UI demonstration */
+.pol-protected{padding:16px;border:1px solid #bed2e5;border-radius:12px;background:#f6faff;margin:18px 0 21px}
+.pol-protected-heading{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.pol-protected h3{font-size:17px;color:#153c5f;margin:0}
+.pol-protected-pill{font-size:10px;letter-spacing:.08em;color:#1e587f;background:#e0effa;border-radius:8px;padding:5px 9px;font-weight:850}
+.pol-protected-list{display:grid;gap:7px;margin-top:10px}
+.pol-protected-item{display:grid;gap:4px;padding:12px;background:#fff;border:1px solid #d8e4ed;border-radius:9px}
+.pol-protected-item strong{font-size:13px;color:#1c3e5b}
+.pol-protected-item small{font-size:11px;color:#627e95}
