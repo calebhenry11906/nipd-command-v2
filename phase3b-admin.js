@@ -1,7 +1,7 @@
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2.108.0";
 const client=createClient("https://qvnldjidqyuwglksdtlm.supabase.co","sb_publishable_LovOph-C6UpNNq1oNR4TQQ_1VYEiChB");
 const agency="0364257b-f54f-40cb-a34a-0cb125afb16d";
-const parent=document.getElementById("directoryRoot");
+const parent=document.getElementById("module");
 const panel=document.createElement("section");
 panel.className="ed-admin-panel";
 panel.id="edAdminPanel";
@@ -80,9 +80,9 @@ async function render(data){
 const previous=window.navigate;
 if(typeof previous==="function")window.navigate=function(id){
  previous(id);
- if(id==="directory" && parent){
+ if(id==="settings" && parent){
   if(!parent.contains(panel))parent.append(panel);
   update();
  }
 };
-client.auth.onAuthStateChange(()=>{if(parent?.classList.contains("active"))setTimeout(update,0)});
+client.auth.onAuthStateChange(()=>{if(parent?.classList.contains("active") && document.getElementById("title")?.textContent==="Administration")setTimeout(update,0)});
