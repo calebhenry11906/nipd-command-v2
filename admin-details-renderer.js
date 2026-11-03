@@ -10,5 +10,9 @@ const audit=section("Recent System Events","Audited actions and timestamps. Sens
 const entries=Array.isArray(data.recent_audit)?data.recent_audit:[];
 if(!entries.length)audit.append(n("p","No recent events."));
 for(const a of entries){const row=n("div");row.className="ops-audit";row.append(n("span",String(a.action).replaceAll("_"," ")),n("time",new Date(a.created_at).toLocaleString()));audit.append(row)}
-section("Pending Configuration","Staffing thresholds, notification templates, user provisioning and policy approvals require separate approved backend configuration before editing can be enabled.");
+const importPanel=section("Employee Account Import","Administrator-only Excel/CSV matching and invitation staging.");
+importPanel.id="nipdBulkImportPanel";
+if(window.NIPD_BULK_IMPORT_MOUNT)window.NIPD_BULK_IMPORT_MOUNT(importPanel);
+else window.addEventListener("nipd-bulk-import-ready",()=>{if(importPanel.isConnected)window.NIPD_BULK_IMPORT_MOUNT?.(importPanel)},{once:true});
+section("Pending Configuration","Staffing thresholds, notification templates and policy approvals require approved backend configuration before editing can be enabled.");
 };
