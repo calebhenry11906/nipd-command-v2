@@ -71,11 +71,43 @@ function render(){
  $("directoryRoot").querySelectorAll("[data-ed-tab]").forEach(b=>{const on=b.dataset.edTab===tab;b.classList.toggle("active",on);b.setAttribute("aria-selected",String(on))});
  if(tab==="Directory")directory();else if(tab==="Attendance")attendance();else if(tab==="Personnel Administration")admin();else window.NIPDTimesheets?.render?.($("edContent"),tab);
 }
+function employeeButton(p){return '<button type="button" class="ed-person" data-person="'+E(p.id)+'"><span class="ed-person-avatar">'+E(p.name.split(" ").map(z=>z[0]).slice(0,2).join(""))+'</span><span class="ed-person-main"><b>'+E(p.name)+'</b><small>'+E(p.rank)+' · '+E(p.unit)+' · '+E(p.division)+'</small></span><strong>'+E(p.radio==="—"?"RCN Pending":"RCN "+p.radio)+'</strong></button>'}
+function commandView(found){
+ const chart=window.NIPD_COMMAND_CHART;
+ if(!chart)return '<div class="ed-empty">No organizational reference has been loaded.</div>';
+ const byName=new Map(found.map(p=>[p.name.toLowerCase().replace(/[^a-z]/g,""),p]));
+ const get=name=>byName.get(name.toLowerCase().replace(/[^a-z]/g,""));
+ const leadership=[["Chief of Police","Brandon Williams"],["Chief Administrative Assistant","Adelia Mercier"],["Assistant Chief of Police","Vacant"]];
+ let html='<div class="ed-command-head"><h3>Department Chain of Command</h3><p>Reference structure from the provided organizational chart. Vacant posts are not employee records.</p></div><div class="ed-command-lead">';
+ for(const [title,name] of leadership){const p=get(name);if(!p&&name!=="Vacant")continue;html+='<div class="ed-command-leader"><small>'+E(title)+'</small>'+(p?employeeButton(p):'<strong>Vacant · RCN 2</strong>')+'</div>'}
+ html+='</div><div class="ed-command-divisions">';
+ const mapped=new Set();
+ for(const div of chart.divisions){
+ const lead=get(div.lead);
+ const units=div.units.map(([title,members])=>{const people=members.map(([name])=>get(name)).filter(Boolean);for(const p of people)mapped.add(p.name.toLowerCase());return people.length?'<section class="ed-command-unit"><h5>'+E(title)+'</h5><div class="ed-command-people">'+people.map(employeeButton).join("")+'</div></section>':''}).filter(Boolean);
+ if(!lead&&!units.length&&!div.vacancies?.length)continue;
+ html+='<section class="ed-command-division"><div class="ed-command-division-head"><h4>'+E(div.name==='Patrol'?'Patrol Division':div.name==='Criminal Investigations'?'Criminal Investigation Division':div.name==='Professional Standards'?'Professional Standards Division':'Records & Maintenance Division')+'</h4>'+(lead?'<div class="ed-command-captain">'+employeeButton(lead)+'</div>':'')+'</div><div class="ed-command-units">'+units.join("")+(div.vacancies||[]).map(t=>'<div class="ed-command-vacancy"><b>'+E(t)+'</b><span>Vacant</span></div>').join("")+'</div></section>';
+ if(lead)mapped.add(lead.name.toLowerCase());
+ }
+ html+='</div>';
+ const other=found.filter(p=>!mapped.has(p.name.toLowerCase())&&!leadership.some(([,name])=>name===p.name));
+ if(other.length)html+='<section class="ed-command-unassigned"><h4>Additional Directory Entries — Assignment Unverified</h4><div class="ed-people">'+other.map(employeeButton).join("")+'</div></section>';
+ return html;
+}
 function directory(){
  const ppl=allEmployees(),groups=["All",...new Set(ppl.map(p=>p.division))];
- $("edContent").innerHTML='<div class="ed-tools"><input id="edSearch" type="search" aria-label="Search directory" placeholder="Search name, rank, RCN or assignment" value="'+E(search)+'"><select id="edDivision" aria-label="Filter division">'+groups.map(g=>'<option'+(division===g?" selected":"")+'>'+E(g)+'</option>').join("")+'</select><select id="edRank" aria-label="Filter rank">'+["All",...new Set(ppl.map(p=>p.rank))].map(g=>'<option'+(rank===g?" selected":"")+'>'+E(g)+'</option>').join("")+'</select></div><div id="edPeople" class="ed-people"></div>';
- const update=()=>{const found=ppl.filter(p=>(division==="All"||p.division===division)&&(rank==="All"||p.rank===rank)&&[p.name,p.rank,p.radio,p.unit,p.division].join(" ").toLowerCase().includes(search.toLowerCase()));$("edPeople").innerHTML=found.length?found.map(p=>'<button class="ed-person" data-person="'+E(p.id)+'"><span class="ed-person-avatar">'+E(p.name.split(" ").map(z=>z[0]).slice(0,2).join(""))+'</span><span class="ed-person-main"><b>'+E(p.name)+'</b><small>'+E(p.rank)+' · '+E(p.unit)+' · '+E(p.division)+'</small></span><strong>'+E(p.radio==="—"?"No RCN":"RCN "+p.radio)+'</strong></button>').join(""):'<div class="ed-empty">No employees match the selected filters.</div>';$("edPeople").querySelectorAll("[data-person]").forEach(b=>b.onclick=()=>profile(b.dataset.person))};
- $("edSearch").oninput=e=>{search=e.target.value;update()};$("edDivision").onchange=e=>{division=e.target.value;update()};$("edRank").onchange=e=>{rank=e.target.value;update()};update();
+ $("edContent").innerHTML='<div class="ed-directory-switch" role="group" aria-label="Directory display"><button type="button" data-ed-mode="rcn">RCN Directory</button><button type="button" data-ed-mode="chain">Chain of Command</button></div><div class="ed-tools"><input id="edSearch" type="search" aria-label="Search directory" placeholder="Search name, rank, RCN or assignment" value="'+E(search)+'"><select id="edDivision" aria-label="Filter division">'+groups.map(g=>'<option'+(division===g?" selected":"")+'>'+E(g)+'</option>').join("")+'</select><select id="edRank" aria-label="Filter rank">'+["All",...new Set(ppl.map(p=>p.rank))].map(g=>'<option'+(rank===g?" selected":"")+'>'+E(g)+'</option>').join("")+'</select></div><div id="edPeople"></div>';
+ const update=()=>{
+  const found=ppl.filter(p=>(division==="All"||p.division===division)&&(rank==="All"||p.rank===rank)&&[p.name,p.rank,p.radio,p.unit,p.division,p.secondary,p.supervisor].join(" ").toLowerCase().includes(search.toLowerCase()));
+  $("edPeople").innerHTML=found.length?(directoryMode==="chain"?commandView(found):'<div class="ed-people">'+found.map(employeeButton).join("")+'</div>'):'<div class="ed-empty">No employees match the selected filters.</div>';
+  $("edPeople").querySelectorAll("[data-person]").forEach(b=>b.onclick=()=>profile(b.dataset.person));
+  $("edContent").querySelectorAll("[data-ed-mode]").forEach(b=>{const active=b.dataset.edMode===directoryMode;b.classList.toggle("active",active);b.setAttribute("aria-pressed",String(active))});
+ };
+ $("edContent").querySelectorAll("[data-ed-mode]").forEach(b=>b.onclick=()=>{directoryMode=b.dataset.edMode;update()});
+ $("edSearch").oninput=e=>{search=e.target.value;update()};
+ $("edDivision").onchange=e=>{division=e.target.value;update()};
+ $("edRank").onchange=e=>{rank=e.target.value;update()};
+ update();
 }
 function modal(html){const el=$("edOverlay");el.hidden=false;el.innerHTML='<div class="ed-sheet"><button class="ed-close" id="edClose" aria-label="Close">×</button>'+html+'</div>';$("edClose").onclick=close;$("edClose").focus()}
 function close(){const el=$("edOverlay");if(!el)return;el.hidden=true;el.replaceChildren()}
