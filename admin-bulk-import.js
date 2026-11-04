@@ -91,8 +91,45 @@ function show(panel){
    for(const x of lastPreview){
     const tr=n("tr");const label=x.status==="ready"?"Ready":x.status==="already_linked"?"Already linked":"Needs attention";
     for(const val of [x.row,x.employee_number,x.roster_name||x.full_name,x.email,label])tr.append(n("td",String(val)));
-    if(x.reason){const note=n("tr",undefined,"bulk-row-note");const cell=n("td",x.reason);cell.colSpan=5;note.append(cell);tbody.append(tr,note)}
-    else tbody.append(tr);
+    if(x.reason){
+     const note=n("tr",undefined,"bulk-row-note"),cell=n("td",x.reason);cell.colSpan=5;
+     if(x.status==="not_found"){
+      const rowActions=n("div",undefined,"bulk-resolve-actions");
+      const number=n("input");number.type="text";number.inputMode="numeric";number.maxLength=12;
+      number.value=String(x.suggested_number||x.employee_number);
+      number.setAttribute("aria-label","Verified employee number for "+x.full_name);
+      const correct=n("button","Verify Number & Recheck","bulk-secondary");correct.type="button";
+      correct.onclick=async()=>{
+       const value=number.value.trim();
+       if(!/^\\d{3,12}$/.test(value)){feedback.textContent="Enter a valid employee number before rechecking.";return}
+       if(!confirm("Recheck "+x.full_name+" using employee number "+value+"? This only changes the import preview, not the roster."))return;
+       const rows=stagedRows.map(e=>e.row===x.row?{...e,employee_number:value}:e);
+       await validate.onclick(rows);
+      };
+      rowActions.append(number,correct);
+      if(x.suggested_number)rowActions.append(n("span","Suggested from an exact roster name match; verify before accepting."));
+      else rowActions.append(n("span","No matching employee number found. Verify the authoritative Employee Directory before proceeding."));
+      cell.append(rowActions);
+     }else if(x.status==="role_mapping_required"){
+      const civilianTitles=["Dispatcher","Records Clerk","Records Clerk CID","Communications Supervisor","Chief Administrative Assistant","Criminal Analyst Specialist"];
+      if(civilianTitles.includes(x.rank)){
+       const approve=n("button","Approve Civilian Access","bulk-secondary");approve.type="button";
+       approve.onclick=async()=>{
+        const reason=prompt("Approve Civilian login permissions for "+x.roster_name+" ("+x.rank+")? Enter a justification of at least 10 characters. Official job title will not change.");
+        if(!reason)return;
+        if(reason.trim().length<10){feedback.textContent="A justification of at least 10 characters is required.";return}
+        if(!confirm("Confirm Civilian technical access for "+x.roster_name+"? This grants no police supervisory permissions."))return;
+        approve.disabled=true;feedback.textContent="Recording administrator role approval…";
+        try{
+         await call("approve_civilian",{batch_id:lastBatch,row:x.row,reason:reason.trim(),confirm:"APPROVE CIVILIAN ACCESS"});
+         await validate.onclick(stagedRows);
+        }catch(err){feedback.textContent=err.message;approve.disabled=false}
+       };
+       cell.append(n("span"," Official title: "+x.rank+" · Technical access: Civilian. "),approve);
+      }else cell.append(n("span"," This title needs a separately approved role policy; Civilian access cannot be assigned automatically."));
+     }
+     note.append(cell);tbody.append(tr,note);
+    }else tbody.append(tr);
    }
    table.append(tbody);wrap.append(table);result.append(wrap);
    const good=lastPreview.every(x=>["ready","already_linked"].includes(x.status));
