@@ -14,5 +14,32 @@ const importPanel=section("Employee Account Import","Administrator-only Excel/CS
 importPanel.id="nipdBulkImportPanel";
 if(window.NIPD_BULK_IMPORT_MOUNT)window.NIPD_BULK_IMPORT_MOUNT(importPanel);
 else window.addEventListener("nipd-bulk-import-ready",()=>{if(importPanel.isConnected)window.NIPD_BULK_IMPORT_MOUNT?.(importPanel)},{once:true});
+const readiness=section("Deployment Readiness — Staging","Live, administrator-only release gate. This is a status check, not authorization to activate production.");
+readiness.id="nipdReadiness";
+const status=n("p","Checking the current staging environment…");readiness.append(status);
+(async()=>{
+ try{
+  const db=window.NIPD_SECURE_CLIENT;
+  if(!db)throw Error("Secure connection unavailable");
+  const {data,error}=await db.rpc("wf_deployment_readiness",{p_agency:window.NIPD_SECURE_AGENCY});
+  if(error)throw error;
+  if(!readiness.isConnected)return;
+  status.textContent="Overall release decision: NOT READY. The current website is staging; the checklist below does not authorize department-wide use.";
+  const stats=n("div");stats.className="ops-summary";
+  for(const [label,value] of [["Roster records",data.real_personnel],["Verified private-contact records",data.private_contact_records],
+     ["Civilian mappings",data.mapped_civilians],["Account links from bulk import",data.bulk_link_events]]){
+   const c=n("div");c.className="ops-stat";c.append(n("strong",String(value??"—")),n("span",label));stats.append(c);
+  }
+  readiness.append(stats);
+  const list=n("ul");list.className="nipd-readiness-list";
+  for(const item of data.checks||[]){
+   const li=n("li");li.className="nipd-readiness-item";
+   const state=item.status==="pass"?"PASS":item.status==="block"?"BLOCKED":"REVIEW REQUIRED";
+   li.append(n("strong",state),n("span",item.label));list.append(li);
+  }
+  readiness.append(list);
+  readiness.append(n("p","Real employee invitations and operational migration remain disabled until each blocker has been resolved and tested.","ed-admin-help"));
+ }catch(_){status.textContent="Unable to verify readiness. Deployment must remain blocked until this check is available."}
+})();
 section("Pending Configuration","Staffing thresholds, notification templates and policy approvals require approved backend configuration before editing can be enabled.");
 };
