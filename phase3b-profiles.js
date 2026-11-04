@@ -20,6 +20,56 @@ window.NIPD_PROFILE_OPEN=async employee=>{
  overlay.append(card);document.body.append(overlay);
  overlay.onclick=e=>{if(e.target===overlay)overlay.remove()};
  close.focus();
+ // Communications-only emergency contact lookup; server verifies the signed-in dispatcher.
+ (async()=>{
+  const check=await db.rpc("wf_dispatch_contact_eligible",{p_agency:agency});
+  if(!overlay.isConnected||check.error||check.data!==true)return;
+  const dispatch=elem("section",undefined,"ed-dispatch-contacts");
+  const opener=elem("button","Open Communications Contact Lookup","ed-primary");
+  opener.type="button";
+  dispatch.append(elem("h3","Communications Contact Access"),
+   elem("p","Authorized Dispatch personnel only. Every lookup requires a reason and is audited.","ed-secure-note"),opener);
+  card.insertBefore(dispatch,restricted);
+  opener.onclick=()=>{
+   opener.disabled=true;
+   const controls=elem("div",undefined,"ed-dispatch-controls");
+   const label=elem("label");label.append(elem("span","Reason for accessing contact information"));
+   const select=elem("select");
+   for(const [value,title] of [
+    ["","Select a reason"],
+    ["operational_callout","Contact an employee for operational duty"],
+    ["employee_welfare","Employee welfare or safety concern"],
+    ["emergency_notification","Emergency contact notification"]]){
+    const option=elem("option",title);option.value=value;select.append(option);
+   }
+   label.append(select);
+   const lookup=elem("button","View Contact Details","ed-primary");lookup.type="button";
+   const feedback=elem("p","Only the phone numbers and emergency-contact details needed for communication are available.","ed-secure-note");
+   const content=elem("div");
+   controls.append(label,lookup,feedback,content);dispatch.append(controls);
+   lookup.onclick=async()=>{
+    if(!select.value){feedback.textContent="Select the operational reason before accessing these details.";return}
+    lookup.disabled=true;content.replaceChildren();feedback.textContent="Checking authorization and recording contact access…";
+    const read=await db.rpc("wf_dispatch_contact_read",{p_agency:agency,p_person:employee.id,p_reason:select.value});
+    if(!overlay.isConnected)return;
+    lookup.disabled=false;
+    if(read.error||read.data?.allowed!==true){
+     feedback.textContent="Communications access denied or unavailable.";return;
+    }
+    feedback.textContent="Access recorded. Contact details are for authorized department use only.";
+    const details=elem("dl",undefined,"ed-profile-fields");
+    for(const [key,label] of [
+      ["directory_phone","Directory phone"],
+      ["personal_phone","Personal phone"],
+      ["emergency_name","Emergency contact"],
+      ["emergency_relationship","Relationship"],
+      ["emergency_phone","Emergency contact phone"]]){
+      item(details,label,read.data[key]);
+    }
+    content.append(details);
+   };
+  };
+ })();
  restricted.append(elem("p","Checking your access…","ed-secure-message"));
  const read=await db.rpc("wf_personnel_private_read",{p_agency:agency,p_person:employee.id});
  if(!overlay.isConnected)return;
