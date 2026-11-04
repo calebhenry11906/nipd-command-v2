@@ -3,7 +3,7 @@ const supabase=createClient("https://qvnldjidqyuwglksdtlm.supabase.co","sb_publi
 const api="https://qvnldjidqyuwglksdtlm.supabase.co/functions/v1/nipd-bulk-accounts";
 const n=(type,value,cls)=>{const e=document.createElement(type);if(value!==undefined)e.textContent=value;if(cls)e.className=cls;return e};
 const clean=x=>String(x??"").trim();
-let lastBatch=null,lastPreview=[],config={invites_enabled:false};
+let lastBatch=null,lastPreview=[],stagedRows=[],config={invites_enabled:false};
 async function call(action,body={}){
  const {data:{session},error}=await supabase.auth.getSession();
  if(error||!session?.access_token)throw Error("Sign in to your authorized administrator account first.");
@@ -73,10 +73,10 @@ function show(panel){
  const setBusy=x=>{file.disabled=x;validate.disabled=x};
  const reset=()=>{lastBatch=null;lastPreview=[];summary.replaceChildren();result.replaceChildren();action.replaceChildren()};
  file.onchange=()=>{reset();feedback.textContent="Ready to validate. No invitations have been sent."};
- validate.onclick=async()=>{
+ validate.onclick=async(overrideRows)=>{
   reset();setBusy(true);feedback.textContent="Reading spreadsheet and checking employee identities…";
   try{
-   const rows=await parseFile(file.files?.[0]);
+   const rows=Array.isArray(overrideRows)?overrideRows:await parseFile(file.files?.[0]);stagedRows=rows.map(x=>({...x}));
    const data=await call("preview",{rows});lastBatch=data.batch_id;lastPreview=data.rows||[];
    config.invites_enabled=data.invites_enabled===true;
    feedback.textContent="Preview saved privately for 24 hours. No accounts were created or invited.";
