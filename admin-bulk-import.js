@@ -101,7 +101,7 @@ function show(panel){
       const correct=n("button","Verify Number & Recheck","bulk-secondary");correct.type="button";
       correct.onclick=async()=>{
        const value=number.value.trim();
-       if(!/^\\d{3,12}$/.test(value)){feedback.textContent="Enter a valid employee number before rechecking.";return}
+       if(!/^\d{3,12}$/.test(value)){feedback.textContent="Enter a valid employee number before rechecking.";return}
        if(!confirm("Recheck "+x.full_name+" using employee number "+value+"? This only changes the import preview, not the roster."))return;
        const rows=stagedRows.map(e=>e.row===x.row?{...e,employee_number:value}:e);
        await validate.onclick(rows);
