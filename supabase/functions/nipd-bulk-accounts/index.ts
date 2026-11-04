@@ -38,6 +38,8 @@ async function preview(entries:Entry[]){
  const byEmail=new Map(users.filter((u:any)=>u.email).map((u:any)=>[email(u.email),u]));
  const byId=new Map(users.map((u:any)=>[u.id,u]));
  const byNumber=new Map((persons||[]).filter((p:any)=>p.employee_number).map((p:any)=>[String(p.employee_number),p]));
+ const rosterNumberCounts=new Map<string,number>();
+ for(const person of persons||[]){const number=String(person.employee_number||"");if(number)rosterNumberCounts.set(number,(rosterNumberCounts.get(number)||0)+1)}
  const numbers=new Map<string,number>(),emails=new Map<string,number>();
  for(const e of entries){numbers.set(e.employee_number,(numbers.get(e.employee_number)||0)+1);emails.set(e.email,(emails.get(e.email)||0)+1)}
  return entries.map((e)=>{
@@ -46,6 +48,7 @@ async function preview(entries:Entry[]){
   if(!/^\d{3,12}$/.test(e.employee_number)||!e.full_name||!validEmail(e.email)){status="invalid";reason="Invalid employee number, name or email"}
   else if(numbers.get(e.employee_number)!==1||emails.get(e.email)!==1){status="duplicate";reason="Repeated employee number or email in spreadsheet"}
   else if(!p){status="not_found";reason="Employee number is not on the existing roster"}
+  else if((rosterNumberCounts.get(e.employee_number)||0)!==1){status="roster_duplicate";reason="Employee number has multiple authoritative roster matches; administrator reconciliation required"}
   else if(p.is_demo||!p.active){status="ineligible";reason="Fictional or inactive employee"}
   else if(matchName(p.full_name)!==matchName(e.full_name)){status="name_conflict";reason="Name does not match authoritative roster"}
   else if(!p.auth_user_id && !["Officer","Corporal","Sergeant","Lieutenant","Captain","Chief","Civilian"].includes(p.rank) && approvedRoles.get(p.id)!=="Civilian"){status="role_mapping_required";reason="Department job title needs an approved account-role mapping before invitation"}
