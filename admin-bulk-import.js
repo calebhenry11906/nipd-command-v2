@@ -85,7 +85,7 @@ function show(panel){
    download.onclick=()=>{
     const esc=value=>'"'+String(value??"").replace(/"/g,'""').replace(/^([=+@-])/,"'$1")+'"';
     const csv=[["Employee Number","Full Name","Email"].join(","),
-      ...stagedRows.map(x=>[x.employee_number,x.full_name,x.email].map(esc).join(","))].join("\\r\\n");
+      ...stagedRows.map(x=>[x.employee_number,x.full_name,x.email].map(esc).join(","))].join("\r\n");
     const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
     const link=n("a");link.href=url;link.download="nipd-cleaned-account-import.csv";link.click();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
