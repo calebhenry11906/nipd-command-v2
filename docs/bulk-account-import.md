@@ -44,3 +44,15 @@ An invitation may be sent but account linking may fail (e.g. due to a concurrent
 - Implement and approve a retention/purge schedule for staged email-address batches.
 
 Do not import operational employees or enable invitation sending until those checks are complete.
+
+## Resolve issues without reuploading (staging)
+Open Administration → Employee Account Import → **Resume Last Preview** to revalidate the last unexpired batch against today's roster. A new private 24-hour preview is recorded.
+
+- **Employee number not found:** If a unique roster-name match exists, the page offers its employee number as a suggestion. The administrator must verify the number and choose **Verify Number & Recheck**. This changes the *import preview only*, never the authoritative roster number. A genuinely missing employee must first be added to the approved Employee Directory through the authorized personnel-maintenance process. The importer intentionally does not create employee profiles based solely on spreadsheet claims.
+- **Civilian title needs role mapping:** For approved civilian classifications (Dispatcher, Records Clerk, Records Clerk CID, Communications Supervisor, Chief Administrative Assistant, Criminal Analyst Specialist), the administrator may select **Approve Civilian Access**, provide a 10+ character justification, and confirm. An audited record in `wf_personnel_account_roles` grants the **Civilian** technical login role. The official roster rank/title remains untouched. Unsupported or sworn classifications without a defined technical mapping remain blocked for manual review.
+- **Other conflicts:** Existing email owners, mismatched names, inactive/demo accounts and duplicate personnel numbers cannot be overridden in the importer.
+
+Authenticated users cannot directly access `wf_personnel_account_roles`; only the protected server workflow may approve mappings and only the service-role RPC can link identities. Each recheck creates a fresh preview to prevent stale authorization decisions. Invitation delivery remains disabled by default.
+
+## Additional acceptance tests
+Verify resume works only for the same active Website Administrator and within the 24-hour expiry. Test number suggestions, invalid edits, Civilian mapping approvals, denied approvals for other job titles, and commit replay prevention. The server blocks duplicate authoritative employee numbers.
