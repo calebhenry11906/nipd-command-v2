@@ -14,6 +14,7 @@ const email=(x:unknown)=>norm(x).toLowerCase();
 const matchName=(x:unknown)=>norm(x).toLocaleLowerCase("en-US");
 const validEmail=(x:string)=>x.length<=254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x);
 const permitted=(x:string)=>["ready","already_linked"].includes(x);
+const civilianTitles=new Set(["Dispatcher","Records Clerk","Records Clerk CID","Communications Supervisor","Chief Administrative Assistant","Criminal Analyst Specialist"]);
 type Entry={employee_number:string;full_name:string;email:string;row:number};
 async function existingUsers(){
  const result:any[]=[];
@@ -100,7 +101,7 @@ Deno.serve(async req=>{
     .eq("agency_id",agency).eq("employee_number",entry.employee_number).maybeSingle();
    if(!person||!person.active||person.is_demo||person.auth_user_id||
      matchName(person.full_name)!==matchName(entry.full_name)||
-     ["Officer","Corporal","Sergeant","Lieutenant","Captain","Chief","Civilian"].includes(person.rank))
+     ["Officer","Corporal","Sergeant","Lieutenant","Captain","Chief","Civilian"].includes(person.rank)||!civilianTitles.has(person.rank))
     return response(409,{error:"Not eligible for Civilian role mapping"});
    const {error:writeError}=await admin!.from("wf_personnel_account_roles").upsert({
     agency_id:agency,person_id:person.id,technical_role:"Civilian",approved_by:actor.id,approval_reason:reason
