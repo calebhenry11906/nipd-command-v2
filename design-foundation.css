@@ -236,3 +236,10 @@ button,a,input,select,textarea{touch-action:manipulation}
 .bulk-confirm li{padding:5px 0;overflow-wrap:anywhere;font-size:12px}
 .bulk-warning{color:#965c26;background:#fff8e9;padding:12px;border:1px solid #eacfa5;border-radius:9px;font-size:12px;line-height:1.6}
 @media(max-width:640px){.bulk-import-tools{display:grid;grid-template-columns:1fr}.bulk-import-tools input[type=file]{width:100%;flex:auto}.bulk-summary{grid-template-columns:repeat(3,minmax(0,1fr))}.bulk-stat{padding:9px}.bulk-stat strong{font-size:18px}.bulk-stat span{font-size:10px}}
+
+.bulk-resolve-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:10px}
+.bulk-resolve-actions input{width:144px;max-width:100%;min-height:42px;padding:9px 11px;border:1px solid #bdcfdc;border-radius:8px;background:#fff;color:#183f61}
+.bulk-resolve-actions span{font-size:12px;line-height:1.5;color:#7b603b}
+.bulk-row-note .bulk-secondary{min-height:42px;padding:9px 13px;margin:8px 2px;font-size:12px}
+.bulk-row-note .bulk-secondary:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:640px){.bulk-resolve-actions{align-items:stretch;flex-direction:column}.bulk-resolve-actions input,.bulk-resolve-actions button{width:100%}}
