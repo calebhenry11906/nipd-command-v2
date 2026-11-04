@@ -87,13 +87,22 @@ function show(panel){
    }
    const wrap=n("div",undefined,"bulk-table-scroll"),table=n("table",undefined,"bulk-table");
    const thead=n("thead"),head=n("tr");
-   for(const label of ["Row","Employee #","Roster match","Email","Status"]){head.append(n("th",label))}
+   for(const label of ["Row","Employee #","Roster match","Email","Status","Import"]){head.append(n("th",label))}
    thead.append(head);table.append(thead);const tbody=n("tbody");
    for(const x of lastPreview){
     const tr=n("tr");const label=x.status==="ready"?"Ready":x.status==="already_linked"?"Already linked":"Needs attention";
     for(const val of [x.row,x.employee_number,x.roster_name||x.full_name,x.email,label])tr.append(n("td",String(val)));
+    const actions=n("td");
+    const exclude=n("button","Exclude","bulk-secondary");exclude.type="button";
+    exclude.setAttribute("aria-label","Exclude "+x.full_name+" from this import");
+    exclude.onclick=async()=>{
+     if(stagedRows.length<=1){feedback.textContent="At least one employee is required in an import preview.";return}
+     if(!confirm("Exclude "+x.full_name+" from this import? Their existing employee record will remain unchanged."))return;
+     await validate.onclick(stagedRows.filter(e=>e.row!==x.row));
+    };
+    actions.append(exclude);tr.append(actions);
     if(x.reason){
-     const note=n("tr",undefined,"bulk-row-note"),cell=n("td",x.reason);cell.colSpan=5;
+     const note=n("tr",undefined,"bulk-row-note"),cell=n("td",x.reason);cell.colSpan=6;
      if(x.status==="not_found"){
       const rowActions=n("div",undefined,"bulk-resolve-actions");
       const number=n("input");number.type="text";number.inputMode="numeric";number.maxLength=12;
