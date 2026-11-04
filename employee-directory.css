@@ -124,3 +124,14 @@
  .ed-unified-division>.ed-unified-person{width:calc(100% - min(var(--level),5)*7px);margin-left:calc(min(var(--level),5)*7px)}
  .ed-unified-rcn{font-size:11px}
 }
+
+/* Authorized Communications-only phone and emergency-contact lookup */
+.ed-dispatch-contacts{border:1px solid #c4dcee;background:#f5faff;border-radius:12px;padding:15px;margin:16px 0}
+.ed-dispatch-contacts h3{font-size:16px;color:#153e60;margin:0 0 7px}
+.ed-dispatch-contacts .ed-secure-note{font-size:12px;line-height:1.55;margin:6px 0 12px}
+.ed-dispatch-controls{display:grid;gap:12px;margin-top:12px}
+.ed-dispatch-controls label{display:grid;gap:6px;font-size:12px;font-weight:700;color:#295477}
+.ed-dispatch-controls select{width:100%;min-height:44px;padding:10px 12px;border:1px solid #b9d0e3;border-radius:8px;background:white;color:#173b5c}
+.ed-dispatch-controls button{min-height:44px;justify-self:start}
+.ed-dispatch-controls .ed-profile-fields{overflow-wrap:anywhere}
+@media(max-width:650px){.ed-dispatch-contacts{padding:12px}.ed-dispatch-controls button{width:100%;justify-self:stretch}}
