@@ -55,7 +55,9 @@ async function preview(entries:Entry[]){
     else {status="linked_conflict";reason="Employee already linked to a different authentication account"}
    }else if(found){status="email_conflict";reason="Email belongs to an existing authentication account; manual review required"}
   }
-  return {...e,person_id:p?.id||null,roster_name:p?.full_name||null,rank:p?.rank||null,status,reason};
+  const possible=(persons||[]).filter((c:any)=>c.active&&!c.is_demo&&matchName(c.full_name)===matchName(e.full_name));
+  return {...e,person_id:p?.id||null,roster_name:p?.full_name||null,rank:p?.rank||null,
+   suggested_number:status==="not_found"&&possible.length===1?possible[0].employee_number:null,status,reason};
  });
 }
 async function actorFor(req:Request){
