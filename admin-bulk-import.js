@@ -65,7 +65,8 @@ function show(panel){
  const file=n("input");file.type="file";file.accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";file.setAttribute("aria-label","Upload NIPD employee account spreadsheet");
  const validate=n("button","Validate & Preview","bulk-primary");validate.type="button";
  const sample=n("button","Download CSV Template","bulk-secondary");sample.type="button";sample.onclick=template;
- tools.append(file,validate,sample);panel.append(tools);
+ const resume=n("button","Resume Last Preview","bulk-secondary");resume.type="button";
+ tools.append(file,validate,sample,resume);panel.append(tools);
  const feedback=n("p","Only active non-demo employees with an exact employee-number and name match can be invited.","bulk-feedback");feedback.setAttribute("role","status");panel.append(feedback);
  const summary=n("div",undefined,"bulk-summary");panel.append(summary);
  const result=n("div",undefined,"bulk-preview");panel.append(result);
@@ -151,6 +152,16 @@ function show(panel){
    };
    action.append(button,explanation);
   }catch(err){feedback.textContent=err.message||"Validation failed."}finally{setBusy(false)}
+ };
+ resume.onclick=async()=>{
+  resume.disabled=true;
+  try{
+   const prior=await call("resume");
+   if(!prior.found||!prior.entries.length){feedback.textContent="No unexpired preview belongs to your administrator account.";return}
+   feedback.textContent="Restoring the last saved import and verifying it against the current roster…";
+   await validate.onclick(prior.entries);
+  }catch(err){feedback.textContent=err.message||"Unable to restore saved preview"}
+  finally{resume.disabled=false}
  };
 }
 window.NIPD_BULK_IMPORT_MOUNT=show;
