@@ -83,6 +83,33 @@ Deno.serve(async req=>{
   if(raw.length>100000)return response(413,{error:"Import too large"});
   const body=JSON.parse(raw);
   if(body.action==="config")return response(200,{agency,invites_enabled:sendReady,max_rows:100,staging:true});
+  if(body.action==="approve_civilian"){
+   if(body.confirm!=="APPROVE CIVILIAN ACCESS")return response(400,{error:"Explicit approval required"});
+   const reason=norm(body.reason);
+   if(reason.length<10||reason.length>400)return response(400,{error:"Approval justification must be 10–400 characters"});
+   const {data:batch}=await admin!.from("wf_bulk_account_import_batches").select("entries,expires_at,state")
+    .eq("id",body.batch_id).eq("agency_id",agency).eq("requested_by",actor.id).maybeSingle();
+   if(!batch||batch.state!=="previewed"||Date.parse(batch.expires_at)<Date.now())
+    return response(409,{error:"Preview expired or not owned by this administrator"});
+   const entry=(batch.entries as Entry[]).find(x=>x.row===Number(body.row));
+   if(!entry)return response(400,{error:"Row not in preview"});
+   const {data:person}=await admin!.from("wf_personnel_directory")
+    .select("id,employee_number,full_name,rank,active,is_demo,auth_user_id")
+    .eq("agency_id",agency).eq("employee_number",entry.employee_number).maybeSingle();
+   if(!person||!person.active||person.is_demo||person.auth_user_id||
+     matchName(person.full_name)!==matchName(entry.full_name)||
+     ["Officer","Corporal","Sergeant","Lieutenant","Captain","Chief","Civilian"].includes(person.rank))
+    return response(409,{error:"Not eligible for Civilian role mapping"});
+   const {error:writeError}=await admin!.from("wf_personnel_account_roles").upsert({
+    agency_id:agency,person_id:person.id,technical_role:"Civilian",approved_by:actor.id,approval_reason:reason
+   },{onConflict:"agency_id,person_id"});
+   if(writeError)throw writeError;
+   await admin!.from("wf_audit").insert({
+     agency_id:agency,actor_id:actor.id,target_type:"employee_account",target_id:person.id,
+     action:"technical_civilian_role_approved",changes:{role:"Civilian",reason}
+   });
+   return response(200,{approved:true,technical_role:"Civilian"});
+  }
   if(body.action==="preview"){
    if(!Array.isArray(body.rows)||body.rows.length<1||body.rows.length>100)
     return response(400,{error:"Import must contain 1–100 employees"});
