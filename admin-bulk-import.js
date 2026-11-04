@@ -109,7 +109,11 @@ function show(panel){
       };
       rowActions.append(number,correct);
       if(x.suggested_number)rowActions.append(n("span","Suggested from an exact roster name match; verify before accepting."));
-      else rowActions.append(n("span","No matching employee number found. Verify the authoritative Employee Directory before proceeding."));
+      else {
+       rowActions.append(n("span","No exact roster match. Check the authoritative employee record before proceeding."));
+       const open=n("button","View Employee Directory","bulk-secondary");open.type="button";
+       open.onclick=()=>window.navigate?.("directory");rowActions.append(open);
+      }
       cell.append(rowActions);
      }else if(x.status==="role_mapping_required"){
       const civilianTitles=["Dispatcher","Records Clerk","Records Clerk CID","Communications Supervisor","Chief Administrative Assistant","Criminal Analyst Specialist"];
@@ -134,7 +138,7 @@ function show(panel){
    }
    table.append(tbody);wrap.append(table);result.append(wrap);
    const good=lastPreview.every(x=>["ready","already_linked"].includes(x.status));
-   if(!good){action.append(n("p","Fix the highlighted records in Excel and upload a new file before invitations can be issued.","bulk-warning"));return}
+   if(!good){action.append(n("p","Use Resolve Issues above to verify employee numbers or approve eligible civilian roles. Employees absent from the authoritative roster must be verified separately before invitations.","bulk-warning"));return}
    const button=n("button","Send Verified Invitations","bulk-primary");button.type="button";button.disabled=!config.invites_enabled||count("ready")===0;
    const explanation=n("p",config.invites_enabled?"Invitations will be emailed only after your explicit confirmation.":"Invitation delivery is disabled in staging until the department configures email delivery and an approved redirect URL.","bulk-help");
    button.onclick=async()=>{
