@@ -113,6 +113,14 @@ Deno.serve(async req=>{
    });
    return response(200,{approved:true,technical_role:"Civilian"});
   }
+  if(body.action==="resume"){
+   const {data,error}=await admin!.from("wf_bulk_account_import_batches")
+    .select("entries,created_at").eq("agency_id",agency).eq("requested_by",actor.id)
+    .eq("state","previewed").gt("expires_at",new Date().toISOString())
+    .order("created_at",{ascending:false}).limit(1).maybeSingle();
+   if(error)throw error;
+   return response(200,{found:!!data,entries:data?.entries||[],created_at:data?.created_at||null});
+  }
   if(body.action==="preview"){
    if(!Array.isArray(body.rows)||body.rows.length<1||body.rows.length>100)
     return response(400,{error:"Import must contain 1–100 employees"});
