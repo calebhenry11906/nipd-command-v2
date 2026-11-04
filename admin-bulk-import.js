@@ -146,6 +146,29 @@ function show(panel){
     }else tbody.append(tr);
    }
    table.append(tbody);wrap.append(table);result.append(wrap);
+   const civilianTitles=new Set(["Dispatcher","Records Clerk","Records Clerk CID","Communications Supervisor","Chief Administrative Assistant","Criminal Analyst Specialist"]);
+   const civilianCases=lastPreview.filter(x=>x.status==="role_mapping_required"&&civilianTitles.has(x.rank));
+   if(civilianCases.length){
+    const bulk=n("button","Approve "+civilianCases.length+" Eligible Civilian Roles","bulk-secondary");bulk.type="button";
+    bulk.onclick=async()=>{
+     const reason=prompt("Provide the reason for assigning Civilian technical access to "+civilianCases.length+" verified employees. Their official job titles and roster records will not change.");
+     if(!reason)return;
+     if(reason.trim().length<10){feedback.textContent="Enter at least 10 characters explaining the authorization.";return}
+     if(!confirm("Approve Civilian technical access for "+civilianCases.length+" eligible employees? This grants no sworn supervisory authority."))return;
+     bulk.disabled=true;feedback.textContent="Reviewing and recording civilian role approvals…";
+     let completed=0;const failures=[];
+     for(const x of civilianCases){
+      try{await call("approve_civilian",{batch_id:lastBatch,row:x.row,reason:reason.trim(),confirm:"APPROVE CIVILIAN ACCESS"});completed++}
+      catch(err){failures.push(x.full_name+": "+err.message)}
+     }
+     try{await validate.onclick(stagedRows)}catch(_){}
+     if(failures.length)feedback.textContent=completed+" approved; "+failures.length+" need individual review: "+failures.join("; ").slice(0,450);
+     else feedback.textContent=completed+" Civilian access mappings approved and import revalidated. No invitations were sent.";
+     bulk.disabled=false;
+    };
+    action.append(bulk);
+    action.append(n("p","Only verified civilian classifications are eligible. The original department job title remains unchanged.","bulk-help"));
+   }
    const good=lastPreview.every(x=>["ready","already_linked"].includes(x.status));
    if(!good){action.append(n("p","Use Resolve Issues above to verify employee numbers or approve eligible civilian roles. Employees absent from the authoritative roster must be verified separately before invitations.","bulk-warning"));return}
    const button=n("button","Send Verified Invitations","bulk-primary");button.type="button";button.disabled=!config.invites_enabled||count("ready")===0;
