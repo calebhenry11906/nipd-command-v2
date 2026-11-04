@@ -1,8 +1,8 @@
 # NIPD Command v2 — Fresh Start
 
-A static, responsive design prototype for a future law-enforcement workforce and operations management platform.
+A responsive staging prototype with a public GitHub Pages frontend and selected authorization-gated Supabase modules. The application still contains simulated workflows and is not yet approved for production operations.
 
-**Public repository: fictional demo data only.** This is not approved for operational police use. No real employee information, agency rosters, credentials, investigative data, or operational schedules should be uploaded.
+**This repository and GitHub Pages website are public.** Do not commit personnel data, credentials, investigative material, or operational rosters to the repository or public site. Some real personnel roster references exist in a separate protected Supabase staging database; this does not make the public frontend suitable for storing confidential data. The current application is **NOT cleared for operational department use**.
 
 ## Preview the actual website using GitHub Pages
 
@@ -13,9 +13,9 @@ A static, responsive design prototype for a future law-enforcement workforce and
 
 GitHub Pages publishes **publicly**. Do not use it to store or expose sensitive agency information.
 
-The website requires no installation, build step, database, or paid hosting account. The only application entry point is `index.html`.
+The frontend is static, but authorized modules now connect to a separate Supabase staging backend. Data protection depends on authenticated, server-enforced authorization and secure deployment; public HTML and JavaScript cannot be relied on for access control.
 
-## What works now
+## Current capabilities (mixture of working staging modules and demos)
 
 - Responsive desktop/mobile dashboard
 - Navigation to Scheduling, Leave & Training, Equipment, On-Call, Security Details, My Requests, Employee Directory, Administration
@@ -31,3 +31,7 @@ The website requires no installation, build step, database, or paid hosting acco
 4. Eventually migrate to a secure authenticated backend, multi-agency tenant isolation, and department-approved deployment.
 
 All changes can be committed through the linked ChatGPT GitHub integration. GitHub Pages should redeploy when `main` changes.
+
+## Deployment status
+
+**NO-GO for department-wide operational deployment.** The admin-only Deployment Readiness page shows live staging gate data, and [the release checklist](docs/deployment-readiness-gate.md) records outstanding security, hosting, identity, privacy, workflow, and operational acceptance tasks. Real employee invitations remain disabled. Do not treat prototype UI or successful database unit tests as proof of production readiness.
