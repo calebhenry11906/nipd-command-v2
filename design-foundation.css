@@ -243,3 +243,12 @@ button,a,input,select,textarea{touch-action:manipulation}
 .bulk-row-note .bulk-secondary{min-height:42px;padding:9px 13px;margin:8px 2px;font-size:12px}
 .bulk-row-note .bulk-secondary:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:640px){.bulk-resolve-actions{align-items:stretch;flex-direction:column}.bulk-resolve-actions input,.bulk-resolve-actions button{width:100%}}
+
+/* Deployment readiness gate: neutral status indicators with explicit text */
+#nipdReadiness{min-width:0}
+#nipdReadiness>p{line-height:1.6}
+.nipd-readiness-list{list-style:none;padding:0;margin:14px 0;display:grid;gap:9px}
+.nipd-readiness-item{display:flex;align-items:flex-start;gap:12px;background:#f8fbfe;border:1px solid #dce6ef;border-radius:10px;padding:12px 14px;font-size:13px;color:#34526d}
+.nipd-readiness-item strong{font-size:10px;letter-spacing:.045em;line-height:1.6;min-width:102px;flex-shrink:0;color:#325a78}
+.nipd-readiness-item span{line-height:1.5;overflow-wrap:anywhere}
+@media(max-width:620px){.nipd-readiness-item{display:grid;gap:4px;padding:11px}.nipd-readiness-item strong{min-width:0}}
