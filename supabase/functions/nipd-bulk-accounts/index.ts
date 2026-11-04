@@ -30,6 +30,9 @@ async function preview(entries:Entry[]){
  .select("id,employee_number,full_name,rank,division,active,is_demo,auth_user_id")
  .eq("agency_id",agency).limit(1000);
  if(error)throw error;
+ const {data:roles,error:roleError}=await admin!.from("wf_personnel_account_roles").select("person_id,technical_role").eq("agency_id",agency);
+ if(roleError)throw roleError;
+ const approvedRoles=new Map((roles||[]).map((r:any)=>[r.person_id,r.technical_role]));
  const users=await existingUsers();
  const byEmail=new Map(users.filter((u:any)=>u.email).map((u:any)=>[email(u.email),u]));
  const byId=new Map(users.map((u:any)=>[u.id,u]));
@@ -44,7 +47,7 @@ async function preview(entries:Entry[]){
   else if(!p){status="not_found";reason="Employee number is not on the existing roster"}
   else if(p.is_demo||!p.active){status="ineligible";reason="Fictional or inactive employee"}
   else if(matchName(p.full_name)!==matchName(e.full_name)){status="name_conflict";reason="Name does not match authoritative roster"}
-  else if(!p.auth_user_id && !["Officer","Corporal","Sergeant","Lieutenant","Captain","Chief","Civilian"].includes(p.rank)){status="role_mapping_required";reason="Department job title needs an approved account-role mapping before invitation"}
+  else if(!p.auth_user_id && !["Officer","Corporal","Sergeant","Lieutenant","Captain","Chief","Civilian"].includes(p.rank) && approvedRoles.get(p.id)!=="Civilian"){status="role_mapping_required";reason="Department job title needs an approved account-role mapping before invitation"}
   else {
    const found:any=byEmail.get(e.email);
    if(p.auth_user_id){
