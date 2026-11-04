@@ -81,6 +81,16 @@ function show(panel){
    const data=await call("preview",{rows});lastBatch=data.batch_id;lastPreview=data.rows||[];
    config.invites_enabled=data.invites_enabled===true;
    feedback.textContent="Preview saved privately for 24 hours. No accounts were created or invited.";
+   const download=n("button","Download Cleaned CSV","bulk-secondary");download.type="button";
+   download.onclick=()=>{
+    const esc=value=>'"'+String(value??"").replace(/"/g,'""').replace(/^([=+@-])/,"'$1")+'"';
+    const csv=[["Employee Number","Full Name","Email"].join(","),
+      ...stagedRows.map(x=>[x.employee_number,x.full_name,x.email].map(esc).join(","))].join("\\r\\n");
+    const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+    const link=n("a");link.href=url;link.download="nipd-cleaned-account-import.csv";link.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+   };
+   result.append(download);
    const count=name=>lastPreview.filter(x=>x.status===name).length;
    for(const [label,value] of [["Ready to invite",count("ready")],["Already linked",count("already_linked")],["Needs attention",lastPreview.filter(x=>!["ready","already_linked"].includes(x.status)).length]]){
     const b=n("div",undefined,"bulk-stat");b.append(n("strong",String(value)),n("span",label));summary.append(b);
