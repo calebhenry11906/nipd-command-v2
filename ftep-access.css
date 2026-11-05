@@ -21,3 +21,12 @@
 .ftep-actions{display:flex;gap:9px;flex-wrap:wrap}
 .ftep-status{font-size:12px;line-height:1.5;color:#34536b;overflow-wrap:anywhere}
 @media(max-width:600px){.ftep-card{padding:13px}.ftep-grid{grid-template-columns:minmax(0,1fr)}.ftep-actions{display:grid}.ftep-actions>.ftep-btn{width:100%}}
+
+/* Only the authorized Field Training screen should display its content. */
+#module:has(>.ftep-app:not([hidden])) > .panel{display:none!important}
+#module > .ftep-app[hidden]{display:none!important}
+.ftep-rating-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0}
+.ftep-btn.rating{padding:10px 3px;min-width:0;min-height:48px;border:1px solid #bbd0e0;background:#fff;color:#173d5d;font-size:16px;font-weight:750}
+.ftep-btn.rating.selected{border-color:#236da3;background:#dcebfa;color:#0c416d;box-shadow:inset 0 0 0 1px #236da3}
+.ftep-rating-selected{font-weight:700;color:#164773;margin:10px 0}
+@media(max-width:420px){.ftep-rating-options{gap:6px}.ftep-btn.rating{font-size:14px}}
