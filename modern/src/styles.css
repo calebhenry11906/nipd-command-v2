@@ -139,3 +139,8 @@
 .ftep-highlight span{font-size:11px;color:#708aa0;line-height:1.55}
 .ftep-highlight-arrow{color:#8aa8c1;flex:0 0 auto}
 @media(max-width:620px){.ftep-highlight-grid{grid-template-columns:1fr}.ftep-highlight{min-height:82px;padding:13px 15px}}
+
+.dor-guidelines{display:grid;gap:0;margin-top:10px;border-top:1px solid #e4ebf0}
+.dor-guidelines>div{display:grid;grid-template-columns:minmax(65px,100px) minmax(0,1fr);gap:10px;padding:9px 0;border-bottom:1px solid #edf2f6}
+.dor-guidelines strong{font-size:11px;color:#245b85}
+.dor-guidelines span{font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;color:#445c73}
