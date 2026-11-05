@@ -41,3 +41,17 @@ Use the staging project's existing fictional user accounts. This SPA is a new fr
 3. Complete the tested role-based design system and migrate each existing workforce workflow one at a time.
 4. Build and run real mobile browser tests, end-to-end authentication tests, and Supabase security regression tests.
 5. Prepare departmental staging review, independent security approval and rollback before any production discussion.
+
+## Automated build evidence (November 4, 2026)
+The GitHub Actions workflow `React modernization validation` completed **successfully** for the feature branch:
+- `npm install` — success
+- `npm run typecheck` — success
+- `npm run build` — success
+
+[See GitHub Actions workflow run](https://github.com/calebhenry11906/nipd-command-v2/actions/runs/41961227196).
+
+**This is a source/build check, not a live authenticated user-acceptance test.** The React site has not been published over the existing GitHub Pages deployment, and the UI has not been verified with separate staged Officer/Coordinator/FTO/Administrator browser sessions. No operational usage is approved.
+
+**Dependency reproducibility remaining:** dependency versions are pinned in `package.json`, but `package-lock.json` still needs to be generated and committed before deployment. Replace `npm install` with `npm ci` in CI once the audited lockfile is committed.
+
+**Authentication migration note:** The existing site uses email OTP. The React sign-in has been aligned with `signInWithOtp({shouldCreateUser:false})` and `verifyOtp`. It does not replace the existing MFA challenge/enrollment flows; MFA must be integrated and tested before an operational rollout.
