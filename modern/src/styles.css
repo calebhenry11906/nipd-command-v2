@@ -128,3 +128,14 @@
 .dor-performance-row{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:13px 2px;border-bottom:1px solid #e0e8f0}
 .dor-performance-row div{display:grid;gap:5px}.dor-performance-row strong{font-size:12px;color:#274765}.dor-performance-row small{font-size:11px;color:#73899d}
 @media(max-width:650px){.dor-fields{grid-template-columns:1fr}.dor-filter-line select{min-width:0;width:100%}.dor-filter-line label{width:100%}.dor-entry-detail{padding:12px}.dor-category-title strong{font-size:12px}.dor-entry-head{gap:7px}.dor-sticky-actions{padding:10px}.dor-sticky-actions span{flex:1 0 100%}.dor-sticky-actions button{flex:1}.dor-rating button{min-width:41px}.dor-new-panel .action-primary{width:100%}}
+
+/* Highlight-first Field Training landing view */
+.ftep-highlight-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.ftep-highlight{display:flex;align-items:center;gap:14px;padding:18px;border:1px solid #dce6ef;background:#fff;border-radius:12px;min-height:104px;transition:border-color .15s,box-shadow .15s,transform .15s}
+.ftep-highlight:hover{border-color:#9dc4e4;box-shadow:0 8px 23px #164f7b0d;transform:translateY(-1px)}
+.ftep-highlight-icon{width:43px;height:43px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto;background:#e8f2fb;color:#205d91}
+.ftep-highlight>div:nth-child(2){display:grid;gap:6px;flex:1}
+.ftep-highlight strong{font-size:14px;color:#244867}
+.ftep-highlight span{font-size:11px;color:#708aa0;line-height:1.55}
+.ftep-highlight-arrow{color:#8aa8c1;flex:0 0 auto}
+@media(max-width:620px){.ftep-highlight-grid{grid-template-columns:1fr}.ftep-highlight{min-height:82px;padding:13px 15px}}
