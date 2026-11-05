@@ -5,7 +5,7 @@ import {agencyId,supabase} from '../../lib/supabase';
 import type {FtepSnapshot,TrainingAssignment} from './TrainingManagement';
 
 type Choice='1'|'2'|'3'|'4'|'5'|'6'|'7'|'NO';
-type Score={rating:Choice;narrative:string;nrt:boolean};
+type Score={rating?:Choice;narrative:string;nrt:boolean};
 type ScoreMap=Record<string,Score>;
 type Category={number:number;name:string;description?:string;group?:string;guidelines?:unknown};
 type Catalog={approved:boolean;version_id:string|null;categories:Category[]};
@@ -26,7 +26,7 @@ function Notice({children}:{children:React.ReactNode}){return <p className="dor-
 function CategoryLabel({cat}:{cat:Category}){return <><span className="dor-number">{String(cat.number).padStart(2,'0')}</span><span className="dor-category-title"><strong>{cat.name}</strong>{cat.description&&<small>{cat.description}</small>}</span></>}
 function DorEditor({assignment,catalog,onClose,existing}:{assignment:TrainingAssignment;catalog:Catalog;onClose:()=>void;existing?:Report}){
  const save=useRpcMutation();
- const [date,setDate]=useState(existing?.report_date||new Date().toLocaleDateString('en-CA'));
+ const [date,setDate]=useState(existing?.report_date||new Date().toISOString().slice(0,10));
  const [phase,setPhase]=useState(existing?.phase||'');
  const [day,setDay]=useState(existing?.training_day?.toString()||'');
  const [strength,setStrength]=useState(existing?.strength||'');
@@ -39,13 +39,13 @@ function DorEditor({assignment,catalog,onClose,existing}:{assignment:TrainingAss
  const numerical=Object.values(scores).filter(s=>s.rating!=='NO'&&ratings.includes(s.rating)).map(s=>Number(s.rating));
  const average=numerical.length?(numerical.reduce((a,b)=>a+b,0)/numerical.length).toFixed(2):'—';
  function change(n:number,field:keyof Score,value:Choice|string|boolean){
-  setScores(old=>({...old,[String(n)]:{rating:old[String(n)]?.rating||'NO',narrative:old[String(n)]?.narrative||'',nrt:old[String(n)]?.nrt||false,[field]:value}}));
+  setScores(old=>({...old,[String(n)]:{rating:old[String(n)]?.rating,narrative:old[String(n)]?.narrative||'',nrt:old[String(n)]?.nrt||false,[field]:value}}));
  }
  async function commit(submit:boolean){
   setBusyError('');setStatus('');
   if(submit&&!catalog.approved){setBusyError('The department-approved 30-category SEG catalog has not been published. You may save a draft, but final submission is blocked.');return}
   if(submit&&complete!==30){setBusyError('Grade or select N/O for all 30 categories before submitting.');return}
-  const missing=Object.entries(scores).find(([_,s])=>['1','2','6','7'].includes(s.rating)&&s.narrative.trim().length<10 || s.nrt&&s.narrative.trim().length<10);
+  const missing=Object.entries(scores).find(([_,s])=>(Boolean(s.rating)&&['1','2','6','7'].includes(s.rating!)&&s.narrative.trim().length<10) || (Boolean(s.rating)&&s.nrt&&s.narrative.trim().length<10));
   if(submit&&missing){setBusyError('An evaluation scored 1, 2, 6, or 7, or marked NRT, requires a supporting narrative.');setExpanded(Number(missing[0]));return}
   if(submit&&(strength.trim().length<10||improvement.trim().length<10)){setBusyError('Both daily narratives must contain at least 10 characters.');return}
   const payload:Record<string,Score>={};for(const [n,s] of Object.entries(scores)){if(s.rating)payload[n]=s}
@@ -72,7 +72,7 @@ function ReviewPanel({report,trainee,onDone}:{report:Report;trainee:string;onDon
  return <form className="dor-review-form" onSubmit={e=>void submit(e)}><h3>Supervisor review · {fmt(report.report_date)}</h3><p>Submit an append-only review. Original FTO ratings remain unchanged. Supervisory review requires authorized command rank and must not be self-approved.</p><label>Review decision<select value={decision} onChange={e=>setDecision(e.target.value as 'reviewed'|'needs_followup')}><option value="reviewed">Reviewed</option><option value="needs_followup">Follow-up required</option></select></label><label>Supervisor comments<textarea minLength={10} maxLength={2000} required rows={4} value={comments} onChange={e=>setComments(e.target.value)} placeholder="Training review comments; no investigative records"/></label>{error&&<p className="dor-error" role="alert">{error}</p>}<button className="action-primary" disabled={action.isPending} type="submit"><Check size={16}/>Record supervisor review</button><small>Selected trainee reference: {trainee}</small></form>
 }
 export function Dors({snapshot,access}:{snapshot:FtepSnapshot;access:string}){
- const assignments=(snapshot.assignments||[]);const trainees=useMemo(()=>Array.from(new Map(assignments.map(a=>[a.trainee_person_id,{id:a.trainee_person_id,name:a.trainee_name}])).values()).sort((a,b)=>a.name.localeCompare(b.name)),[assignments]);
+ const assignments=(snapshot.assignments||[]);const trainees=useMemo(()=>Array.from(new Map([...((snapshot.trainees||[]).map(p=>[p.id,{id:p.id,name:p.name}] as const)),...assignments.map(a=>[a.trainee_person_id,{id:a.trainee_person_id,name:a.trainee_name}] as const)]).values()).sort((a,b)=>a.name.localeCompare(b.name)),[assignments,snapshot.trainees]);
  const [trainee,setTrainee]=useState(''),[assignmentId,setAssignmentId]=useState(''),[editor,setEditor]=useState(false),[editing,setEditing]=useState<Report|undefined>(undefined),[review,setReview]=useState<Report|null>(null),[detail,setDetail]=useState<Report|null>(null),[view,setView]=useState<'reports'|'create'>('reports');
  useEffect(()=>{if(!trainees.length){setTrainee('');return}if(!trainees.find(t=>t.id===trainee))setTrainee(trainees[0].id)},[trainees,trainee]);
  const catalog=useCall<Catalog>('wf_ftep_dor_catalog',{});
@@ -95,7 +95,7 @@ export function Dors({snapshot,access}:{snapshot:FtepSnapshot;access:string}){
  </div>
 }
 export function Performance({snapshot}:{snapshot:FtepSnapshot}){
- const trainees=Array.from(new Map((snapshot.assignments||[]).map(a=>[a.trainee_person_id,{id:a.trainee_person_id,name:a.trainee_name}])).values());
+ const trainees=Array.from(new Map([...((snapshot.trainees||[]).map(p=>[p.id,{id:p.id,name:p.name}] as const)),...(snapshot.assignments||[]).map(a=>[a.trainee_person_id,{id:a.trainee_person_id,name:a.trainee_name}] as const)]).values());
  const [trainee,setTrainee]=useState('');
  useEffect(()=>{if(trainees.length&&!trainees.find(t=>t.id===trainee))setTrainee(trainees[0].id)},[trainee,trainees.map(x=>x.id).join(',')]);
  const progress=useCall<Stats>('wf_ftep_dor_progress',{p_trainee:trainee},!!trainee);
