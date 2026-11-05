@@ -10,7 +10,7 @@ This directory contains the **first migration foundation**, not a completed repl
 4. Run `npm run dev`.
 5. Run `npm run typecheck && npm run build` before staging publication.
 
-The new React application currently includes a mobile-first shell, responsive sidebar, route scaffolding, authenticated Supabase user checks, and server-driven Field Training visibility via `wf_ftep_my_access`. It does **not** replace the old modules, offer a complete sign-in UI, persist DORs, or provide working FTO designation actions. Placeholder screens explicitly say so.
+The new React application includes a mobile-first shell, responsive sidebar, existing-account email OTP sign-in, authenticated Supabase user checks, and server-driven Field Training visibility via `wf_ftep_my_access`. It does **not** replace the old modules, persist DORs, or provide working FTO designation actions. Placeholder screens explicitly say so.
 
 ## Migration gates
 
@@ -18,13 +18,13 @@ The new React application currently includes a mobile-first shell, responsive si
 - Implement a secure sign-in experience and handle session changes without stale authorization.
 - Migrate each operational workflow behind its existing protected RPCs, with regression tests and rollback.
 - Build the approved 30-category DOR catalog, durable records, 1–7/N/O scoring, and submitted-only cumulative analytics **inside Field Training**.
-- Integrate actual shadcn/ui primitives with a pinned component-generation configuration, then audit keyboard and mobile behavior.
+- Expand the initial shadcn-style Button primitive into a pinned, standardized component library and audit keyboard and mobile behavior.
 - Run install/build/typecheck, browser automation, accessibility and security testing before requesting review. These checks have **not** been executed in this commit.
 - Keep the root legacy GitHub Pages site intact until the migration is fully verified and separately approved.
 
 ## Notes
 
-The architecture includes React 19, TypeScript, Vite, Tailwind 4, Lucide, TanStack Query, React Router, Radix Slot, and class-variance-authority. Full shadcn/ui component generation and existing module migrations remain pending.
+The architecture includes React 19, TypeScript, Vite, Tailwind 4, Lucide, TanStack Query, React Router, Radix Slot, and class-variance-authority. A reusable Radix Slot / CVA Button primitive is committed; full shadcn/ui generation and existing module migrations remain pending.
 
 ## Phase B checkpoint — November 5, 2026
 
@@ -34,6 +34,6 @@ The navigation provides a compact desktop sidebar and mobile drawer. Field Train
 
 The project is explicitly **workforce management only**. Do not enter or connect CAD, RMS, NCIC, criminal-history or investigative case data. Internal personnel and DOR records still require department approval and server-side protection even when they are not CJI.
 
-A GitHub Actions check has been added to install dependencies, type-check, build, and scan for obvious privileged keys. **Those checks have not yet been observed passing**. CI currently uses `npm install` because a lockfile has not been generated or committed. Pin and lock dependencies before a release. Authentication email deliverability, redirect allowlists, account disablement, session revocation, and real-user access remain unverified. Staging-only.
+A GitHub Actions check has been added to install dependencies, type-check, build, and scan for obvious privileged keys. **GitHub Actions completed install, TypeScript checking, Vite production build, and the privileged-key scan successfully on November 5, 2026 (run 42075481117).** CI currently uses `npm install` because a lockfile has not been generated or committed. Pin and lock dependencies before a release. Authentication email deliverability, redirect allowlists, account disablement, session revocation, and real-user access remain unverified. Staging-only.
 
 The React preview is not yet published. GitHub Pages preview builds use hash routing to avoid deep-link refresh failures; dedicated hosting can use clean browser routes.
