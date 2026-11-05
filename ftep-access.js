@@ -30,7 +30,7 @@ function field(label,type="text"){
 function selectField(label,items,placeholder){
  const wrap=el("label",undefined,"ftep-field"),name=el("span",label),select=el("select");
  select.required=true;const blank=el("option",placeholder);blank.value="";select.append(blank);
- for(const item of items){const opt=el("option",item.name+" — "+item.rank+(item.rcn?" · RCN "+item.rcn:""));opt.value=item.id;select.append(opt)}
+ for(const item of items){const opt=el("option",item.name+" — "+item.rank+(item.rcn?" · RCN "+item.rcn:""));opt.value=item.id||item.person_id;select.append(opt)}
  wrap.append(name,select);return [wrap,select];
 }
 function button(label,action,kind="secondary"){const b=el("button",label,"ftep-btn "+kind);b.type="button";b.onclick=action;return b}
