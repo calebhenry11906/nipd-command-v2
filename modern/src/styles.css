@@ -63,3 +63,68 @@
 .ftep-quick a{display:flex;gap:10px;align-items:center;border:1px solid #dce6ef;border-radius:9px;background:#fff;padding:12px 15px;font-size:12px;color:#225b87;font-weight:700}
 .ftep-quick a:hover{background:#f0f6fd}
 @media(max-width:650px){.ftep-form-grid{grid-template-columns:1fr}.ftep-inline-form .action-primary{width:100%}.ftep-status-tag{margin-left:52px}}
+
+/* Phase D — focused DOR navigation: reveal a single section/observation on click */
+.dor-workspace{display:grid;gap:20px;max-width:1050px;min-width:0}
+.dor-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.dor-title-row h2{font-size:19px;letter-spacing:-.025em;color:#173b5e;margin:0 0 7px}
+.dor-title-row p{font-size:12px;color:#73869a;margin:0;line-height:1.6}
+.dor-progress{font-size:12px;font-weight:750;color:#205e8c;background:#e9f3fc;padding:8px 12px;border-radius:30px;white-space:nowrap}
+.dor-filter-line{display:flex;align-items:end;gap:12px;flex-wrap:wrap;padding:12px 0 17px;border-bottom:1px solid #dfe8f0}
+.dor-filter-line label,.dor-new-panel label,.dor-fields label,.dor-narratives label,.dor-review-form label{display:grid;gap:7px;font-size:12px;color:#385770;font-weight:650}
+.dor-filter-line select,.dor-new-panel select,.dor-fields input,.dor-narratives textarea,.dor-review-form select,.dor-review-form textarea{border:1px solid #cbdce9;border-radius:9px;min-height:42px;background:white;color:#1c3b53;padding:10px 12px;font:inherit;font-size:14px;max-width:100%}
+.dor-filter-line select{min-width:240px}
+.dor-outline{display:inline-flex;gap:8px;align-items:center;justify-content:center;background:white;border:1px solid #c9d9e8;border-radius:9px;padding:11px 15px;font-size:12px;font-weight:750;color:#205982;min-height:43px}
+.dor-outline:hover{background:#f1f7fc}
+.dor-back{display:inline-flex;width:max-content;align-items:center;gap:7px;color:#23669a;border:0;background:transparent;padding:3px;font-size:12px;font-weight:700}
+.dor-notice{display:flex;align-items:start;gap:9px;font-size:12px;line-height:1.65;border:1px solid #d6e1e8;color:#4d687a;padding:12px 13px;border-radius:9px;background:#f4f8fb;margin:0}.dor-notice svg{flex:0 0 auto;margin-top:1px}
+.dor-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.dor-summary-line{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap;border-bottom:1px solid #e1eaf2;padding:13px 0;color:#214969;font-size:13px}
+.dor-summary-line span{font-size:11px;color:#6d8599}
+.dor-accordion{display:grid;gap:0;border-top:1px solid #dae6ef}
+.dor-entry{border-bottom:1px solid #dae6ef;min-width:0}
+.dor-entry-head{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:transparent;border:0;padding:13px 5px;color:#234665;min-height:58px}
+.dor-entry-head:hover{background:#f0f6fb}
+.dor-entry.open .dor-entry-head{background:#f4f8fd}
+.dor-number{font-size:11px;color:#5382ad;letter-spacing:.05em;font-weight:850;width:29px}
+.dor-category-title{flex:1;min-width:0;display:grid;gap:3px}
+.dor-category-title strong{font-size:13px;font-weight:700}
+.dor-category-title small{font-size:11px;color:#7a8fa1;font-weight:400}
+.dor-grade-pill{display:inline-flex;justify-content:center;align-items:center;border-radius:30px;padding:6px 10px;font-size:10px;font-weight:800;color:#758699;background:#edf1f5;white-space:nowrap}
+.dor-grade-pill.graded{background:#e6f4ed;color:#1c7350}.dor-grade-pill.below{background:#fff0e7;color:#ad4b23}
+.dor-entry-detail{display:grid;gap:15px;padding:17px 17px 20px 46px;background:#fafcfe}
+.dor-seg{border:1px solid #dbe5ee;border-radius:8px;padding:10px 12px;background:white;color:#43617a;font-size:12px}
+.dor-seg summary{cursor:pointer;font-weight:750}.dor-seg pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;color:#344f6b}
+.dor-seg-empty{color:#8292a1;font-size:12px;margin:0}
+.dor-rating{display:flex;gap:7px;flex-wrap:wrap}
+.dor-rating button{height:39px;min-width:43px;border:1px solid #cdddeb;background:white;border-radius:8px;color:#356081;font-size:13px;font-weight:800}
+.dor-rating button.active{background:#205a8f;border-color:#205a8f;color:#fff}
+.dor-textarea-label{display:grid;gap:8px;font-weight:700;color:#405e77;font-size:12px}
+.dor-textarea-label textarea{min-height:90px;border:1px solid #cbdbe7;border-radius:9px;background:#fff;font-size:13px;padding:11px;font:inherit;resize:vertical}
+.dor-check{display:flex;align-items:center;gap:9px;font-size:12px;color:#536e83;font-weight:650}
+.dor-check input{width:17px;height:17px}
+.dor-row-next{display:flex;justify-content:flex-end}.dor-next{border:0;background:transparent;color:#1d5e96;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:750;padding:9px}
+.dor-narratives{display:grid;gap:14px;padding-top:15px;border-top:1px solid #dfe8ef}
+.dor-narratives h3,.dor-new-panel h3,.dor-review-form h3{font-size:15px;color:#254a69;margin:0}
+.dor-narratives textarea,.dor-review-form textarea{resize:vertical}
+.dor-sticky-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;position:sticky;bottom:0;padding:14px 12px;background:#fff;border:1px solid #dce6f0;box-shadow:0 -5px 18px #153b5610;border-radius:10px;flex-wrap:wrap;z-index:2}
+.dor-sticky-actions span{font-size:12px;color:#6e8499;margin-right:auto}
+.dor-sticky-actions .action-primary{min-height:43px}.dor-sticky-actions button:disabled{opacity:.55;cursor:not-allowed}
+.dor-error{color:#a12a35;font-size:12px;line-height:1.6;margin:0}.dor-success{color:#1a6b4f;font-size:12px;margin:0}
+.dor-new-panel,.dor-review-form{display:grid;gap:13px;border-bottom:1px solid #dce6ef;padding:8px 0 22px}
+.dor-new-panel .action-primary,.dor-review-form .action-primary{width:max-content}
+.dor-muted{font-size:12px;color:#7a8fa1;line-height:1.6}
+.dor-history{border-top:1px solid #dce5ee}
+.dor-history-item{display:flex;align-items:center;gap:12px;padding:13px 4px;border-bottom:1px solid #e1e9f0;flex-wrap:wrap}
+.dor-report-main{display:grid;gap:5px;flex:1;min-width:145px}
+.dor-report-main strong{color:#214260;font-size:13px}.dor-report-main span{color:#71899c;font-size:11px}
+.dor-link{border:0;background:transparent;color:#1f659d;font-size:12px;font-weight:700;padding:8px}
+.dor-link:hover{text-decoration:underline}
+.dor-review-status{font-size:10px;color:#31745a}
+.dor-report-detail,.dor-review-form{flex:1 0 100%;padding:16px 12px;background:#f7fafc;border-radius:9px}
+.dor-report-detail h4{margin:0 0 10px;font-size:13px}.dor-report-detail p{font-size:12px;line-height:1.6}
+.dor-mini-scores{display:flex;flex-wrap:wrap;gap:7px}.dor-mini-scores span{font-size:11px;border:1px solid #dbe5ee;background:white;border-radius:7px;padding:6px 9px}
+.dor-performance-list{display:grid;border-top:1px solid #dce6ef}
+.dor-performance-row{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:13px 2px;border-bottom:1px solid #e0e8f0}
+.dor-performance-row div{display:grid;gap:5px}.dor-performance-row strong{font-size:12px;color:#274765}.dor-performance-row small{font-size:11px;color:#73899d}
+@media(max-width:650px){.dor-fields{grid-template-columns:1fr}.dor-filter-line select{min-width:0;width:100%}.dor-filter-line label{width:100%}.dor-entry-detail{padding:12px}.dor-category-title strong{font-size:12px}.dor-entry-head{gap:7px}.dor-sticky-actions{padding:10px}.dor-sticky-actions span{flex:1 0 100%}.dor-sticky-actions button{flex:1}.dor-rating button{min-width:41px}.dor-new-panel .action-primary{width:100%}}
