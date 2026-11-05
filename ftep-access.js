@@ -95,8 +95,29 @@ function manageCoordinator(snapshot,people){
  form.onsubmit=async e=>{e.preventDefault();submit.disabled=true;await write("wf_ftep_set_coordinator",{p_person:person.value||null,p_reason:reason.value.trim()},feedback);submit.disabled=false};
  card.append(form);return card;
 }
+function manageCertifications(snapshot){
+ const card=heading("Certified Officer Eligibility","Only verified certified sworn personnel can be designated as FTOs. This does not alter an employee's rank. Confirm certification using department records before granting eligibility.");
+ const all=snapshot.certification_candidates||[];
+ const [personWrap,person]=selectField("Officer to verify",all,"Select sworn employee");
+ const [reasonWrap,reason]=field("Certification verification / revocation documentation");
+ const feedback=el("p","","ftep-status");
+ const selectorStatus=el("p","","ftep-note");
+ person.onchange=()=>{
+   const candidate=all.find(p=>p.id===person.value);
+   selectorStatus.textContent=candidate?(candidate.certified?"Certification verified in FTEP":"Certification not yet verified in FTEP"):"";
+ };
+ const actions=el("div",undefined,"ftep-actions");
+ for(const [label,verified] of [["Confirm Certified",true],["Remove Certification Verification",false]]){
+  actions.append(button(label,async()=>{
+   if(!person.value||reason.value.trim().length<8){feedback.textContent="Select an officer and document verification (minimum 8 characters).";return}
+   await write("wf_ftep_set_certification",{p_person:person.value,p_certified:verified,p_reason:reason.value.trim()},feedback);
+  },verified?"primary":"secondary"));
+ }
+ card.append(personWrap,selectorStatus,reasonWrap,actions,feedback);
+ return card;
+}
 function manageFtos(snapshot,people){
- const card=heading("FTO Access Management","Only the designated Coordinator or Website Administrator may grant or revoke FTO status.");
+ const card=heading("FTO Access Management","Only verified certified officers appear for new FTO designation. The Coordinator or Website Administrator may manage FTO status.");
  const [personWrap,person]=selectField("Select employee",people,"Choose eligible employee");
  const [reasonWrap,reason]=field("Approval / revocation reason");
  const feedback=el("p","","ftep-status");
@@ -107,9 +128,9 @@ function manageFtos(snapshot,people){
  form.append(personWrap,reasonWrap,actions,feedback);card.append(form);return card;
 }
 function manageAssignments(snapshot,people){
- const card=heading("Assign FTO to Trainee","Reassignments preserve prior assignment history. Only active designated FTOs may be assigned.");
- const [traineeWrap,trainee]=selectField("Trainee",people,"Select trainee");
- const [ftoWrap,fto]=selectField("Assigned FTO",snapshot.ftos||[],"Select active FTO");
+ const card=heading("Assign FTO to Trainee","Only Maddie Bergeron and Raymond Belcher are available as trainees. Select from active designated, verified certified FTOs; prior assignment history is preserved.");
+ const [traineeWrap,trainee]=selectField("Trainee (Maddie / Raymond)",people,"Select Maddie or Raymond");
+ const [ftoWrap,fto]=selectField("Assigned FTO",snapshot.ftos||[],"Select active certified FTO");
  const [reasonWrap,reason]=field("Assignment justification");
  const feedback=el("p","","ftep-status");
  const submit=button("Save Trainee Assignment",async()=>{
@@ -163,8 +184,9 @@ async function render(){
  content.append(summary(data),ratingPreview(),roster(data),assignmentList(data));
  if(grant.can_designate_coordinator)content.append(manageCoordinator(data,data.eligible_people||[]));
  if(grant.can_manage_ftos){
-  content.append(manageFtos(data,data.eligible_people||[]));
-  content.append(manageAssignments(data,data.eligible_people||[]));
+  content.append(manageCertifications(data));
+  content.append(manageFtos(data,data.certified_officers||[]));
+  content.append(manageAssignments(data,data.trainees||[]));
  }
  if(["admin","coordinator","command"].includes(access))content.append(history(data));
  const info=heading("Training Evaluations","Daily Observation Reports, 30-category seven-point scoring, weekly evaluations, phase progression, and official release decisions require a separately approved policy-controlled records workflow. No fictional evaluation is an official record.");
