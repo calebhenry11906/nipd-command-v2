@@ -1,0 +1,23 @@
+
+/* Authorized Field Training program */
+.ftep-app[hidden], [data-nav="ftep"][hidden]{display:none!important}
+.ftep-app{padding:clamp(14px,2.5vw,26px);background:#fff;border:1px solid #d3dfeb;border-radius:14px;color:#163e5e}
+.ftep-app>h2{font-size:clamp(19px,2.5vw,24px);margin:0 0 18px}
+.ftep-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,370px),1fr));gap:15px}
+.ftep-card{border:1px solid #d7e5f0;border-radius:12px;padding:17px;min-width:0;background:#fbfdff}
+.ftep-card h3{font-size:16px;margin:0 0 7px;color:#153d5d}
+.ftep-help,.ftep-note{font-size:13px;color:#516c85;line-height:1.5;margin:7px 0 15px}
+.ftep-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.ftep-stat{padding:11px;border:1px solid #d9e6ef;border-radius:9px;display:grid;gap:5px;background:white}
+.ftep-stat strong{font-size:20px;overflow-wrap:anywhere}
+.ftep-stat span{font-size:11px;color:#4e687d}
+.ftep-list{list-style:disc;padding-left:20px;margin:12px 0;font-size:13px;line-height:1.8;overflow-wrap:anywhere}
+.ftep-form{display:grid;gap:10px}
+.ftep-field{display:grid;gap:5px;margin:9px 0;font-weight:650;font-size:12px}
+.ftep-field input,.ftep-field select{width:100%;min-width:0;min-height:45px;padding:10px;border:1px solid #bccfe0;border-radius:8px;background:#fff;color:#153d5c;font:inherit}
+.ftep-btn{min-height:44px;border:1px solid #bfd1e1;padding:10px 14px;border-radius:9px;cursor:pointer;font-weight:700;font:inherit;background:#f4f8fc;color:#184361}
+.ftep-btn.primary{background:#185c98;color:white;border-color:#185c98}
+.ftep-btn:disabled{opacity:.5;cursor:not-allowed}
+.ftep-actions{display:flex;gap:9px;flex-wrap:wrap}
+.ftep-status{font-size:12px;line-height:1.5;color:#34536b;overflow-wrap:anywhere}
+@media(max-width:600px){.ftep-card{padding:13px}.ftep-grid{grid-template-columns:minmax(0,1fr)}.ftep-actions{display:grid}.ftep-actions>.ftep-btn{width:100%}}
