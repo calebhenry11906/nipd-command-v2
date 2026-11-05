@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3, BookOpen, CalendarDays, ChevronLeft, ChevronRight, ClipboardCheck, Clock3, FileText, LayoutDashboard, LogOut, Menu, RadioTower, Search, Shield, ShieldCheck, Users, Wrench, X } from "lucide-react";
+import { BookOpen, CalendarDays, ChevronLeft, ChevronRight, ClipboardCheck, Clock3, FileText, LayoutDashboard, LogOut, Menu, RadioTower, Search, Shield, ShieldCheck, Users, Wrench, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase,agencyId } from "@/lib/supabase";
