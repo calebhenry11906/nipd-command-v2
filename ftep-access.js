@@ -66,7 +66,20 @@ function roster(snapshot){
 function assignmentList(snapshot){
  const card=heading("Trainee Assignments","FTOs see only their own trainee assignments. Coordinator and command may view the full program.");
  const ul=el("ul",undefined,"ftep-list");
- for(const a of snapshot.assignments||[])ul.append(el("li",a.trainee_name+" — "+a.fto_name+(a.ended_at?" (historical)":" (active)")));
+ for(const a of snapshot.assignments||[]){
+  const li=el("li",a.trainee_name+" — "+a.fto_name+(a.ended_at?" (historical)":" (active)"));
+  if(!a.ended_at&&["admin","coordinator"].includes(snapshot.access_level)){
+   const end=button("End Assignment",async()=>{
+    const reason=window.prompt("Reason for ending this Field Training assignment:");
+    if(!reason||reason.trim().length<5)return;
+    const status=el("span","Ending assignment…","ftep-status");li.append(status);
+    await write("wf_ftep_end_trainee_assignment",{p_assignment:a.id,p_reason:reason.trim()},status);
+   });
+   end.setAttribute("aria-label","End assignment for "+a.trainee_name);
+   li.append(" ",end);
+  }
+  ul.append(li);
+ }
  if(!ul.children.length)ul.append(el("li","No trainee assignments available"));
  card.append(ul);return card;
 }
