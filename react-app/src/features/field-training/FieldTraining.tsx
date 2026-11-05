@@ -5,7 +5,7 @@ import { Activity, ArrowRight, BookOpen, Check, ClipboardList, FileText, ListChe
 import { useFtepAccess, useFtepSnapshot, useRefreshFtep } from "@/hooks/useFieldTraining";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
-import { assignTrainee,endAssignment,setCoordinator,setFto,type FtepSnapshot,type Person } from "./api";
+import { assignTrainee,setCoordinator,setFto,type FtepSnapshot,type Person } from "./api";
 import { cn } from "@/lib/utils";
 type FtepTab="overview"|"trainees"|"dors"|"performance"|"manage";
 const tabs:{value:FtepTab;label:string;icon:typeof Activity}[]=[
