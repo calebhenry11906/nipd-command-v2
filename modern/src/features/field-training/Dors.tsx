@@ -35,8 +35,8 @@ function DorEditor({assignment,catalog,onClose,existing}:{assignment:TrainingAss
  const [expanded,setExpanded]=useState<number|null>(1);
  const [status,setStatus]=useState('');
  const [busyError,setBusyError]=useState('');
- const complete=Object.values(scores).filter(s=>ratings.includes(s.rating)).length;
- const numerical=Object.values(scores).filter(s=>s.rating!=='NO'&&ratings.includes(s.rating)).map(s=>Number(s.rating));
+ const complete=Object.values(scores).filter(s=>(s.rating!==undefined&&ratings.includes(s.rating))).length;
+ const numerical=Object.values(scores).filter(s=>s.rating!==undefined&&s.rating!=='NO'&&ratings.includes(s.rating)).map(s=>Number(s.rating));
  const average=numerical.length?(numerical.reduce((a,b)=>a+b,0)/numerical.length).toFixed(2):'—';
  function change(n:number,field:keyof Score,value:Choice|string|boolean){
   setScores(old=>({...old,[String(n)]:{rating:old[String(n)]?.rating,narrative:old[String(n)]?.narrative||'',nrt:old[String(n)]?.nrt||false,[field]:value}}));
