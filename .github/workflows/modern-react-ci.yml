@@ -1,0 +1,39 @@
+name: React modernization checks
+on:
+  pull_request:
+    paths:
+      - 'modern/**'
+      - '.github/workflows/modern-react-ci.yml'
+  push:
+    branches:
+      - 'feature/react-2026-modernization'
+    paths:
+      - 'modern/**'
+      - '.github/workflows/modern-react-ci.yml'
+permissions:
+  contents: read
+jobs:
+  validate-modern:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: modern
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Verify types
+        run: npm run typecheck
+      - name: Build isolated React application
+        run: npm run build
+      - name: Reject privileged keys in modern source
+        shell: bash
+        run: |
+          if grep -REn 'service_role|sb_secret_' src; then
+            echo 'Do not bundle privileged Supabase credentials' >&2
+            exit 1
+          fi
