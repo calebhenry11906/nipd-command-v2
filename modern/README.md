@@ -25,3 +25,15 @@ The new React application currently includes a mobile-first shell, responsive si
 ## Notes
 
 The architecture includes React 19, TypeScript, Vite, Tailwind 4, Lucide, TanStack Query, React Router, Radix Slot, and class-variance-authority. Full shadcn/ui component generation and existing module migrations remain pending.
+
+## Phase B checkpoint — November 5, 2026
+
+The responsive application shell now requires an authenticated Supabase session before displaying the workforce navigation. Existing-user six-digit email OTP sign-in is implemented using `signInWithOtp({options:{shouldCreateUser:false}})` and `verifyOtp({type:'email'})`. **Supabase must be configured with an email template containing `{{ .Token }}`**; otherwise the provider may email a magic link instead of a six-digit code.
+
+The navigation provides a compact desktop sidebar and mobile drawer. Field Training remains a single top-level module with internal Overview / Trainees / Daily Observation Reports / Performance / FTO Management routes. Access is checked by `wf_ftep_my_access`, and the protected snapshot is loaded by RPC only after successful authorization. Management controls remain unimplemented, and no sensitive data is included in repository source.
+
+The project is explicitly **workforce management only**. Do not enter or connect CAD, RMS, NCIC, criminal-history or investigative case data. Internal personnel and DOR records still require department approval and server-side protection even when they are not CJI.
+
+A GitHub Actions check has been added to install dependencies, type-check, build, and scan for obvious privileged keys. **Those checks have not yet been observed passing**. CI currently uses `npm install` because a lockfile has not been generated or committed. Pin and lock dependencies before a release. Authentication email deliverability, redirect allowlists, account disablement, session revocation, and real-user access remain unverified. Staging-only.
+
+The React preview is not yet published. GitHub Pages preview builds use hash routing to avoid deep-link refresh failures; dedicated hosting can use clean browser routes.
