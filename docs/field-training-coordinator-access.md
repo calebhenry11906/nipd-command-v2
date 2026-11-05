@@ -37,17 +37,17 @@ Coordinator designation takes precedence over other roles for the module only. I
 - App displays "Access Restricted" without exposing protected records for denied requests. The backend enforces authorization independently from the UI.
 
 ## Verification
-**19 transactional role and permission assertions passed**, including:
+**23 transactional role and permission assertions passed**, including:
 - No-designation Officer and Sergeant denied.
 - Officer cannot appoint FTO.
 - Lieutenant may view program but cannot grant FTO status.
 - Website Administrator may designate Coordinator.
 - Sergeant Coordinator may grant FTO designation.
 - Active FTO may see only assigned trainee.
-- FTO cannot grant others FTO.
+- FTO cannot grant others FTO. A Coordinator also cannot self-grant FTO designation.
 - Revocation immediately removes FTO-only visibility.
 - Trainee assignment history survives FTO revocation.
-- Cross-agency denial.
+- Cross-agency denial; unassigned Corporal denied; Captain view authorized; disabled account denied.
 - Direct RPC read denied to unauthorized Officer.
 - FTO cannot terminate trainee assignment; Coordinator can.
 - Assignment termination creates audit record.
