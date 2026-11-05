@@ -37,3 +37,17 @@ The project is explicitly **workforce management only**. Do not enter or connect
 A GitHub Actions check has been added to install dependencies, type-check, build, and scan for obvious privileged keys. **GitHub Actions completed install, TypeScript checking, Vite production build, and the privileged-key scan successfully on November 5, 2026 (run 42075481117).** CI currently uses `npm install` because a lockfile has not been generated or committed. Pin and lock dependencies before a release. Authentication email deliverability, redirect allowlists, account disablement, session revocation, and real-user access remain unverified. Staging-only.
 
 The React preview is not yet published. GitHub Pages preview builds use hash routing to avoid deep-link refresh failures; dedicated hosting can use clean browser routes.
+
+## Phase C checkpoint — Field Training management (November 5, 2026)
+
+- React Trainees and FTO Management tabs now use the existing protected `wf_ftep_snapshot` RPC for live, authorized data. No personnel names/IDs are hardcoded as a substitute for the enrollment table.
+- Coordinators and authorized Website Administrators can grant/revoke eligible sworn FTO designations through `wf_ftep_set_fto`, assign an enrolled trainee to a designated FTO via `wf_ftep_assign_trainee`, and end active assignments through `wf_ftep_end_trainee_assignment`.
+- Website Administrators can appoint or revoke the primary Coordinator through `wf_ftep_set_coordinator`.
+- Every mutation uses the existing server-side authorization and invalidates the protected query snapshot. This frontend is not an authority boundary.
+- FTO certification verification is **not** a website prerequisite. Certification records remain private/outside this software.
+- DORs remain nested under Field Training. The 30-category editor, approved SEG catalog, persistent report submissions, and lifetime evaluation averages **remain incomplete**; a truthful pending state is shown.
+- Application remains workforce-only; do not store or integrate CAD, RMS, NCIC, case reports, or CJI.
+
+### Tests and deployment
+
+Automated CI on the branch has previously passed install, typecheck and build. The new protected manager workflows still require separate authenticated account tests, negative role tests, mobile-browser acceptance, and staged data review before merging. This is not authorization to use production personnel information.
