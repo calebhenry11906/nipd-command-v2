@@ -9,6 +9,7 @@ const module=document.getElementById("module");
 module?.append(root);
 window.NIPD_FTEP_ALLOWED=false;
 function showNav(can){window.NIPD_FTEP_ALLOWED=can;document.querySelectorAll('[data-nav="ftep"]').forEach(b=>{b.hidden=!can;b.setAttribute("aria-hidden",String(!can))})}
+function isOpen(){return window.NIPD_FTEP_IS_OPEN?.()===true}
 function denied(){root.replaceChildren(el("h2","Access Restricted"),el("p","You do not have permission to access the Field Training and Evaluation Program."));}
 async function updateAccess(){
  const t=++refreshVersion;
@@ -117,6 +118,28 @@ function manageAssignments(snapshot,people){
  },"primary");
  card.append(traineeWrap,ftoWrap,reasonWrap,submit,feedback);return card;
 }
+function ratingPreview(){
+ const card=heading("DOR Rating Scale — 1 to 7","Interactive scoring control preview. Does not save or submit an official DOR. All seven numerical ratings are available.");
+ const ratingLabels={
+  "1":"Unacceptable","2":"Below Standard","3":"Below Standard",
+  "4":"Acceptable / Meets Standard","5":"Above Standard",
+  "6":"Above Standard","7":"Superior","NO":"Not Observed"
+ };
+ const caption=el("p","Choose a rating for a sample evaluation category.","ftep-help");
+ const selector=el("div",undefined,"ftep-rating-options");
+ const output=el("p","No rating selected","ftep-rating-selected");
+ for(const [value,label] of Object.entries(ratingLabels)){
+  const btn=button(value==="NO"?"N/O":value,()=>{
+   for(const b of selector.querySelectorAll("button")){b.classList.toggle("selected",b===btn);b.setAttribute("aria-pressed",String(b===btn))}
+   output.textContent=(value==="NO"?"N/O":value)+" — "+label;
+  },"rating");
+  btn.setAttribute("aria-label",(value==="NO"?"Not Observed":value+" — "+label));
+  btn.setAttribute("aria-pressed","false");
+  selector.append(btn);
+ }
+ card.append(caption,selector,output,el("p","Category-specific Standardized Evaluation Guidelines must be approved before official DOR scoring is activated.","ftep-note"));
+ return card;
+}
 function history(snapshot){
  const card=heading("Access and Appointment History","Changes remain traceable after access is revoked.");
  const ul=el("ul",undefined,"ftep-list");
@@ -125,16 +148,19 @@ function history(snapshot){
  card.append(ul);return card;
 }
 async function render(){
+ if(!isOpen()){root.hidden=true;return}
  root.hidden=false;
  root.replaceChildren(el("h2","Field Training & Evaluation Program"),el("p","Verifying current Field Training permissions…"));
  const {data:grant,error:grantError}=await db.rpc("wf_ftep_my_access",{p_agency:agency});
+ if(!isOpen()){root.hidden=true;return}
  if(grantError||!grant?.can_view){access="none";showNav(false);denied();return}
  access=grant.level;showNav(true);
  const {data,error}=await db.rpc("wf_ftep_snapshot",{p_agency:agency});
+ if(!isOpen()){root.hidden=true;return}
  if(error){denied();return}
  root.replaceChildren(el("h2","Field Training & Evaluation Program"));
  const content=el("div",undefined,"ftep-grid");
- content.append(summary(data),roster(data),assignmentList(data));
+ content.append(summary(data),ratingPreview(),roster(data),assignmentList(data));
  if(grant.can_designate_coordinator)content.append(manageCoordinator(data,data.eligible_people||[]));
  if(grant.can_manage_ftos){
   content.append(manageFtos(data,data.eligible_people||[]));
@@ -144,7 +170,7 @@ async function render(){
  const info=heading("Training Evaluations","Daily Observation Reports, 30-category seven-point scoring, weekly evaluations, phase progression, and official release decisions require a separately approved policy-controlled records workflow. No fictional evaluation is an official record.");
  content.append(info);root.append(content);
 }
-window.NIPD_FTEP_RENDER=()=>{root.hidden=false;render()};
+window.NIPD_FTEP_RENDER=()=>{if(!isOpen()){root.hidden=true;return}root.hidden=false;render()};
 window.NIPD_FTEP_HIDE=()=>{root.hidden=true};
 window.NIPD_FTEP_CHECK=updateAccess;
 db.auth.onAuthStateChange(()=>{queueMicrotask(updateAccess)});
