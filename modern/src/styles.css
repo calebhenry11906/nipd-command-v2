@@ -144,3 +144,7 @@
 .dor-guidelines>div{display:grid;grid-template-columns:minmax(65px,100px) minmax(0,1fr);gap:10px;padding:9px 0;border-bottom:1px solid #edf2f6}
 .dor-guidelines strong{font-size:11px;color:#245b85}
 .dor-guidelines span{font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;color:#445c73}
+
+.ftep-subnavigation{display:flex;flex-wrap:wrap;gap:8px;border-bottom:1px solid #dce6ef;padding:0 0 12px}
+.ftep-subnavigation button{border:1px solid #d5e2ed;border-radius:9px;background:white;color:#496981;font-size:12px;font-weight:700;padding:10px 13px;min-height:40px}
+.ftep-subnavigation button.active{border-color:#2d6b9e;background:#eaf3fb;color:#185786}
