@@ -59,6 +59,7 @@ async function init(){
    return;
   }
   if(url.search||url.hash)history.replaceState(null,"",url.pathname);
+  $("login").hidden=true;
   const allowed=await gate.refresh();
   if(!allowed){say("Complete authenticator enrollment or verification to continue.");return}
   show("setup");
