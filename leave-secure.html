@@ -34,7 +34,7 @@ import {createMfaGate} from "./mfa-gate.js";
 const db=createClient("https://qvnldjidqyuwglksdtlm.supabase.co","sb_publishable_LovOph-C6UpNNq1oNR4TQQ_1VYEiChB");
 const $=id=>document.getElementById(id), say=(s,bad=false)=>{$("feedback").textContent=s;$("feedback").className=bad?"danger":""};
 let agency=null;
-const gate=createMfaGate(db,$("mfa"),allowed=>{if(!allowed){$("setup").hidden=true;$("board").hidden=true;}});
+const gate=createMfaGate(db,$("mfa"),allowed=>{if(!allowed){$("setup").hidden=true;$("board").hidden=true;return}show("setup");$("agency").value="0364257b-f54f-40cb-a34a-0cb125afb16d";db.auth.getUser().then(({data})=>{$("identity").textContent="Signed in as "+(data.user?.email||"Account")+". You may now open your authorized staging workspace."});say("Authenticator verification complete.");});
 const requireAal2=async()=>{const a=await db.auth.mfa.getAuthenticatorAssuranceLevel();if(a.error||a.data?.currentLevel!=="aal2"){show("setup");await gate.refresh();say("Complete authenticator verification to continue.",true);return false}return true};
 const show=(id)=>{$("login").hidden=id!=="login";$("setup").hidden=id==="login";$("board").hidden=id!=="board"};
 async function init(){
