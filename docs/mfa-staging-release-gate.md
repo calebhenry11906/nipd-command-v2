@@ -1,6 +1,6 @@
 # Mandatory MFA — staging implementation and release gate
 
-Status: **PARTIAL / NOT READY TO MERGE OR ENABLE** (2026-11-06).
+Status: **SERVER RPC AAL2 APPLIED IN STAGING; AUTH END-TO-END NOT VERIFIED; NOT READY TO MERGE OR ENABLE** (2026-11-06).
 
 ## What is implemented on this branch
 
@@ -9,20 +9,20 @@ Status: **PARTIAL / NOT READY TO MERGE OR ENABLE** (2026-11-06).
 - Primary email OTP sign-in is preserved.
 - No real users have been invited, no existing factors changed, and no staging database policies changed.
 
-**This is not yet department-wide mandatory MFA.** The public `index.html` is still a demonstration dashboard and has multiple independently initialized Supabase clients. A frontend gate by itself cannot protect API access.
+**This is not yet department-wide completed MFA.** The public `index.html` remains a demonstration dashboard and actual authenticator sessions must still be verified. Backend enforcement is now present on all authenticated-callable workforce RPCs.
 
-## Backend dependency (must complete before activation)
+## Server-side staging migration and test evidence
 
-Inventory **all** callable privileged RPCs, including functions in internal schemas that are reached through exposed wrappers. Current read-only inventory:
-
-| Schema | SECURITY DEFINER functions | Authenticated-executable SECURITY DEFINER functions |
-| --- | ---: | ---: |
-| public | 29 | 23 |
-| wf_secure | 25 | 22 |
-
-Some internal functions may not be exposed through the Data API, but their reachability through wrappers must be determined. Review direct grants, exposed schemas, RLS and storage separately.
-
-For every protected API operation, add server-enforced AAL2 checking **without removing** agency membership, active-user, rank, ownership, assigned-reviewer or self-approval checks. Preserve narrowly necessary pre-AAL2 authentication and recovery paths. Prefer a reviewed, explicit list of protected RPC wrappers rather than automatic bulk edits to every function. Record the affected function definitions and rollback plan.
+- Migration applied in Supabase staging: `20261106162728_enforce_aal2_on_authenticated_workforce_functions`.
+- `docs/staging-aal2-applied.sql` records the applied function-enforcement migration.
+- **47 / 47** authenticated-executable `public.wf_%` functions and **22 / 22** authenticated-executable `wf_secure.wf_%` functions contain the AAL2 guard; existing role/agency checks preserved.
+- All **47** public RPCs rejected a fictional simulated `aal1` database session with SQLSTATE 42501, including formerly SQL-language wrappers. See `docs/staging-aal2-regression.sql`.
+- A fictional simulated `aal2` database identity passed the MFA gate but did not gain agency membership or restricted directory access.
+- **47 / 47** public data tables have RLS enabled with no direct-access RLS policies; public view count is zero at audit time.
+- Security Advisor still flags 23 authenticated callable privileged RPCs (expected until independently reviewed), one leaked-password warning, and 47 informational RLS/no-policy findings.
+- **Do not claim real TOTP enrollment or login tests passed:** only session-claim simulations have run. No genuine fictional Supabase Auth users were provisioned in this task, and there is no authenticated TOTP session evidence.
+- Migration and guards are staging-only. No actual personnel records, factors, or invitations were changed.
+- Recover/rollback via reviewed SQL restoring previous function definitions from an approved backup; do not run the recorded historical migration again.
 
 ## Functional and security acceptance
 
@@ -30,8 +30,8 @@ For every protected API operation, add server-enforced AAL2 checking **without r
 - [ ] Confirm email OTP -> TOTP enrollment -> AAL2 in an actual fictional Auth user session.
 - [ ] Confirm returning fictional user AAL1 -> TOTP challenge -> AAL2.
 - [ ] Confirm wrong TOTP rejected and no AAL2 granted.
-- [ ] AAL1 direct requests to every protected RPC return denied; AAL2 still needs rank/assignment permissions.
-- [ ] AAL1 direct Data API, views and storage access cannot return workforce data.
+- [x] Simulated AAL1 direct requests to all 47 public workforce RPCs denied; fictional AAL2 non-member still unauthorized. **Real bearer-token integration remains pending.**
+- [ ] Verify true bearer-token Data API and storage behavior; database audit shows 47/47 public tables RLS-enabled with no policies and no public views.
 - [ ] Tests for Officer / Sergeant / Lieutenant / Website Admin, inactive account, cross-agency, self-approval.
 - [ ] Verify MFA enforcement and authenticated routing from **all** main application modules, not only secure Leave & Training.
 - [ ] Test session expiration, factor removal and authentic disabled-account revocation.
