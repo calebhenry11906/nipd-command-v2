@@ -32,6 +32,11 @@ export function createMfaGate(supabase, mount, onAuthorized) {
   const reset = () => {
     mount.hidden = false;
     controls.replaceChildren();
+    controls.append(button("Sign Out", () => run(async () => {
+      await supabase.auth.signOut();
+      clear();
+      window.location.reload();
+    })));
     message("");
   };
   const run = async (action) => {
