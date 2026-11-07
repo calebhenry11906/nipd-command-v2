@@ -133,3 +133,18 @@ Note: Platform-owner test provisioning is a distinct elevated administrative ope
 Staging-only `security-admin-test.html` provides a real AAL2 login for this fictional Lieutenant to test `accounts.manage`, `permissions.manage`, effective permissions, no Website Administrator access, and rejection of `wf_admin_set_website_admin` self-appointment. The page performs no positive privilege mutations and does not display or export JWTs, email codes, or TOTP secrets.
 
 **Status: temporary appointment provisioned and reviewed, but live browser assertions have NOT run yet**. A successful Vercel READY deployment is not equivalent to PASS. Revoke promptly after browser results or allow the bounded grant to expire. Keep Phase 3 in staging.
+
+## Genuine natural JWT expiration and temporary Administrator grant cleanup — November 6, 2026
+
+User supplied original signed-token test results from fictional Sergeant session:
+- 10:36:24 PM Central: PASS signed AAL2 bearer accepted by protected workforce RPC; live Sergeant first-level permission granted, final approval and technical management denied, assigned restricted contacts allowed, self-approval denied.
+- 10:36:32 PM: the test page captured the real signed bearer **in page memory only**. JWT's original `exp` indicated expiration at **11:36:06 PM Central**.
+- 11:44:05 PM: **PASS original expired signed bearer rejected (HTTP 401)**. This is a natural expiration test against a real signed original JWT, not a simulated claim. The page did not copy or expose JWT bytes.
+
+**Outcome: PASS** for real signed-token expiry rejection, and separate prior sign-out revocation replay remained PASS (HTTP 403). Session and role guard simulations previously passed independently.
+
+The time-limited fictional Lieutenant technical System Admin appointment `c70e9c28-9683-4b86-9c99-f448eaa8fd66` expired at **11:40:24 PM Central**. Read-only SQL at 11:44:33 PM independently verified it was no longer effective, the account retained Lieutenant rank, and Website Administrator remained false. The platform then explicitly set this *already-expired*, single allowlisted test appointment to `enabled=false` and recorded one corresponding cleanup audit entry `staging_owner_test_grant_expired_disabled`. A follow-up read-only query verified `enabled=false`, `effective=false`, `operational_rank=Lieutenant`, `website_admin=false`, and exactly one matching cleanup audit event.
+
+**Not proven:** The user did not run the positive Administrator browser permission test during the temporary assignment. Do not count the temporary grant's database creation or the expiration as a positive signed-session `accounts.manage`/`permissions.manage` PASS. A repeat, newly authorized time-limited grant and separate browser test would be needed to close that gate.
+
+**Release:** Do not merge or promote production. Final privileged-function review and department IT/security authorization remain required.
