@@ -32,10 +32,12 @@ Status: **SERVER RPC AAL2 APPLIED IN STAGING; AUTH END-TO-END NOT VERIFIED; NOT 
 - [ ] Confirm wrong TOTP rejected and no AAL2 granted.
 - [x] Simulated AAL1 direct requests to all 47 public workforce RPCs denied; fictional AAL2 non-member still unauthorized. **Real bearer-token integration remains pending.**
 - [ ] Verify true bearer-token Data API and storage behavior; database audit shows 47/47 public tables RLS-enabled with no policies and no public views.
-- [ ] Tests for Officer / Sergeant / Lieutenant / Website Admin, inactive account, cross-agency, self-approval.
+- [x] Simulated transactional Officer / Sergeant / Lieutenant rank, assigned-supervisor and self-approval tests passed; disabled-account membership denial passed and rollback restored account. See `docs/mfa-permission-regression-results.md`.
+- [ ] Real bearer-token tests for Officer / Sergeant / Lieutenant / Website Administrator, cross-agency and disabled-session revocation remain.
 - [ ] Verify MFA enforcement and authenticated routing from **all** main application modules, not only secure Leave & Training.
 - [ ] Test session expiration, factor removal and authentic disabled-account revocation.
-- [ ] Test secured lost-device recovery through an authorized independent administrator. No frontend service key.
+- [x] Documented minimal secure lost-device recovery using the supported Supabase administrative factor-removal API; see `docs/mfa-account-recovery-runbook.md`.
+- [ ] Actually test factor removal/re-enrollment on a **separate disposable** fictional user; existing working Officer factor must not be reset.
 - [ ] Review whether primary email OTP + app TOTP meets department's desired identity assurance policy.
 - [ ] Rerun security advisories; document accepted warnings separately from confirmed vulnerabilities.
 - [ ] Independent department IT / command approval before any real-user enrollment.
