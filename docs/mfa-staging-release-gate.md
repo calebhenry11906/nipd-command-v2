@@ -66,3 +66,10 @@ Status: **SERVER RPC AAL2 APPLIED IN STAGING; AUTH END-TO-END NOT VERIFIED; NOT 
 Do not build an MFA dashboard, custom TOTP generator, secondary identity database, bespoke audit table, or production invitations for this phase. Current staging environment remains **NO-GO**.
 
 Review parent issues #4 and #5 before rollout.
+
+## November 6, 2026 — real revocation browser result
+
+- [x] Signed bearer valid before sign-out and rejected with HTTP 403 after local sign-out of the fictional staging test session; user observed both PASS messages (see `docs/phase3-security-advisor-review.md`).
+- [x] Avoid empty-code OTP error in the staging test harness by validating input before submitting.
+- [ ] Original genuine JWT rejection after actual expiration (without earlier sign-out).
+- [ ] Live role checks across fictional ranks and final IT/security review.
