@@ -24,6 +24,15 @@ Status: **SERVER RPC AAL2 APPLIED IN STAGING; AUTH END-TO-END NOT VERIFIED; NOT 
 - Migration and guards are staging-only. No actual personnel records, factors, or invitations were changed.
 - Recover/rollback via reviewed SQL restoring previous function definitions from an approved backup; do not run the recorded historical migration again.
 
+## 2026-11-06 session-expiry and revocation update
+
+- Applied separate staging migration `require_unexpired_active_auth_session_for_workforce_rpc`, tightening the existing shared AAL2 helper to validate JWT expiration and live `auth.sessions` membership.
+- **5/5** transaction-local synthetic-claim checks passed (existing active AAL2 session, expired token, nonexistent session, AAL1, permitted Officer workforce membership).
+- **69/69** authenticated-callable workforce functions remain connected to the shared guard.
+- No Auth sessions, factors, employee accounts, or personnel records were changed or removed.
+- **Disposable-account recovery remains unexecuted**: connected tools cannot provision a verified test inbox/user or call privileged Auth factor deletion. See `docs/session-expiration-recovery-results.md`.
+- These simulated SQL checks **do not replace real signed bearer-token and browser tests**.
+
 ## Functional and security acceptance
 
 - [ ] Confirm TOTP MFA verification is enabled in the Supabase Auth configuration.
