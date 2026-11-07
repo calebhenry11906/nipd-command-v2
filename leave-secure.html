@@ -8,7 +8,7 @@
 <section class="panel" id="login"><h2>Sign In</h2>
 <p>Enter your approved department email to request a one-time sign-in code.</p>
 <form id="signIn">
-<label>Department Email <input id="email" type="email" autocomplete="email" value="chenry@newiberiapolice.com" required></label>
+<label>Department Email <input id="email" type="email" autocomplete="email" placeholder="fictional.user@example.test" required></label>
 <button id="sendCode" type="submit">Sign In</button>
 </form>
 <div id="codeStep" hidden>
@@ -22,16 +22,21 @@
 <button id="changeEmail" type="button" style="margin-top:12px;background:#e8f0f8;color:#17314e;border:1px solid #b9cadb">Change Email / Request New Code</button>
 </div>
 </section>
+<section class="panel" id="mfa" hidden aria-live="polite"></section>
 <section class="panel" id="setup" hidden><h2>Verified Staging Account</h2><p id="identity"></p><label>Agency ID (Assigned by Staging Administrator) <input id="agency" placeholder="00000000-0000-0000-0000-000000000000" inputmode="text"></label><div class="row"><button id="openBoard">Open Authorized Board</button><a href="index.html" id="dashboardLink" style="display:inline-block;padding:10px 14px;background:#1c568e;color:#fff;border-radius:7px;text-decoration:none">Open NIPD Dashboard</a><button id="signOut">Sign Out</button></div></section>
 <section class="panel" id="board" hidden><h2>My Leave & Training</h2><p>Approvals require an authorized signed-in supervisor account. Rank and assignment rules are enforced by the database.</p>
 <form id="newLeave"><h3>New Fictional Request</h3><label>Type <select id="kind"><option value="vacation">Vacation</option><option value="training">Training</option><option value="other">Other leave</option></select></label><label>Start <input id="start" type="datetime-local" required></label><label>End <input id="end" type="datetime-local" required></label><button>Submit Fictional Request</button></form>
 <h3>My Requests</h3><div id="mine"></div><h3>Assigned Approval Queue</h3><p>Only requests assigned to you appear here. The database enforces approval permissions.</p><div id="review"></div><button id="refresh">Refresh Requests</button></section>
-<p id="feedback" role="status" aria-live="polite"></p><p><a href="index.html" style="color:#1c568e;font-weight:700">Return to NIPD Command Dashboard</a></p></main>
+<p id="feedback" role="status" aria-live="polite"></p><p><a href="index.html" style="color:#1c568e;font-weight:700">Return to Secure Staging Dashboard</a></p></main>
 <script type="module">
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2.108.0";
+import {createMfaGate} from "./mfa-gate.js";
 const db=createClient("https://qvnldjidqyuwglksdtlm.supabase.co","sb_publishable_LovOph-C6UpNNq1oNR4TQQ_1VYEiChB");
 const $=id=>document.getElementById(id), say=(s,bad=false)=>{$("feedback").textContent=s;$("feedback").className=bad?"danger":""};
 let agency=null;
+const workspaceMode=new URL(location.href).searchParams.get("workspace")==="leave";
+const gate=createMfaGate(db,$("mfa"),allowed=>{if(!allowed){$("setup").hidden=true;$("board").hidden=true;return}if(!workspaceMode){location.replace("index.html");return}show("setup");$("agency").value="0364257b-f54f-40cb-a34a-0cb125afb16d";db.auth.getUser().then(({data})=>{$("identity").textContent="Signed in as "+(data.user?.email||"Account")+". You may now open your authorized staging workspace."});say("Authenticator verification complete.");});
+const requireAal2=async()=>{const a=await db.auth.mfa.getAuthenticatorAssuranceLevel();if(a.error||a.data?.currentLevel!=="aal2"){show("setup");await gate.refresh();say("Complete authenticator verification to continue.",true);return false}return true};
 const show=(id)=>{$("login").hidden=id!=="login";$("setup").hidden=id==="login";$("board").hidden=id!=="board"};
 async function init(){
  try{
@@ -50,11 +55,14 @@ async function init(){
   const session=await db.auth.getSession();
   const {data,error}=await db.auth.getUser();
   if(error||!data.user||!session.data.session){
-   show("login");
+   gate.clear();show("login");
    say("No active sign-in session was found. If the email opened inside Gmail, select 'Open in browser' and use Chrome for the sign-in link.",true);
    return;
   }
   if(url.search||url.hash)history.replaceState(null,"",url.pathname);
+  $("login").hidden=true;
+  const allowed=await gate.refresh();
+  if(!allowed){say("Complete authenticator enrollment or verification to continue.");return}
   show("setup");
   $("agency").value="0364257b-f54f-40cb-a34a-0cb125afb16d";
   $("identity").textContent="Signed in as "+(data.user.email||"Account")+". You can now open the NIPD Dashboard.";
@@ -90,10 +98,10 @@ $("otpForm").onsubmit=async e=>{
  say("Email code verified. You are signed in.");
  await init();
 };
-$("signOut").onclick=async()=>{await db.auth.signOut();agency=null;show("login")};
-$("openBoard").onclick=async()=>{const id=$("agency").value.trim();if(!/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(id)){say("Enter the authorized staging agency UUID.",true);return}const r=await db.rpc("wf_my_permissions",{p_agency:id});if(r.error){say("No access to that agency.",true);return}agency=id;show("board");await load()};
-function row(rec,review){const div=document.createElement("div");div.className="item";const title=document.createElement("strong");title.textContent=[rec.employee,({vacation:"Vacation",training:"Training",other:"Other Leave"}[rec.kind]||rec.kind),({supervisor:"Pending Sergeant Approval",final:"Pending Lieutenant Approval",approved:"Approved",denied:"Denied",cancelled:"Cancelled"}[rec.status]||rec.status)].filter(Boolean).join(" · ");const times=document.createElement("small");times.textContent=new Date(rec.start).toLocaleString()+" – "+new Date(rec.end).toLocaleString();div.append(title,times);if(review){const controls=document.createElement("div");controls.className="row";for(const [label,approve] of [["Approve",true],["Deny",false]]){const btn=document.createElement("button");btn.textContent=label;btn.onclick=async()=>{let reason=null;if(!approve){reason=prompt("Reason for Denial (at least four characters)");if(reason===null)return;if(reason.trim().length<4){say("A reason for denial is required.",true);return}}btn.disabled=true;try{const result=await db.rpc("wf_decide_leave",{p_request:rec.id,p_approve:approve,p_reason:reason});if(result.error)throw result.error;say("Decision Recorded: "+({final:"Pending Lieutenant Approval",approved:"Approved",denied:"Denied"}[result.data]||result.data));await load()}catch(e){say("Decision rejected by authorization or validation rules.",true)}finally{btn.disabled=false}};controls.append(btn)}div.append(controls)}else if(["supervisor","final"].includes(rec.status)){const cancel=document.createElement("button");cancel.textContent="Cancel Request";cancel.onclick=async()=>{if(!confirm("Cancel this fictional request?"))return;const result=await db.rpc("wf_cancel_leave",{p_request:rec.id});if(result.error){say("Cancellation denied.",true);return}await load()};div.append(cancel)}return div}
-async function load(){if(!agency)return;try{const r=await db.rpc("wf_leave_board",{p_agency:agency});if(r.error)throw r.error;for(const [id,records,review] of [["mine",r.data?.mine||[],false],["review",r.data?.review||[],true]]){const dst=$(id);dst.replaceChildren();if(!records.length)dst.textContent="No Records Available.";for(const rec of records)dst.append(row(rec,review))}}catch(e){say("Could not load authorized leave records.",true)}}
-$("newLeave").onsubmit=async e=>{e.preventDefault();if(!agency)return;const start=new Date($("start").value),end=new Date($("end").value);if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime())||end<=start){say("Check start and end dates.",true);return}const r=await db.rpc("wf_request_leave",{p_agency:agency,p_kind:$("kind").value,p_start:start.toISOString(),p_end:end.toISOString()});if(r.error){say("Submission rejected by database validation.",true);return}say("Fictional Request Submitted.");await load()};
+$("signOut").onclick=async()=>{await db.auth.signOut();gate.clear();agency=null;show("login")};
+$("openBoard").onclick=async()=>{if(!await requireAal2())return;const id=$("agency").value.trim();if(!/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(id)){say("Enter the authorized staging agency UUID.",true);return}const r=await db.rpc("wf_my_permissions",{p_agency:id});if(r.error){say("No access to that agency.",true);return}agency=id;show("board");await load()};
+function row(rec,review){const div=document.createElement("div");div.className="item";const title=document.createElement("strong");title.textContent=[rec.employee,({vacation:"Vacation",training:"Training",other:"Other Leave"}[rec.kind]||rec.kind),({supervisor:"Pending Sergeant Approval",final:"Pending Lieutenant Approval",approved:"Approved",denied:"Denied",cancelled:"Cancelled"}[rec.status]||rec.status)].filter(Boolean).join(" · ");const times=document.createElement("small");times.textContent=new Date(rec.start).toLocaleString()+" – "+new Date(rec.end).toLocaleString();div.append(title,times);if(review){const controls=document.createElement("div");controls.className="row";for(const [label,approve] of [["Approve",true],["Deny",false]]){const btn=document.createElement("button");btn.textContent=label;btn.onclick=async()=>{if(!await requireAal2())return;let reason=null;if(!approve){reason=prompt("Reason for Denial (at least four characters)");if(reason===null)return;if(reason.trim().length<4){say("A reason for denial is required.",true);return}}btn.disabled=true;try{const result=await db.rpc("wf_decide_leave",{p_request:rec.id,p_approve:approve,p_reason:reason});if(result.error)throw result.error;say("Decision Recorded: "+({final:"Pending Lieutenant Approval",approved:"Approved",denied:"Denied"}[result.data]||result.data));await load()}catch(e){say("Decision rejected by authorization or validation rules.",true)}finally{btn.disabled=false}};controls.append(btn)}div.append(controls)}else if(["supervisor","final"].includes(rec.status)){const cancel=document.createElement("button");cancel.textContent="Cancel Request";cancel.onclick=async()=>{if(!await requireAal2())return;if(!confirm("Cancel this fictional request?"))return;const result=await db.rpc("wf_cancel_leave",{p_request:rec.id});if(result.error){say("Cancellation denied.",true);return}await load()};div.append(cancel)}return div}
+async function load(){if(!agency||!await requireAal2())return;try{const r=await db.rpc("wf_leave_board",{p_agency:agency});if(r.error)throw r.error;for(const [id,records,review] of [["mine",r.data?.mine||[],false],["review",r.data?.review||[],true]]){const dst=$(id);dst.replaceChildren();if(!records.length)dst.textContent="No Records Available.";for(const rec of records)dst.append(row(rec,review))}}catch(e){say("Could not load authorized leave records.",true)}}
+$("newLeave").onsubmit=async e=>{e.preventDefault();if(!agency||!await requireAal2())return;const start=new Date($("start").value),end=new Date($("end").value);if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime())||end<=start){say("Check start and end dates.",true);return}const r=await db.rpc("wf_request_leave",{p_agency:agency,p_kind:$("kind").value,p_start:start.toISOString(),p_end:end.toISOString()});if(r.error){say("Submission rejected by database validation.",true);return}say("Fictional Request Submitted.");await load()};
 $("refresh").onclick=load;await init();
 </script></body></html>
