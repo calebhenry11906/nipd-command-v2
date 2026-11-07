@@ -66,3 +66,19 @@ Authorization code inspection:
 The isolated test harness now permits the existing fictitious Lieutenant email after its owner enrolls MFA, and checks delegated final approval, no self-approval, no implicit Website Admin and no System Admin rights. Do not create an initial Website Administrator through a public self-appointment path. An Administrator-positive browser test requires distinct authorized staged onboarding, not a rank-only promotion.
 
 The user's 45-minute expiration test on the earlier immutable Vercel preview was not altered or aborted by this work.
+
+## Genuine Lieutenant AAL2 browser permission verification — November 6, 2026 (10:47 PM Central)
+
+The user signed into the existing fictional `lieutenantainvalid@gmail.com` identity, independently verified in Supabase with one registered and verified MFA factor and one AAL2 auth session. The user supplied the output of the isolated test page, confirming the following **seven PASS checks** from a real signed bearer and Supabase workforce RPCs:
+
+- PASS signed AAL2 bearer accepted by protected `wf_my_agencies` RPC.
+- PASS `leave.approve_final: true` for the assigned fictional Sergeant (via `wf_has_permission`).
+- PASS `permissions.manage: false` (no technical admin appointment).
+- PASS `contacts.read_restricted: true` for the assigned fictional Sergeant.
+- PASS self-approval disallowed (permission checker).
+- PASS `wf_admin_access_overview` returned no Website Administrator rights by rank alone.
+- PASS `wf_my_permissions` returned no technical System Administrator permission without separate appointment.
+
+No JWTs, OTPs, or MFA secrets were transmitted to the assistant. No operational records were changed.
+
+**Scope limitation:** These are live role-permission and dashboard/overview checks, not actual `wf_decide_leave` mutations. The multi-stage approval mutation passed earlier rollback-only SQL scenarios; a live browser-driven approval against a fictional request still needs separate confirmation. Positive Website/System Administrator tests remain pending independently designated fictional administrator access. Real signed-token expiration test is still awaiting the user's previously started session test output. Keep PR unmerged.
