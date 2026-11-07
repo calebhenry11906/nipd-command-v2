@@ -73,3 +73,10 @@ Review parent issues #4 and #5 before rollout.
 - [x] Avoid empty-code OTP error in the staging test harness by validating input before submitting.
 - [ ] Original genuine JWT rejection after actual expiration (without earlier sign-out).
 - [ ] Live role checks across fictional ranks and final IT/security review.
+
+## November 6 — Live Lieutenant AAL2 authorization
+- [x] Fictional Lieutenant actual MFA enrollment and signed AAL2 session independently verified.
+- [x] User-executed Lieutenant authorization test returned seven PASS assertions: AAL2 signed access; assigned final-leave and restricted-contact rights; no self-approval, no permissions management, no Website Admin, no System Admin.
+- [ ] End-to-end final leave approval with real signed JWT and fictional request still pending (earlier rollback-only tests are distinct).
+- [ ] Positive Website/System Administrator login with independently granted test appointment remains pending.
+- [ ] Signed token natural expiry result still pending.
