@@ -94,3 +94,24 @@ After verifying the three active fictitious staging accounts and existing role/a
 The harness persists only the fictional request UUID in local browser storage (to coordinate across sign-outs); no OTP, access token, or refresh token is printed, copied, or added to the results. All entries are confined to the already designated fictional staging agency. The test **does generate fictional request, audit, and notification-outbox rows**; it never uses actual department personnel. No automatic cleanup is performed so test evidence remains visible for audit. Browser source displays results, but creating/deploying the harness alone is **NOT test execution or PASS**.
 
 The existing Sergeant JWT natural-expiration test in its own earlier preview is unaffected. Leave this staging release gate open until the user supplies actual results.
+
+## Real signed-session Officer → Sergeant → Lieutenant workflow: PASS (November 6, 2026, 10:52–10:54 PM Central)
+
+User supplied staging browser output with valid AAL2 authentication for each of three preapproved fictional roles. One fictional test request was created with ID `a84ec2f8-f9cf-454a-9182-0d9f94b5617e`, leave kind `other`, beginning 2027-02-17 12:00 UTC and ending 13:00 UTC.
+
+**Browser observations:**
+- Officer signed in with AAL2, submitted request, read `supervisor` status, and received expected authorization rejection when trying to approve own request.
+- A premature Sergeant-stage button click while Officer remained authenticated produced `Wrong account: sign in as sergeantinvalida@gmail.com`, as designed. This is a refused wrong-role test, **not a failed authorized request**.
+- After real Sergeant AAL2 login, first-level approval succeeded, transitioning to `final`. The Sergeant was then denied a final decision with repeated-actor prohibition. Pending independent Lieutenant review remained.
+- After real Lieutenant AAL2 login, the Lieutenant completed a final `denied` decision and retrieved `denied` request status.
+
+**Independent read-only Supabase verification:**
+- Request belongs to designated fictional agency and `officerinvalida@gmail.com`, first assigned reviewer and `first_approved_by` both `sergeantinvalida@gmail.com`, final assigned reviewer `lieutenantainvalid@gmail.com`, `status='denied'`, `reason='Fictional staged authorization test only'`, `absence_id IS NULL`.
+- Exactly **zero approved absences** exist for that fictional Officer and test time window.
+- Audit events in order: `submitted` by Officer, `final` (advance to final stage) by Sergeant, `denied` by Lieutenant.
+- Outbox events correspond to Sergeant first-review alert, Lieutenant final-review alert, and Officer updates.
+- `approved_by` is NULL because the test deliberately ended in a final denial, **not** because the final decision was unrecorded. The `denied` audit actor identifies the Lieutenant.
+
+**Result:** PASS for real multi-identity signed AAL2 request, self-approval denial, first-level transition, repeated-actor denial, final-stage denial, durable status, audit, notifications, and no approved absence. The approval **positive** endpoint (creation of an approved absence) was intentionally not executed to protect the staging staffing ledger and remains a separately optional validation. No production identities were used and no original Officer MFA factor was reset.
+
+**Remaining:** signed JWT natural expiration result; independently administered positive Website/System Admin test (no current appointed fictional admin); final IT/security sign-off. Keep PR draft.
