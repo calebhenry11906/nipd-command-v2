@@ -148,3 +148,16 @@ The time-limited fictional Lieutenant technical System Admin appointment `c70e9c
 **Not proven:** The user did not run the positive Administrator browser permission test during the temporary assignment. Do not count the temporary grant's database creation or the expiration as a positive signed-session `accounts.manage`/`permissions.manage` PASS. A repeat, newly authorized time-limited grant and separate browser test would be needed to close that gate.
 
 **Release:** Do not merge or promote production. Final privileged-function review and department IT/security authorization remain required.
+
+## Post-expiration live System Admin denial — November 6, 2026 11:50 PM Central
+
+User executed the separate staging administrator test harness with `lieutenantainvalid@gmail.com` after the appointment had expired:
+- 11:50:32 PM: PASS signed AAL2 Lieutenant identity and original operational rank.
+- 11:50:32 PM: `accounts.manage=false`, `permissions.manage=false`; the harness labeled this FAIL because it is currently configured for **positive grant** testing, but after the grant's 11:40:24 PM expiry these are the **expected secure results**.
+- 11:50:32 PM: effective `wf_my_permissions` contains no temporary technical grants (the test page likewise labels this FAIL for positive grant criteria; actual behavior is correct post-expiry revocation).
+- 11:50:33 PM: PASS Website Administrator access denied and attempted self-appointment refused.
+- Earlier email-code frequency warning was followed by successful authentication and is not a permission failure.
+
+At 11:51:15 PM, independent read-only SQL verified the single temporary role appointment is `enabled=false`, `effective=false`, the account rank remains `Lieutenant`, and Website Administrator access is false.
+
+**Outcome: PASS for real signed-session post-expiration technical privilege denial. Positive technical Administrator permissions were still not exercised while the grant was effective and therefore remain NOT TESTED.** A later positive test would require renewed, individually authorized time-limited staging provisioning and prompt browser execution.
