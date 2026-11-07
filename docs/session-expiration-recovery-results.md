@@ -49,3 +49,20 @@ The connected Supabase toolset exposes SQL and migrations, but **no supported Au
 - [ ] Final security advisor review and IT/command signoff.
 
 Do not merge the draft PR or activate production rollout.
+
+
+## Follow-up — real Sergeant recovery exercise (November 6, 2026 Central)
+
+**Test identity:** `SergeantInvalidA@gmail.com` — existing fictional active staging Sergeant, not a production employee.
+
+1. Supabase organization Owner role confirmed by user screenshot; Supabase Auth user panel exposed **Remove MFA factors** for the targeted Sergeant.
+2. Before reset: Supabase reported **1 verified factor**, **2 sessions**, and **1 AAL2 session** for the Sergeant.
+3. User reported performing factor removal through Supabase's official administrative UI, enrolling a new authenticator, signing in again, and reaching the full NIPD Command department dashboard.
+4. After reset and re-enrollment: direct Supabase read-only verification found **1 verified factor, 1 current Auth session, 1 AAL2 session** for the Sergeant. The replacement factor has a new `created_at` of 2026-11-07 03:38:30 UTC. No MFA secret, email code or bearer token was collected.
+5. The separate `officerinvalida@gmail.com` account retained **1 verified authenticator factor**; it had **0 Auth sessions** at the time of final read-only verification. No factor-reset command was executed on that identity.
+
+**Outcome:** Real UI-backed administrator factor reset / re-enrollment / AAL2 dashboard recovery **PASSED**. Existing pre-reset sessions are no longer present, consistent with documented Auth admin factor deletion behavior. Do **not** mark old bearer-token replay rejection PASS: no archived pre-reset access token was actually replayed. Also do not mark browser token-expiry flow PASS, because it was not directly exercised. The new database guard passed five simulated JWT expiry/revocation cases separately.
+
+The test did not add any new administrative feature, alter application rank permissions, or enable production use.
+
+**Remaining required validation before merge:** Genuine expired signed token or browser flow, and a retained pre-revocation bearer token rejection test; security advisor review; command/IT authorization.
