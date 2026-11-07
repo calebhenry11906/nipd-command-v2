@@ -89,3 +89,11 @@ Review parent issues #4 and #5 before rollout.
 - [ ] Natural signed JWT expiration result remains pending.
 - [ ] Positive authorized Website/System Administrator permission test requires separately appointed fictional administrator.
 - [ ] Final IT/security review and approval required before merge.
+
+## November 6, 2026 — Real JWT expiry PASS and admin test cleanup
+
+- [x] Genuine signed Sergeant JWT accepted pre-expiry, held in browser memory, and replayed past natural expiry: **HTTP 401** at 11:44:05 PM Central, PASS. Token's claimed expiration: 11:36:06 PM.
+- [x] Signed original bearer after local session revocation: HTTP 403, previously passed.
+- [x] Temporary fictional Lieutenant System Admin test grant automatically became ineffective at 11:40:24 PM Central, and then was explicitly disabled with an audit entry by platform-owner staging administration; read-only verification confirmed role reverted to Lieutenant with no effective administrator appointment or Website Administrator status.
+- [ ] Positive live signed-session technical System Administrator permission test **not run before grant expiry**. Reauthorize only via a new time-bounded audited staging test if needed.
+- [ ] Complete per-function security review, Auth warning decision, and IT/security authorization prior to production.
