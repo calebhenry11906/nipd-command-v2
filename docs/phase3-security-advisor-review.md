@@ -82,3 +82,15 @@ The user signed into the existing fictional `lieutenantainvalid@gmail.com` ident
 No JWTs, OTPs, or MFA secrets were transmitted to the assistant. No operational records were changed.
 
 **Scope limitation:** These are live role-permission and dashboard/overview checks, not actual `wf_decide_leave` mutations. The multi-stage approval mutation passed earlier rollback-only SQL scenarios; a live browser-driven approval against a fictional request still needs separate confirmation. Positive Website/System Administrator tests remain pending independently designated fictional administrator access. Real signed-token expiration test is still awaiting the user's previously started session test output. Keep PR unmerged.
+
+## Signed-session leave workflow harness prepared (November 6, 2026)
+
+After verifying the three active fictitious staging accounts and existing role/authority wiring, created `security-leave-workflow-test.html`, served as an isolated immutable Vercel staging preview. Test flow requires real independently AAL2-verified sign-ins per role:
+
+1. **Officer** submits one future-dated `other` leave request for 2027-02-17 12:00–13:00 UTC using `wf_request_leave`, confirms it is pending, then attempts forbidden self-approval.
+2. **Sergeant** signs in, approves the assigned first stage through `wf_decide_leave`, then attempts forbidden final approval.
+3. **Lieutenant** signs in with assigned final-approver authority and deliberately **denies** the fictional request; verifies `denied` to avoid creating an approved absence.
+
+The harness persists only the fictional request UUID in local browser storage (to coordinate across sign-outs); no OTP, access token, or refresh token is printed, copied, or added to the results. All entries are confined to the already designated fictional staging agency. The test **does generate fictional request, audit, and notification-outbox rows**; it never uses actual department personnel. No automatic cleanup is performed so test evidence remains visible for audit. Browser source displays results, but creating/deploying the harness alone is **NOT test execution or PASS**.
+
+The existing Sergeant JWT natural-expiration test in its own earlier preview is unaffected. Leave this staging release gate open until the user supplies actual results.
