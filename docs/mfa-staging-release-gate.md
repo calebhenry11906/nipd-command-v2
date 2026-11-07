@@ -30,7 +30,7 @@ Status: **SERVER RPC AAL2 APPLIED IN STAGING; AUTH END-TO-END NOT VERIFIED; NOT 
 - **5/5** transaction-local synthetic-claim checks passed (existing active AAL2 session, expired token, nonexistent session, AAL1, permitted Officer workforce membership).
 - **69/69** authenticated-callable workforce functions remain connected to the shared guard.
 - No Auth sessions, factors, employee accounts, or personnel records were changed or removed.
-- **Disposable-account recovery remains unexecuted**: connected tools cannot provision a verified test inbox/user or call privileged Auth factor deletion. See `docs/session-expiration-recovery-results.md`.
+- **Real factor recovery completed** using the Owner's official Supabase dashboard MFA reset action on the separate fictional Sergeant user; verified replacement factor and one new AAL2 session. See `docs/session-expiration-recovery-results.md`.
 - These simulated SQL checks **do not replace real signed bearer-token and browser tests**.
 
 ## Functional and security acceptance
@@ -46,7 +46,8 @@ Status: **SERVER RPC AAL2 APPLIED IN STAGING; AUTH END-TO-END NOT VERIFIED; NOT 
 - [ ] Verify MFA enforcement and authenticated routing from **all** main application modules, not only secure Leave & Training.
 - [ ] Test session expiration, factor removal and authentic disabled-account revocation.
 - [x] Documented minimal secure lost-device recovery using the supported Supabase administrative factor-removal API; see `docs/mfa-account-recovery-runbook.md`.
-- [ ] Actually test factor removal/re-enrollment on a **separate disposable** fictional user; existing working Officer factor must not be reset.
+- [x] Administrator reset + actual Auth replacement-factor enrollment + real AAL2 dashboard re-entry tested on separate existing fictional Sergeant identity. See `docs/session-expiration-recovery-results.md`.
+- [ ] Replay a captured *old* Auth bearer token after its corresponding factor/session is revoked; not yet executed.
 - [ ] Review whether primary email OTP + app TOTP meets department's desired identity assurance policy.
 - [ ] Rerun security advisories; document accepted warnings separately from confirmed vulnerabilities.
 - [ ] Independent department IT / command approval before any real-user enrollment.
