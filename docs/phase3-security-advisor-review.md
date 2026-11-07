@@ -36,3 +36,16 @@ No real Officer factor, Sergeant factor, or sessions were changed by deploying t
 - [ ] IT/security approval and controlled production rollout plan.
 
 **Draft PR remains unmerged. No production promotion.**
+
+## Real signed bearer revocation result — November 6, 2026
+
+User executed the isolated staging security page with a fictional account, reporting:
+
+- `PASS captured old valid signed bearer (kept in browser memory only)` at 9:46:59 PM Central.
+- `PASS replay after signout HTTP 403` at 9:46:59 PM Central.
+
+**Result: PASS** for actual signed access-token replay after browser `signOut({scope:"local"})` on the test session. HTTP 403 indicates the same previously accepted token was rejected by the protected workforce RPC after sign-out. No token value was shared, and the existing authenticator was not removed.
+
+The user also saw `Email verification failed: Verify requires either a token or a token hash` followed by `Email OTP accepted`. The first error is consistent with pressing Verify with an empty OTP field; the later authentication succeeded. A subsequent frontend change validates the email code before calling `verifyOtp`, avoiding the confusing empty-code API error. No security failure is indicated by that first error.
+
+**Still pending:** real signed JWT expiry test (without sign-out), live role-specific permission checks, and remaining IT/security release review. The actual signed token values were not collected or inspected by the assistant.
