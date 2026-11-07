@@ -23,18 +23,19 @@
 </div>
 </section>
 <section class="panel" id="mfa" hidden aria-live="polite"></section>
-<section class="panel" id="setup" hidden><h2>Verified Staging Account</h2><p id="identity"></p><label>Agency ID (Assigned by Staging Administrator) <input id="agency" placeholder="00000000-0000-0000-0000-000000000000" inputmode="text"></label><div class="row"><button id="openBoard">Open Authorized Board</button><a href="dashboard.html" id="dashboardLink" style="display:inline-block;padding:10px 14px;background:#1c568e;color:#fff;border-radius:7px;text-decoration:none">Open NIPD Dashboard</a><button id="signOut">Sign Out</button></div></section>
+<section class="panel" id="setup" hidden><h2>Verified Staging Account</h2><p id="identity"></p><label>Agency ID (Assigned by Staging Administrator) <input id="agency" placeholder="00000000-0000-0000-0000-000000000000" inputmode="text"></label><div class="row"><button id="openBoard">Open Authorized Board</button><a href="index.html" id="dashboardLink" style="display:inline-block;padding:10px 14px;background:#1c568e;color:#fff;border-radius:7px;text-decoration:none">Open NIPD Dashboard</a><button id="signOut">Sign Out</button></div></section>
 <section class="panel" id="board" hidden><h2>My Leave & Training</h2><p>Approvals require an authorized signed-in supervisor account. Rank and assignment rules are enforced by the database.</p>
 <form id="newLeave"><h3>New Fictional Request</h3><label>Type <select id="kind"><option value="vacation">Vacation</option><option value="training">Training</option><option value="other">Other leave</option></select></label><label>Start <input id="start" type="datetime-local" required></label><label>End <input id="end" type="datetime-local" required></label><button>Submit Fictional Request</button></form>
 <h3>My Requests</h3><div id="mine"></div><h3>Assigned Approval Queue</h3><p>Only requests assigned to you appear here. The database enforces approval permissions.</p><div id="review"></div><button id="refresh">Refresh Requests</button></section>
-<p id="feedback" role="status" aria-live="polite"></p><p><a href="dashboard.html" style="color:#1c568e;font-weight:700">Return to Secure Staging Dashboard</a></p></main>
+<p id="feedback" role="status" aria-live="polite"></p><p><a href="index.html" style="color:#1c568e;font-weight:700">Return to Secure Staging Dashboard</a></p></main>
 <script type="module">
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2.108.0";
 import {createMfaGate} from "./mfa-gate.js";
 const db=createClient("https://qvnldjidqyuwglksdtlm.supabase.co","sb_publishable_LovOph-C6UpNNq1oNR4TQQ_1VYEiChB");
 const $=id=>document.getElementById(id), say=(s,bad=false)=>{$("feedback").textContent=s;$("feedback").className=bad?"danger":""};
 let agency=null;
-const gate=createMfaGate(db,$("mfa"),allowed=>{if(!allowed){$("setup").hidden=true;$("board").hidden=true;return}show("setup");$("agency").value="0364257b-f54f-40cb-a34a-0cb125afb16d";db.auth.getUser().then(({data})=>{$("identity").textContent="Signed in as "+(data.user?.email||"Account")+". You may now open your authorized staging workspace."});say("Authenticator verification complete.");});
+const workspaceMode=new URL(location.href).searchParams.get("workspace")==="leave";
+const gate=createMfaGate(db,$("mfa"),allowed=>{if(!allowed){$("setup").hidden=true;$("board").hidden=true;return}if(!workspaceMode){location.replace("index.html");return}show("setup");$("agency").value="0364257b-f54f-40cb-a34a-0cb125afb16d";db.auth.getUser().then(({data})=>{$("identity").textContent="Signed in as "+(data.user?.email||"Account")+". You may now open your authorized staging workspace."});say("Authenticator verification complete.");});
 const requireAal2=async()=>{const a=await db.auth.mfa.getAuthenticatorAssuranceLevel();if(a.error||a.data?.currentLevel!=="aal2"){show("setup");await gate.refresh();say("Complete authenticator verification to continue.",true);return false}return true};
 const show=(id)=>{$("login").hidden=id!=="login";$("setup").hidden=id==="login";$("board").hidden=id!=="board"};
 async function init(){
