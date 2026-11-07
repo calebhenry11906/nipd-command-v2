@@ -115,3 +115,21 @@ User supplied staging browser output with valid AAL2 authentication for each of 
 **Result:** PASS for real multi-identity signed AAL2 request, self-approval denial, first-level transition, repeated-actor denial, final-stage denial, durable status, audit, notifications, and no approved absence. The approval **positive** endpoint (creation of an approved absence) was intentionally not executed to protect the staging staffing ledger and remains a separately optional validation. No production identities were used and no original Officer MFA factor was reset.
 
 **Remaining:** signed JWT natural expiration result; independently administered positive Website/System Admin test (no current appointed fictional admin); final IT/security sign-off. Keep PR draft.
+
+## Owner-authorized temporary System Admin appointment for real positive test — November 6, 2026
+
+The user selected the existing **fictional Lieutenant** `lieutenantainvalid@gmail.com` to test **time-limited technical System Admin** powers, not Website Administrator. Staging project Owner authorization had previously been confirmed via screenshot, and the user explicitly directed that a controlled independently authorized staging grant/revocation mechanism be used.
+
+A one-off **Supabase staging platform owner provisioning transaction** added a role appointment under `public.wf_role_appointments` after checking **all** of:
+- exact staging agency `0364257b-f54f-40cb-a34a-0cb125afb16d`,
+- exact existing pre-approved test email, registered authenticated member, active staff, rank Lieutenant,
+- `wf_personnel_directory.is_demo = true` and active,
+- active staging agency, no overlapping live System Admin appointment, no Website Administrator privileges.
+
+The time-limited appointment has ID `c70e9c28-9683-4b86-9c99-f448eaa8fd66`, agency scope only, `valid_from = 2026-11-07 05:05:24 UTC`, `valid_until = 2026-11-07 05:40:24 UTC` (**November 6 11:40 PM US Central**), `granted_by=NULL` (no human staff actor impersonated), and a distinct `wf_audit` record with `actor_id=NULL`, tagged `staging_owner_authorized_temporary_test_grant`. Verified by read-only SQL that appointment was effective, original Lieutenant rank retained, site administration remained **false**, and audit was recorded.
+
+Note: Platform-owner test provisioning is a distinct elevated administrative operation, *not* the application's `wf_admin_set_website_admin` grant or a claimed successful in-app approval. This test does not change production, real employee accounts, or app guard code. `wf_has_permission` and `wf_my_permissions` check `valid_until` on every call, so temporary technical rights **expire automatically**. The row may remain as historical record after expiry; it should be explicitly marked `enabled=false` and logged when the test concludes.
+
+Staging-only `security-admin-test.html` provides a real AAL2 login for this fictional Lieutenant to test `accounts.manage`, `permissions.manage`, effective permissions, no Website Administrator access, and rejection of `wf_admin_set_website_admin` self-appointment. The page performs no positive privilege mutations and does not display or export JWTs, email codes, or TOTP secrets.
+
+**Status: temporary appointment provisioned and reviewed, but live browser assertions have NOT run yet**. A successful Vercel READY deployment is not equivalent to PASS. Revoke promptly after browser results or allow the bounded grant to expire. Keep Phase 3 in staging.
