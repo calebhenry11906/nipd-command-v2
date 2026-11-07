@@ -80,3 +80,12 @@ Review parent issues #4 and #5 before rollout.
 - [ ] End-to-end final leave approval with real signed JWT and fictional request still pending (earlier rollback-only tests are distinct).
 - [ ] Positive Website/System Administrator login with independently granted test appointment remains pending.
 - [ ] Signed token natural expiry result still pending.
+
+## November 6 — Verified live staged leave approval chain
+- [x] Officer actual AAL2 sign-in and fictional request creation; Officer self-approval blocked.
+- [x] Sergeant actual AAL2 sign-in and assigned first approval transitioned status to final; repeated-actor final approval blocked.
+- [x] Lieutenant actual AAL2 sign-in and final denial; request status persists as denied.
+- [x] Independently verified real request ID `a84ec2f8-f9cf-454a-9182-0d9f94b5617e` in staging database, correct approval actor routing, three audit entries, notification outbox, zero approved absence.
+- [ ] Natural signed JWT expiration result remains pending.
+- [ ] Positive authorized Website/System Administrator permission test requires separately appointed fictional administrator.
+- [ ] Final IT/security review and approval required before merge.
