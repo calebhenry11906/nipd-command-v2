@@ -1,0 +1,75 @@
+name: Phase 3 automated security gates
+on:
+  push:
+    branches:
+      - feature/staging-mandatory-mfa
+    paths:
+      - '.github/workflows/phase3-security.yml'
+      - 'tests/phase3-security-contract.cjs'
+      - 'tests/phase3-staging-readonly.sql'
+      - 'security-*.html'
+      - 'mfa-gate.js'
+      - 'docs/staging-*.sql'
+  pull_request:
+    paths:
+      - '.github/workflows/phase3-security.yml'
+      - 'tests/phase3-security-contract.cjs'
+      - 'tests/phase3-staging-readonly.sql'
+      - 'security-*.html'
+      - 'mfa-gate.js'
+      - 'docs/staging-*.sql'
+  workflow_dispatch:
+    inputs:
+      run_staging_readonly_audit:
+        description: 'Run read-only SQL checks against configured staging connection (requires restricted secret)'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase3-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-contract:
+    name: Offline Phase 3 security contracts (no secrets)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check test script syntax
+        run: node --check tests/phase3-security-contract.cjs
+      - name: Check session/MFA and authorization contracts
+        run: node tests/phase3-security-contract.cjs
+
+  staging-readonly:
+    name: Staging database read-only audit (optional manual dispatch)
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_staging_readonly_audit == true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    environment: nipd-staging-security
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require explicitly configured STAGING read-only credential
+        env:
+          DATABASE_URL: ${{ secrets.NIPD_STAGING_READONLY_DATABASE_URL }}
+        shell: bash
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Missing dedicated staging read-only credential. No database test was executed."
+            exit 1
+          fi
+      - name: Run catalog-only validation; never print connection string
+        env:
+          PGCONNECT_TIMEOUT: '10'
+          PGSSLMODE: require
+          DATABASE_URL: ${{ secrets.NIPD_STAGING_READONLY_DATABASE_URL }}
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" -X -q -v ON_ERROR_STOP=1 -f tests/phase3-staging-readonly.sql
