@@ -101,6 +101,40 @@ async function main(){
     one(await perm(sgt,"leave.approve_final",officerUser),false,"Sergeant final approval denied");
     one(await perm(lt,"leave.approve_final",officerUser),true,"Lieutenant final-level permission on reporting chain");
     one(await perm(sgt,"leave.approve_first",sergeantUser),false,"Supervisor self-scope blocked");
+    // Restricted contacts: never print returned profile values in CI logs.
+    const privateFields=["home_address","emergency_name","emergency_phone","emergency_relationship","emergency_address","personal_phone"];
+    one(await perm(ofc,"contacts.read_restricted",sergeantUser),false,"Officer restricted contact scope denied");
+    one(await perm(sgt,"contacts.read_restricted",officerUser),true,"Assigned Sergeant contact scope");
+    one(await perm(lt,"contacts.read_restricted",officerUser),true,"Lieutenant contact scope for subordinate");
+    const basicOfficerProfile=await rpc(ofc.db,"wf_employee_profile",{p_agency:agency,p_employee:sergeantUser});
+    must(basicOfficerProfile && privateFields.every(k=>!(k in basicOfficerProfile)),"Officer profile leaked restricted keys");
+    log("Officer legacy profile cannot retrieve another employee's restricted contacts");
+    const basicDirectory=await rpc(ofc.db,"wf_employee_directory",{p_agency:agency});
+    must(Array.isArray(basicDirectory) && basicDirectory.every(x=>privateFields.every(k=>!(k in x))),"Officer basic directory leaked restricted keys");
+    const modernDirectory=await rpc(ofc.db,"wf_directory_list",{p_agency:agency});
+    must(Array.isArray(modernDirectory) && modernDirectory.every(x=>privateFields.every(k=>!(k in x))),"Officer modern directory leaked restricted keys");
+    log("Officer legacy and modern directories omit restricted contact fields");
+    // New private-record IDs must come from an independent fictional fixture
+    // setup; validate the directory's demo flag before testing these RPCs.
+    const officerPerson=process.env.NIPD_CI_OFFICER_PERSON_ID;
+    const sergeantPerson=process.env.NIPD_CI_SERGEANT_PERSON_ID;
+    if(officerPerson && sergeantPerson){
+      const fixtureO=modernDirectory.find(x=>x.id===officerPerson);
+      const fixtureS=modernDirectory.find(x=>x.id===sergeantPerson);
+      must(fixtureO?.is_demo===true && fixtureO?.rank==="Officer" &&
+           fixtureS?.is_demo===true && fixtureS?.rank==="Sergeant",
+           "Modern private record CI targets must be fictional directory identities");
+      const privateResult=await rpc(ofc.db,"wf_personnel_private_read",{p_agency:agency,p_person:sergeantPerson});
+      must(privateResult?.allowed===false && privateFields.every(k=>!(k in privateResult)),
+           "Officer retrieved another employee's private record");
+      one(await rpc(ofc.db,"wf_personnel_private_can_edit",{p_agency:agency,p_person:sergeantPerson}),
+          false,"Officer cannot edit another employee's private record");
+      const subordinate=await rpc(sgt.db,"wf_personnel_private_read",{p_agency:agency,p_person:officerPerson});
+      one(subordinate?.allowed,true,"Assigned Sergeant private subordinate access");
+      log("Modern private personnel RPC negative/positive scoped authorization verified");
+    } else {
+      console.log("SKIP modern private-record RPC integration: two dedicated fictional CI person IDs not configured");
+    }
     const admin=await rpc(lt.db,"wf_admin_access_overview",{p_agency:agency});
     one(admin?.is_admin,false,"Lieutenant has no Website Administrator rights");
     await denial(lt.db,"wf_admin_set_website_admin",
