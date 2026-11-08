@@ -70,6 +70,14 @@ BEGIN
         THEN RAISE EXCEPTION 'Officer retrieved another employee private data';END IF;
       IF public.wf_personnel_private_can_edit(agency,sergeant_person)
         THEN RAISE EXCEPTION 'Officer can edit another employee private data'; END IF;
+      response:=public.wf_personnel_private_edit(
+        agency,sergeant_person,'CI-SENTINEL-NOT-REAL','CI-SENTINEL-NOT-REAL',
+        'CI-SENTINEL-NOT-REAL','Test relation','CI-SENTINEL-NOT-REAL','CI-SENTINEL-NOT-REAL');
+      IF response->>'updated' IS DISTINCT FROM 'false' OR response->>'denied' IS DISTINCT FROM 'true'
+        THEN RAISE EXCEPTION 'Officer forbidden private edit was not rejected';END IF;
+      response:=public.wf_personnel_private_read(gen_random_uuid(),sergeant_person);
+      IF response->>'allowed' IS DISTINCT FROM 'false'
+        THEN RAISE EXCEPTION 'Officer foreign agency restricted lookup was not denied';END IF;
       response:=public.wf_personnel_private_read(agency,officer_person);
       IF response->>'allowed' IS DISTINCT FROM 'true' OR response->>'home_address' <> 'CI-SENTINEL-NOT-REAL'
         THEN RAISE EXCEPTION 'Officer self profile read policy unexpectedly failed'; END IF;
