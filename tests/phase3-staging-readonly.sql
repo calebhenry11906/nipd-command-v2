@@ -41,7 +41,7 @@ SELECT 1/(CASE WHEN NOT EXISTS (
  AND has_function_privilege('authenticated',p.oid,'EXECUTE')
  AND (
    has_function_privilege('anon',p.oid,'EXECUTE')
-   OR NOT (p.proconfig @> ARRAY['search_path='])
+   OR NOT EXISTS (SELECT 1 FROM unnest(p.proconfig) cfg WHERE cfg LIKE 'search_path=%')
    OR position('wf_require_aal2()' in pg_get_functiondef(p.oid))=0
    OR position('auth.uid()' in pg_get_functiondef(p.oid))=0
  )
@@ -50,7 +50,7 @@ SELECT 1/(CASE WHEN NOT EXISTS (
 SELECT 1/(CASE WHEN NOT EXISTS (
  SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
  WHERE n.nspname='public' AND p.proname LIKE 'wf_%'
- AND has_function_privilege('public',p.oid,'EXECUTE')
+ AND EXISTS (SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) x WHERE x.grantee=0 AND x.privilege_type='EXECUTE')
 ) THEN 1 ELSE 0 END) AS no_public_workforce_execute;
 \echo Checking all Phase 3 catalog assertions passed
 COMMIT;
