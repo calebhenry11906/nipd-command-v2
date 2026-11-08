@@ -8,6 +8,7 @@ on:
       - 'tests/phase3-security-contract.cjs'
       - 'tests/phase3-staging-readonly.sql'
       - 'tests/phase3-live-workflows.mjs'
+      - 'tests/phase3-restricted-contacts-rollback.sql'
       - 'security-*.html'
       - 'mfa-gate.js'
       - 'docs/staging-*.sql'
