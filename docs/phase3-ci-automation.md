@@ -50,3 +50,20 @@ One-time setup to enable **real signed CI tests**, in addition to the separately
 5. Do not claim a test is PASSED unless the corresponding GitHub run is actually successful. Failure due to missing secrets should be an explicit blocker, not silent skip disguised as success.
 
 Current status: **script and workflow are committed; live signed test identities and GitHub secrets are not configured, and the signed CI job has not run.** The existing 3-account manual signed-session validation and direct staging SQL audit remain separate verified evidence.
+
+## November 7 security advisor privileged-function audit
+
+Current Supabase security advisory counts: **47 INFO** tables with RLS on and no direct policies (consistent with intentionally denied direct table reads, but each RPC still requires review); **23 WARN** authenticated-callable SECURITY DEFINER functions; **1 WARN** leaked-password protection configuration. The advisory flags should not be automatically dismissed solely because code contains authorization references.
+
+Direct staging catalog inspection of all **23** currently authenticated-callable `public.wf_*` SECURITY DEFINER routines found:
+- All 23 contain the shared AAL2 guard and an explicit `auth.uid()` call.
+- All 23 have a configured search path.
+- **0** are executable by the `anon` role.
+- **0** public workforce functions have a direct PUBLIC EXECUTE ACL grant.
+- A second direct staging query found **0** privileged-function guard/search-path anomalies and **0** public function-grant anomalies.
+
+Added **two more** read-only checks to `tests/phase3-staging-readonly.sql` so the optional protected CI audit can enforce these catalog boundaries after the one-time restricted credential setup. Added an offline regression assertion requiring these checks to remain in the SQL audit.
+
+**Caution:** This is structural security testing, not proof against business-logic authorization bugs. In particular, `wf_employee_profile` can expose restricted contacts if `contacts.read_restricted` is wrongly granted, and audit-log side effects occur when contacts are read. Actual signed-session negative tests with separately provisioned fictional users are still necessary. The leaked-password advisor requires an explicit Auth configuration/security decision: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection . No configuration change was made.
+
+Remediation guidance for intentionally callable privileged functions: https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable . RLS design notice: https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy .
