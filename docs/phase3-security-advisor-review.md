@@ -161,3 +161,15 @@ User executed the separate staging administrator test harness with `lieutenantai
 At 11:51:15 PM, independent read-only SQL verified the single temporary role appointment is `enabled=false`, `effective=false`, the account rank remains `Lieutenant`, and Website Administrator access is false.
 
 **Outcome: PASS for real signed-session post-expiration technical privilege denial. Positive technical Administrator permissions were still not exercised while the grant was effective and therefore remain NOT TESTED.** A later positive test would require renewed, individually authorized time-limited staging provisioning and prompt browser execution.
+
+## November 7, 2026: New positive System Administrator browser test window
+
+By explicit user agreement, a second strictly fictional staging **platform-admin-provisioned** System Admin appointment was created for the already verified fictional Lieutenant `lieutenantainvalid@gmail.com`, while retaining Lieutenant operational rank and keeping Website Administrator access false.
+
+A preflight read-only query verified the Lieutenant was active, staff-enabled, `is_demo=true`, had one verified MFA factor, no effective technical-admin appointment, and was not a Website Administrator. The existing immutable staged test page deployment was READY.
+
+The new appointment is `1e9f0f7a-9bb2-4cfa-b812-3189727f00a8`, scope `agency`, valid **2026-11-08 05:05:16 UTC to 05:35:16 UTC** (Central: Nov. 7, 11:05:16–11:35:16 PM); it was created via authorized staging backend provisioning, with `granted_by=NULL` and a linked `wf_audit` event `staging_owner_authorized_temporary_test_grant` with no staff actor impersonated. After provision, direct SQL verified `enabled=true`, **currently effective**, Lieutenant rank intact, Website Admin false, and precisely one linked audit event.
+
+**Positive test is NOT yet passed:** user must complete real signed AAL2 testing on `security-admin-test.html` before the grant expires. On receipt of results, disable exactly this appointment and add a separate closure audit entry, then verify effective permissions have disappeared. The grant will become ineffective automatically after expiry even if client is not online; the historical row should still be disabled promptly after user report.
+
+No production permissions or other employee accounts were modified.
