@@ -67,3 +67,26 @@ Added **two more** read-only checks to `tests/phase3-staging-readonly.sql` so th
 **Caution:** This is structural security testing, not proof against business-logic authorization bugs. In particular, `wf_employee_profile` can expose restricted contacts if `contacts.read_restricted` is wrongly granted, and audit-log side effects occur when contacts are read. Actual signed-session negative tests with separately provisioned fictional users are still necessary. The leaked-password advisor requires an explicit Auth configuration/security decision: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection . No configuration change was made.
 
 Remediation guidance for intentionally callable privileged functions: https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable . RLS design notice: https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy .
+
+## November 8, 2026 — restricted personnel contact authorization regression
+
+**Scope:** two APIs exist: `wf_employee_profile` / `wf_employee_directory` (legacy) and `wf_personnel_private_read` / `wf_directory_list` (newer), plus dispatcher-only `wf_dispatch_contact_read` and scoped `wf_personnel_private_edit`. No actual personnel addresses or emergency contact values were printed, logged, or exported.
+
+- `tests/phase3-restricted-contacts-rollback.sql` tests the **existing deployed staging functions** using Officer → Sergeant → Lieutenant fictional membership and claim simulations. To prevent a false negative from empty fixture tables, the test inserts unmistakably synthetic sentinel private-contact fields into both legacy and modern contact tables **inside one transaction**, then tests that:
+  - Officer can read basic legacy/modern directory and another person's legacy basic profile **without any restricted fields**.
+  - Officer cannot read or edit the Sergeant's private personnel profile, cannot use Communications-only contact RPC, and cannot read private records under a foreign agency UUID.
+  - Officer can read **their own** private personnel record (intentionally supported by the new system).
+  - Sergeant can read the assigned Officer's private information through both APIs but cannot see the Lieutenant's restricted profile.
+  - Lieutenant can read the assigned Officer's restricted profile through both APIs.
+- Transaction ends with `ROLLBACK`, reverting test contact values AND any audit events. The test passed, including Officer unauthorized edit and foreign-agency denial. Independent subsequent SQL verified **0 remaining sentinel rows in either contact table and 0 sentinel audit rows**.
+- Direct table access is also protected: both contact tables have RLS enabled and neither `anon` nor `authenticated` roles have `SELECT` table grants.
+
+**Evidence classification:** this is a real staging database authorization-function execution with **simulated local JWT claim context**, NOT independently cryptographically signed AAL2 sessions. The old and new private contact read paths can be called with signed user tokens only in the separately provisioned CI integration runner (below). Do not mislabel this check as a signed-token end-to-end PASS.
+
+Added offline contract to GitHub Actions that ensures the rollback regression remains present, test fixtures remain fictional, and it does not contain `COMMIT`. This static check does not re-execute the SQL.
+
+**Live signed AAL2 integration extension:** `tests/phase3-live-workflows.mjs` now verifies Officer `contacts.read_restricted=false`, authorized Sergeant/Lieutenant target-scoped permissions, a safe Officer legacy profile and both directories. Modern private-profile read and edit checks are also included when the optional GitHub environment **variables** `NIPD_CI_OFFICER_PERSON_ID` and `NIPD_CI_SERGEANT_PERSON_ID` are set to directory UUIDs of two dedicated **fictional CI** test people. The runner confirms both targets are marked `is_demo=true` and the expected ranks before proceeding. No private field values are written to CI logs. The live signed AAL2 job **has not executed**, because the separate CI Auth identities and protected secrets have not yet been provisioned.
+
+**Policy clarification:** Officers must not see *other employees'* home addresses or emergency contacts through either API. The newer API intentionally supports reading one's *own* private record. The legacy employee-profile API returns only the basic subset to Officers, including for self. Confirm the self-service behavior with the agency before production; do not broaden cross-employee access.
+
+The next test fixture improvement is to provision three CI-only identities and synthetic private-contact values, then run the signed AAL2 CI job under a restricted GitHub environment. Never use real personnel data or actual user MFA seeds.
