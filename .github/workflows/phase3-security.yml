@@ -137,4 +137,6 @@ jobs:
           NIPD_CI_LIEUTENANT_EMAIL: ${{ secrets.NIPD_CI_LIEUTENANT_EMAIL }}
           NIPD_CI_LIEUTENANT_PASSWORD: ${{ secrets.NIPD_CI_LIEUTENANT_PASSWORD }}
           NIPD_CI_LIEUTENANT_TOTP_SECRET: ${{ secrets.NIPD_CI_LIEUTENANT_TOTP_SECRET }}
+          NIPD_CI_OFFICER_PERSON_ID: ${{ vars.NIPD_CI_OFFICER_PERSON_ID }}
+          NIPD_CI_SERGEANT_PERSON_ID: ${{ vars.NIPD_CI_SERGEANT_PERSON_ID }}
         run: node tests/phase3-live-workflows.mjs
