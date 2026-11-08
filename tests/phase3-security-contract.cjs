@@ -15,7 +15,7 @@ const admin=get("security-admin-test.html");
 const leave=get("security-leave-workflow-test.html");
 const session=get("security-session-test.html");
 const guardFiles=["docs/staging-session-revocation-guard.sql","docs/staging-aal2-applied.sql"];
-function checkScript(src,label){const match=src.match(/<script type="module">([\s\S]*?)<\/script>/i);assert.ok(match,label+" must contain a module script");const transformed=match[1].replace(/^\s*import\s+[^;]+;\s*/gm,"");new Function("return (async()=>{\n"+transformed+"\n})");}
+function checkScript(src,label){const match=src.match(/<script type="module">([\s\S]*?)<\/script>/i);assert.ok(match,label+" must contain a module script");const transformed=match[1].replace(/\bimport\s+[^;]+;/g,"");new Function("return (async()=>{\n"+transformed+"\n})");}
 test("server-side guard denies missing authenticator assurance",()=>{
  assert.match(guard,/coalesce\(v_jwt->>'aal','aal1'\)\s*<>\s*'aal2'/);
  assert.match(guard,/v_uid\s+IS\s+NULL/i);
