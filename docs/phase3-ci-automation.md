@@ -28,3 +28,25 @@ No secret was created or installed by this commit. GitHub connector in this sess
 ## Initial result
 
 The first workflow iteration surfaced a genuine test-script parser issue on compact module import statements. It was corrected in `tests/phase3-security-contract.cjs`. GitHub Actions run **42449684734** completed SUCCESS: 12/12 offline security contracts PASS; the live staging job was correctly SKIPPED. The existing temporary fictional Lieutenant System Admin appointment from the manual test was explicitly disabled and separately audited during CI setup; it is not required for these checks.
+
+## November 7 — Live staging read-only audit independently executed
+
+The four checks from `tests/phase3-staging-readonly.sql` were executed directly against the connected **staging** database using the authorized Supabase connection. All four passed: `active_session_expiry_guard=true`, `anon_executable_public_workforce_rpcs=0`, `unguarded_authenticated_workforce_functions=0`, `public_workforce_tables_without_rls=0`.
+
+This is an actual staging backend check, **not a GitHub Actions live job**. GitHub's CI environment secret-management API is not available through the current connector. Accordingly, no dedicated CI database credential has been provisioned, no secret configured, and the optional `staging-readonly` GitHub job has not been executed. **Do not claim the read-only staging audit is connected to unattended GitHub Actions until the environment secret is created and the manual-dispatch job passes.**
+
+## Added live signed AAL2 integration suite — configured but not run
+
+`tests/phase3-live-workflows.mjs` uses actual Supabase Auth email+password followed by real TOTP factor challenge/verification, obtains independent AAL2 access tokens for **three dedicated fictional CI accounts**, and calls protected production-style workforce RPCs on the staging project. It first exercises read-only permission assertions and a forbidden self-appointment attempt. When the distinct manual `run_fictional_leave_workflow` checkbox is enabled, it creates one future dated `other` request, rejects Officer self-approval, approves first level as assigned Sergeant, blocks Sergeant's repeated final decision, and finally **denies** as Lieutenant, preserving audit/outbox events but no approved absence.
+
+GitHub workflow `.github/workflows/phase3-security.yml` includes the opt-in `signed-aal2-workflows` job only for `workflow_dispatch` and only within protected `nipd-staging-security` environment. No service_role credential is used or permitted. Offline push/PR tests now also check the new live test file syntax.
+
+One-time setup to enable **real signed CI tests**, in addition to the separately restricted read-only DB credential:
+
+1. Independently create **three additional fictional CI-only users** in staging Auth with separate generated passwords and separately enrolled TOTP factors, names starting `nipd-ci-` or including `+nipd-ci-`. They must be clearly marked `is_demo=true`, active and assigned as Officer → Sergeant → Lieutenant in the **fictional-only agency**, with valid independent Lieutenant leave authority. Do **not** reuse real employees, existing manually tested identities, email inboxes, or personal MFA factors. Disable mail delivery for fictional outbox notifications if feasible without impacting operational emails; do not schedule recurring leave mutations until notification and retention policy are reviewed.
+2. Add the following protected GitHub **environment secrets** in `nipd-staging-security` via GitHub administrative settings (never commit them or send them in chat): `NIPD_STAGING_PUBLISHABLE_KEY`, `NIPD_CI_OFFICER_EMAIL`, `NIPD_CI_OFFICER_PASSWORD`, `NIPD_CI_OFFICER_TOTP_SECRET`, `NIPD_CI_SERGEANT_EMAIL`, `NIPD_CI_SERGEANT_PASSWORD`, `NIPD_CI_SERGEANT_TOTP_SECRET`, `NIPD_CI_LIEUTENANT_EMAIL`, `NIPD_CI_LIEUTENANT_PASSWORD`, `NIPD_CI_LIEUTENANT_TOTP_SECRET`. Restrict the environment to the trusted staging security workflow/ref and require manual approval for any secret-bearing run. Rotate all test passwords/seeds periodically.
+3. Dispatch the Phase 3 workflow with `run_signed_role_checks=true`, `run_fictional_leave_workflow=false`. Confirm **signed AAL2 permission results** against live staging RPCs.
+4. Only after a review of synthetic notification/outbox behavior, dispatch `run_fictional_leave_workflow=true` once; preserve fictional request/audit evidence. Neither CI flow grants System Admin / Website Administrator powers.
+5. Do not claim a test is PASSED unless the corresponding GitHub run is actually successful. Failure due to missing secrets should be an explicit blocker, not silent skip disguised as success.
+
+Current status: **script and workflow are committed; live signed test identities and GitHub secrets are not configured, and the signed CI job has not run.** The existing 3-account manual signed-session validation and direct staging SQL audit remain separate verified evidence.
