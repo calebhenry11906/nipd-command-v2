@@ -7,6 +7,7 @@ on:
       - '.github/workflows/phase3-security.yml'
       - 'tests/phase3-security-contract.cjs'
       - 'tests/phase3-staging-readonly.sql'
+      - 'tests/phase3-live-workflows.mjs'
       - 'security-*.html'
       - 'mfa-gate.js'
       - 'docs/staging-*.sql'
@@ -20,6 +21,16 @@ on:
       - 'docs/staging-*.sql'
   workflow_dispatch:
     inputs:
+      run_signed_role_checks:
+        description: 'Run real AAL2 role checks using independently provisioned CI-only fictional accounts'
+        required: true
+        type: boolean
+        default: false
+      run_fictional_leave_workflow:
+        description: 'Create and finally deny one synthetic leave request; audit/outbox records will persist'
+        required: true
+        type: boolean
+        default: false
       run_staging_readonly_audit:
         description: 'Run read-only SQL checks against configured staging connection (requires restricted secret)'
         required: true
@@ -43,8 +54,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Check test script syntax
-        run: node --check tests/phase3-security-contract.cjs
+      - name: Check security test syntax
+        run: |
+          node --check tests/phase3-security-contract.cjs
+          node --check tests/phase3-live-workflows.mjs
       - name: Check session/MFA and authorization contracts
         run: node tests/phase3-security-contract.cjs
 
@@ -73,3 +86,54 @@ jobs:
         shell: bash
         run: |
           psql "$DATABASE_URL" -X -q -v ON_ERROR_STOP=1 -f tests/phase3-staging-readonly.sql
+
+  signed-aal2-workflows:
+    name: Live AAL2 fictional permissions and leave tests (opt-in)
+    if: ${{ github.event_name == 'workflow_dispatch' && (inputs.run_signed_role_checks == true || inputs.run_fictional_leave_workflow == true) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: nipd-staging-security
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned test-only Supabase client
+        run: npm install --no-save --ignore-scripts --no-audit --no-fund @supabase/supabase-js@2.108.0
+      - name: Verify live test script syntax
+        run: node --check tests/phase3-live-workflows.mjs
+      - name: Verify protected fictional test secrets are configured
+        shell: bash
+        env:
+          S_KEY: ${{ secrets.NIPD_STAGING_PUBLISHABLE_KEY }}
+          OFF_EMAIL: ${{ secrets.NIPD_CI_OFFICER_EMAIL }}
+          OFF_PASSWORD: ${{ secrets.NIPD_CI_OFFICER_PASSWORD }}
+          OFF_TOTP: ${{ secrets.NIPD_CI_OFFICER_TOTP_SECRET }}
+          SGT_EMAIL: ${{ secrets.NIPD_CI_SERGEANT_EMAIL }}
+          SGT_PASSWORD: ${{ secrets.NIPD_CI_SERGEANT_PASSWORD }}
+          SGT_TOTP: ${{ secrets.NIPD_CI_SERGEANT_TOTP_SECRET }}
+          LT_EMAIL: ${{ secrets.NIPD_CI_LIEUTENANT_EMAIL }}
+          LT_PASSWORD: ${{ secrets.NIPD_CI_LIEUTENANT_PASSWORD }}
+          LT_TOTP: ${{ secrets.NIPD_CI_LIEUTENANT_TOTP_SECRET }}
+        run: |
+          for item in "$S_KEY" "$OFF_EMAIL" "$OFF_PASSWORD" "$OFF_TOTP" "$SGT_EMAIL" "$SGT_PASSWORD" "$SGT_TOTP" "$LT_EMAIL" "$LT_PASSWORD" "$LT_TOTP"; do
+            if [ -z "$item" ]; then
+              echo "::error::Protected staging test credentials are not fully configured. No live tests executed."
+              exit 1
+            fi
+          done
+      - name: Execute real signed AAL2 CI test against staging
+        env:
+          NIPD_TARGET_ENV: staging
+          NIPD_CI_RUN_LEAVE_MUTATIONS: ${{ inputs.run_fictional_leave_workflow && 'true' || 'false' }}
+          NIPD_STAGING_PUBLISHABLE_KEY: ${{ secrets.NIPD_STAGING_PUBLISHABLE_KEY }}
+          NIPD_CI_OFFICER_EMAIL: ${{ secrets.NIPD_CI_OFFICER_EMAIL }}
+          NIPD_CI_OFFICER_PASSWORD: ${{ secrets.NIPD_CI_OFFICER_PASSWORD }}
+          NIPD_CI_OFFICER_TOTP_SECRET: ${{ secrets.NIPD_CI_OFFICER_TOTP_SECRET }}
+          NIPD_CI_SERGEANT_EMAIL: ${{ secrets.NIPD_CI_SERGEANT_EMAIL }}
+          NIPD_CI_SERGEANT_PASSWORD: ${{ secrets.NIPD_CI_SERGEANT_PASSWORD }}
+          NIPD_CI_SERGEANT_TOTP_SECRET: ${{ secrets.NIPD_CI_SERGEANT_TOTP_SECRET }}
+          NIPD_CI_LIEUTENANT_EMAIL: ${{ secrets.NIPD_CI_LIEUTENANT_EMAIL }}
+          NIPD_CI_LIEUTENANT_PASSWORD: ${{ secrets.NIPD_CI_LIEUTENANT_PASSWORD }}
+          NIPD_CI_LIEUTENANT_TOTP_SECRET: ${{ secrets.NIPD_CI_LIEUTENANT_TOTP_SECRET }}
+        run: node tests/phase3-live-workflows.mjs
