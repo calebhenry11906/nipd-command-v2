@@ -81,4 +81,18 @@ test("staging audit checks all privileged RPC guards and public grants",()=>{
  assert.match(sql,/no_public_workforce_execute/);
  assert.match(sql,/aclexplode/);
 });
+test("restricted-contact rollback regression includes denied Officer reads and edits",()=>{
+ const sql=get("tests/phase3-restricted-contacts-rollback.sql");
+ assert.match(sql,/BEGIN;/);
+ assert.match(sql,/ROLLBACK;/);
+ assert.match(sql,/d\.is_demo AND d\.active/);
+ assert.match(sql,/wf_employee_profile/);
+ assert.match(sql,/wf_employee_directory/);
+ assert.match(sql,/wf_directory_list/);
+ assert.match(sql,/wf_personnel_private_read/);
+ assert.match(sql,/wf_personnel_private_edit/);
+ assert.match(sql,/wf_dispatch_contact_read/);
+ assert.match(sql,/CI-SENTINEL-NOT-REAL/);
+ assert.doesNotMatch(sql,/COMMIT;/);
+});
 console.log("\n"+passed+" deterministic Phase 3 contract checks passed.");
