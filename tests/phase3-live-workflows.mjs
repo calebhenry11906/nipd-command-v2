@@ -49,9 +49,13 @@ async function rpc(db,name,params){
   if(error) throw Error(name+" denied unexpectedly: "+error.message);
   return data;
 }
-async function denial(db,name,args,label){
+async function denial(db,name,args,label,expectedPattern){
   const {error}=await db.rpc(name,args);
   assert.ok(error,label+" must be denied");
+  // A missing RPC, invalid argument or network error must never masquerade as
+  // a successful authorization denial.
+  assert.notEqual(error.code,"PGRST202",label+" RPC is unavailable");
+  assert.match(error.message,expectedPattern,label+" returned wrong error");
   log(label+" denied as expected");
 }
 function actor(rank){
@@ -101,7 +105,7 @@ async function main(){
     one(admin?.is_admin,false,"Lieutenant has no Website Administrator rights");
     await denial(lt.db,"wf_admin_set_website_admin",
       {p_agency:agency,p_subject:(await lt.db.auth.getUser()).data.user.id,p_enable:true,p_reason:"CI self-appointment denial control"},
-      "Website Admin self-appointment");
+      "Website Admin self-appointment",/Self appointment or unauthenticated request denied/i);
     if(process.env.NIPD_CI_RUN_LEAVE_MUTATIONS!=="true"){
       console.log("SKIP leave mutations: must opt in using NIPD_CI_RUN_LEAVE_MUTATIONS=true");
       return;
@@ -112,9 +116,9 @@ async function main(){
     const request=await rpc(ofc.db,"wf_request_leave",{p_agency:agency,p_kind:"other",p_start:begins.toISOString(),p_end:ends.toISOString()});
     must(/^[0-9a-f-]{36}$/i.test(request),"Created request has invalid UUID");
     log("Officer created fictional leave request "+request);
-    await denial(ofc.db,"wf_decide_leave",{p_request:request,p_approve:true,p_reason:null},"Officer self-approval");
+    await denial(ofc.db,"wf_decide_leave",{p_request:request,p_approve:true,p_reason:null},"Officer self-approval",/Self approval and repeated actor decisions are prohibited/i);
     one(await rpc(sgt.db,"wf_decide_leave",{p_request:request,p_approve:true,p_reason:null}),"final","Assigned Sergeant first-stage decision");
-    await denial(sgt.db,"wf_decide_leave",{p_request:request,p_approve:true,p_reason:null},"Sergeant second decision");
+    await denial(sgt.db,"wf_decide_leave",{p_request:request,p_approve:true,p_reason:null},"Sergeant second decision",/Self approval and repeated actor decisions are prohibited/i);
     one(await rpc(lt.db,"wf_decide_leave",{p_request:request,p_approve:false,p_reason:"Isolated fictional CI approval validation"}),"denied","Lieutenant final denial");
     const overview=await rpc(lt.db,"wf_leave_overview",{p_agency:agency});
     const saved=overview.requests?.find(r=>r.id===request);
