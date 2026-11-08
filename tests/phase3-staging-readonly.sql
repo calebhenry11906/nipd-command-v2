@@ -33,5 +33,24 @@ SELECT 1/(CASE WHEN NOT EXISTS (
  WHERE n.nspname='public' AND c.relkind IN ('r','p')
  AND c.relname LIKE 'wf_%' AND NOT c.relrowsecurity
 ) THEN 1 ELSE 0 END) AS workforce_rls_enabled;
-\echo Checking all four Phase 3 contract assertions passed
+\echo Inspecting callable privileged RPCs for required shared guards and fixed search path
+SELECT 1/(CASE WHEN NOT EXISTS (
+ SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+ WHERE n.nspname='public' AND p.proname LIKE 'wf_%'
+ AND p.prosecdef
+ AND has_function_privilege('authenticated',p.oid,'EXECUTE')
+ AND (
+   has_function_privilege('anon',p.oid,'EXECUTE')
+   OR NOT (p.proconfig @> ARRAY['search_path='])
+   OR position('wf_require_aal2()' in pg_get_functiondef(p.oid))=0
+   OR position('auth.uid()' in pg_get_functiondef(p.oid))=0
+ )
+) THEN 1 ELSE 0 END) AS privileged_rpc_guard_and_search_path;
+\echo Inspecting all public workforce functions for accidental PUBLIC execute
+SELECT 1/(CASE WHEN NOT EXISTS (
+ SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+ WHERE n.nspname='public' AND p.proname LIKE 'wf_%'
+ AND has_function_privilege('public',p.oid,'EXECUTE')
+) THEN 1 ELSE 0 END) AS no_public_workforce_execute;
+\echo Checking all Phase 3 catalog assertions passed
 COMMIT;
