@@ -74,4 +74,11 @@ test("test scripts contain no private Supabase secret or token literal",()=>{
  assert.doesNotMatch(source,/SUPABASE_SERVICE_ROLE_KEY\s*[:=]\s*["'][A-Za-z0-9_-]+/,file);
  }
 });
+
+test("staging audit checks all privileged RPC guards and public grants",()=>{
+ const sql=get("tests/phase3-staging-readonly.sql");
+ assert.match(sql,/privileged_rpc_guard_and_search_path/);
+ assert.match(sql,/no_public_workforce_execute/);
+ assert.match(sql,/aclexplode/);
+});
 console.log("\n"+passed+" deterministic Phase 3 contract checks passed.");
