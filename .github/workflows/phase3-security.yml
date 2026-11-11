@@ -6,6 +6,10 @@ on:
     paths:
       - '.github/workflows/phase3-security.yml'
       - 'tests/phase3-security-contract.cjs'
+      - 'tests/staging-site-package.cjs'
+      - 'staging-start.html'
+      - 'index.html'
+      - 'dashboard.html'
       - 'tests/phase3-staging-readonly.sql'
       - 'tests/phase3-live-workflows.mjs'
       - 'tests/phase3-restricted-contacts-rollback.sql'
@@ -16,6 +20,10 @@ on:
     paths:
       - '.github/workflows/phase3-security.yml'
       - 'tests/phase3-security-contract.cjs'
+      - 'tests/staging-site-package.cjs'
+      - 'staging-start.html'
+      - 'index.html'
+      - 'dashboard.html'
       - 'tests/phase3-staging-readonly.sql'
       - 'security-*.html'
       - 'mfa-gate.js'
@@ -57,10 +65,13 @@ jobs:
           node-version: '22'
       - name: Check security test syntax
         run: |
+          node --check tests/staging-site-package.cjs
           node --check tests/phase3-security-contract.cjs
           node --check tests/phase3-live-workflows.mjs
       - name: Check session/MFA and authorization contracts
-        run: node tests/phase3-security-contract.cjs
+        run: |
+          node tests/phase3-security-contract.cjs
+          node tests/staging-site-package.cjs
 
   staging-readonly:
     name: Staging database read-only audit (optional manual dispatch)
