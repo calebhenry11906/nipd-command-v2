@@ -56,7 +56,7 @@ async function init(){
   const {data,error}=await db.auth.getUser();
   if(error||!data.user||!session.data.session){
    gate.clear();show("login");
-   say("No active sign-in session was found. If the email opened inside Gmail, select 'Open in browser' and use Chrome for the sign-in link.",true);
+   say("Enter your authorized staging email to request a six-digit sign-in code. If an email link opens inside an email app, use Open in browser and return to this site.");
    return;
   }
   if(url.search||url.hash)history.replaceState(null,"",url.pathname);
