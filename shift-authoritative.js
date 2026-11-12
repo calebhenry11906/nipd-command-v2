@@ -124,7 +124,7 @@ function renderDated(box){
 }
 function renderCoverage(box){
  box.replaceChildren(element("h3","Coverage & Transfers"));
- box.append(element("p","Only existing protected staging requests are shown. Automatic shortage invitations are disabled until staffing is certified.","as-description"));
+ box.append(element("p","Existing protected requests are shown for review. Uncertified shortage records are not pickup opportunities, and new shortage requests are blocked until roster certification.","as-description"));
  const c=cache.coverage;
  if(!c){box.append(alertMessage("Unable to load the authorized coverage board.","warning"));return}
  const board=cache.shiftBoard;
@@ -147,13 +147,13 @@ function renderCoverage(box){
   }
  } else box.append(alertMessage("Shift transfer board could not be loaded.","warning"));
  const rows=[
- ["Available shortage opportunities",c.vacancies],
+ ["Certified shortage opportunities",cache.staff?.authoritative===true&&cache.staff?.alerts_enabled===true?c.vacancies:[]],
  ["My coverage requests",c.mine],
  ["Assigned supervisor review",c.review]
  ];
  for(const [label,list] of rows){
  const panel=element("section",undefined,"as-card");panel.append(element("h4",label));
- if(!Array.isArray(list)||!list.length)panel.append(element("p","No requests available.","as-empty"));
+ if(!Array.isArray(list)||!list.length)panel.append(element("p",label==="Certified shortage opportunities"?"Unavailable until the authorized staffing roster is certified.":"No requests available.","as-empty"));
  else for(const request of list){
    const row=element("div",undefined,"as-request");
    const summary=[request.shift,request.employee,request.status,request.start?date(request.start):null].filter(Boolean).join(" · ");
