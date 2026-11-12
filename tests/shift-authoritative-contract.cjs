@@ -48,4 +48,26 @@ check("responsive layout exposes protected directory and dated coverage",()=>{
  assert.match(source,/Dated Shift Coverage/);
  assert.match(source,/Coverage Requests/);
 });
+check("demo-only unit editor is real RPC-backed with rank-gated visibility",()=>{
+ assert.match(source,/wf_roster_update_demo_unit/);
+ assert.match(source,/wf_my_agencies/);
+ assert.match(source,/\["Lieutenant","Captain","Chief"\]/);
+ assert.match(source,/person\.is_demo&&cache\.canDemoEdit/);
+ const sql=from("sql/phase3_demo_roster_unit_management.sql");
+ assert.match(sql,/wf_require_aal2\(\)/);
+ assert.match(sql,/v_actor_rank not in \('Lieutenant','Captain','Chief'\)/);
+ assert.match(sql,/p\.is_demo/);
+ assert.match(sql,/and is_demo/);
+ assert.match(sql,/reporting_chain/);
+ assert.match(sql,/insert into public\.wf_audit/);
+ assert.match(sql,/revoke all on function .* from public,anon/i);
+});
+check("rollback SQL tests denial for lower roles and non-demo targets",()=>{
+ const sql=from("tests/phase3-demo-roster-rollback.sql");
+ assert.match(sql,/rollback;/);
+ assert.doesNotMatch(sql,/commit;/i);
+ assert.match(sql,/Lower rank was able to reassign demo unit/);
+ assert.match(sql,/Non-demo employee was editable/);
+ assert.match(sql,/Supervisor self-edit permitted/);
+});
 console.log(checks+" authoritative staging roster contract checks passed");
