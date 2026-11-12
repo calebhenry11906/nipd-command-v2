@@ -45,6 +45,25 @@ function safeDirectory(entries){
    return copy;
  });
 }
+function demoEditor(person){
+ const form=element("form",undefined,"as-demo-editor");
+ const unitInput=element("input");unitInput.type="text";unitInput.name="unit";unitInput.value=person.unit||"";unitInput.maxLength=72;unitInput.required=true;unitInput.setAttribute("aria-label","New fictional unit");
+ const reason=element("input");reason.type="text";reason.maxLength=400;reason.minLength=8;reason.required=true;reason.placeholder="Reason (at least 8 characters)";reason.setAttribute("aria-label","Reason for fictional unit change");
+ const submit=element("button","Save fictional unit","as-refresh");submit.type="submit";
+ const status=element("p",undefined,"as-editor-status");status.setAttribute("role","status");
+ form.append(element("p","Fictional staging records only; changes are stored in Supabase and audited.","as-description"),unitInput,reason,submit,status);
+ form.onsubmit=async event=>{
+  event.preventDefault();submit.disabled=true;status.textContent="Saving authorized fictional change…";
+  try{
+   const {data,error}=await db.rpc("wf_roster_update_demo_unit",{p_agency:AGENCY,p_person:person.id,p_unit:unitInput.value.trim(),p_reason:reason.value.trim()});
+   if(error)throw Error("Authorization or validation rejected this change. No edit was saved.");
+   if(data?.updated!==true)throw Error("Update was not confirmed by Supabase.");
+   status.textContent="Saved and audited. Reloading protected roster…";
+   await refresh();
+  }catch(e){status.textContent=e.message;submit.disabled=false}
+ };
+ return form;
+}
 function renderDirectory(box){
  box.replaceChildren(element("h3","Personnel & Unit Assignments"));
  box.append(element("p","Live authorized employee directory. This view does not use local-storage edits, and does not certify deployable shift staffing.","as-description"));
@@ -76,6 +95,7 @@ function renderDirectory(box){
  const add=(label,val)=>{const p=element("p");p.append(element("strong",label+": "),document.createTextNode(val||"Not listed"));d.append(p)};
  add("Division",person.division);add("Unit",person.unit);add("Supervisor",person.supervisor_name);add("Assignments",Array.isArray(person.assignments)?person.assignments.join(", "):"");
  if(person.is_demo)d.append(element("small","Fictional staging record"));
+ if(person.is_demo&&cache.canDemoEdit)d.append(demoEditor(person));
  row.append(summary,d);panel.append(row);
  }
  groups.append(panel);
@@ -137,11 +157,14 @@ async function refresh(){
   const results=await Promise.all([
     db.rpc("wf_directory_list",{p_agency:AGENCY}),
     db.rpc("wf_staffing_readiness",{p_agency:AGENCY}),
-    db.rpc("wf_coverage_board",{p_agency:AGENCY})
+    db.rpc("wf_coverage_board",{p_agency:AGENCY}),
+    db.rpc("wf_my_agencies")
   ]);
   if(ticket!==requestSeq)return;
   if(results[0].error)throw Error("Authenticated personnel directory is unavailable.");
-  cache={people:safeDirectory(results[0].data),staff:results[1].error?null:results[1].data,coverage:results[2].error?null:results[2].data};
+  const roles=results[3].error?[]:Array.isArray(results[3].data)?results[3].data:[];
+  const actorRole=roles.find(x=>x.id===AGENCY)?.rank;
+  cache={people:safeDirectory(results[0].data),staff:results[1].error?null:results[1].data,coverage:results[2].error?null:results[2].data,canDemoEdit:["Lieutenant","Captain","Chief"].includes(actorRole)};
   render();
  }catch(err){
   if(ticket!==requestSeq)return;
