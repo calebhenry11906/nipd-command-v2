@@ -127,6 +127,25 @@ function renderCoverage(box){
  box.append(element("p","Only existing protected staging requests are shown. Automatic shortage invitations are disabled until staffing is certified.","as-description"));
  const c=cache.coverage;
  if(!c){box.append(alertMessage("Unable to load the authorized coverage board.","warning"));return}
+ const board=cache.shiftBoard;
+ if(board){
+  const shiftAreas=[
+   ["Available shift releases",board.available_shifts],
+   ["My scheduled assignments",board.my_assignments],
+   ["Supervisor transfer approvals",board.approvals]
+  ];
+  for(const [label,items] of shiftAreas){
+    const panel=element("section",undefined,"as-card");panel.append(element("h4",label));
+    if(!Array.isArray(items)||!items.length)panel.append(element("p","No records available.","as-empty"));
+    else for(const item of items){
+      const row=element("div",undefined,"as-request");
+      const summary=[item.shift,item.start?date(item.start):null,item.status].filter(Boolean).join(" · ");
+      row.append(element("strong",summary||"Shift assignment"),element("small","Current authenticated database record"));
+      panel.append(row);
+    }
+    box.append(panel);
+  }
+ } else box.append(alertMessage("Shift transfer board could not be loaded.","warning"));
  const rows=[
  ["Available shortage opportunities",c.vacancies],
  ["My coverage requests",c.mine],
@@ -158,13 +177,14 @@ async function refresh(){
     db.rpc("wf_directory_list",{p_agency:AGENCY}),
     db.rpc("wf_staffing_readiness",{p_agency:AGENCY}),
     db.rpc("wf_coverage_board",{p_agency:AGENCY}),
-    db.rpc("wf_my_agencies")
+    db.rpc("wf_my_agencies"),
+    db.rpc("wf_board",{p_agency:AGENCY})
   ]);
   if(ticket!==requestSeq)return;
   if(results[0].error)throw Error("Authenticated personnel directory is unavailable.");
   const roles=results[3].error?[]:Array.isArray(results[3].data)?results[3].data:[];
   const actorRole=roles.find(x=>x.id===AGENCY)?.rank;
-  cache={people:safeDirectory(results[0].data),staff:results[1].error?null:results[1].data,coverage:results[2].error?null:results[2].data,canDemoEdit:["Lieutenant","Captain","Chief"].includes(actorRole)};
+  cache={people:safeDirectory(results[0].data),staff:results[1].error?null:results[1].data,coverage:results[2].error?null:results[2].data,shiftBoard:results[4].error?null:results[4].data,canDemoEdit:["Lieutenant","Captain","Chief"].includes(actorRole)};
   render();
  }catch(err){
   if(ticket!==requestSeq)return;
