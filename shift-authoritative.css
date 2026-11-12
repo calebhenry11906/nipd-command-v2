@@ -30,3 +30,5 @@
 .as-empty{color:#647d91;font-size:13px;padding:15px 17px;line-height:1.6}
 .as-request{display:flex;flex-direction:column;border-top:1px solid #e4ecf3;padding:14px 17px;gap:5px;font-size:13px}.as-request small{color:#67839b}
 @media(max-width:740px){.as-groups{grid-template-columns:1fr}.as-tabs{display:grid;grid-template-columns:1fr}.as-heading{align-items:start}.as-refresh{width:100%}}
+
+.as-demo-editor{display:flex;flex-direction:column;gap:10px;border-top:1px solid #d8e4ed;padding-top:12px;margin-top:12px}.as-demo-editor input{border:1px solid #bbcede;border-radius:8px;padding:10px;min-height:42px;width:100%;font-size:13px}.as-demo-editor button{align-self:start}.as-editor-status{font-size:12px;color:#775817;margin:0;line-height:1.5}
