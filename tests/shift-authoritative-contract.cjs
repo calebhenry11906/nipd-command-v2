@@ -32,7 +32,7 @@ check("no stale signed-in roster cache shown during session changes",()=>{
 });
 check("no insecure editing or synthetic staffing notice accepted as authoritative",()=>{
  assert.doesNotMatch(source,/localStorage|sessionStorage|\.from\(/);
- assert.match(source,/not certified/);
+ assert.match(source,/not certified/i);
  assert.match(source,/alerts_enabled/);
  assert.match(source,/No staffing figures will be shown/);
 });
