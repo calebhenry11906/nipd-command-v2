@@ -9,7 +9,7 @@ const tabs=[["directory","Personnel & Units"],["schedule","Dated Shift Coverage"
 const restrictedKeys=new Set(["home_address","emergency_name","emergency_phone","emergency_relationship","emergency_address","personal_phone"]);
 let currentTab="directory",search="",unit="All",requestSeq=0,cache=null;
 const element=(tag,txt,cls)=>{const n=document.createElement(tag);if(txt!==undefined)n.textContent=String(txt);if(cls)n.className=cls;return n};
-const date=value=>{const d=new Date(value);return Number.isFinite(d.getTime())?d.toLocaleString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"}):"Unknown date"};
+const date=value=>{const d=new Date(value);return Number.isFinite(d.getTime())?d.toLocaleString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit",timeZone:"America/Chicago"}):"Unknown date"};
 const button=(label,callback,cls="")=>{const b=element("button",label,cls);b.type="button";b.onclick=callback;return b};
 function empty(host,message){host.replaceChildren(element("p",message,"as-empty"))}
 function alertMessage(message,kind="notice"){const p=element("p",message,"as-alert as-"+kind);return p}
@@ -22,7 +22,7 @@ function shell(){
  if(!root)return;
  root.replaceChildren();
  root.classList.add("as-integrated");
- root.append(toolbar(),alertMessage("The personnel directory is sourced from Supabase. Dated coverage is not certified; current database shifts are incomplete test records. Staff-shortage emails remain disabled.","warning"));
+ root.append(toolbar(),alertMessage("The directory, dated shifts and coverage queues are sourced from protected Supabase records. Dated staffing remains uncertified, and shortage emails are disabled.","warning"));
  const switcher=element("nav",undefined,"as-tabs");switcher.setAttribute("aria-label","Shift assignment sections");
  for(const [id,label] of tabs){const b=button(label,()=>{currentTab=id;render();},"as-tab");b.dataset.asTab=id;switcher.append(b)}
  root.append(switcher);
@@ -51,7 +51,7 @@ function demoEditor(person){
  const reason=element("input");reason.type="text";reason.maxLength=400;reason.minLength=8;reason.required=true;reason.placeholder="Reason (at least 8 characters)";reason.setAttribute("aria-label","Reason for fictional unit change");
  const submit=element("button","Save fictional unit","as-refresh");submit.type="submit";
  const status=element("p",undefined,"as-editor-status");status.setAttribute("role","status");
- form.append(element("p","Fictional staging records only; changes are stored in Supabase and audited.","as-description"),unitInput,reason,submit,status);
+ form.append(element("p","Fictional staging primary unit only; saved to Supabase and audited. This does not assign a dated shift.","as-description"),unitInput,reason,submit,status);
  form.onsubmit=async event=>{
   event.preventDefault();submit.disabled=true;status.textContent="Saving authorized fictional change…";
   try{
