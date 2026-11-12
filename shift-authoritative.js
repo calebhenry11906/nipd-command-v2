@@ -195,7 +195,7 @@ async function refresh(){
 const previous=window.navigate;
 if(typeof previous==="function")window.navigate=function(id){
  previous(id);
- if(id==="schedule"){root?.classList.add("active");currentTab="directory";refresh()}
+ if(id==="schedule"){document.getElementById("module")?.classList.remove("active");root?.classList.add("active");currentTab="directory";refresh()}
  else {++requestSeq;root?.classList.remove("active")}
 };
 db.auth.onAuthStateChange(()=>{if(root?.classList.contains("active"))refresh()});
