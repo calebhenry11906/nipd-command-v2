@@ -74,4 +74,13 @@ check("rollback SQL tests denial for lower roles and non-demo targets",()=>{
  assert.match(sql,/Non-demo employee was editable/);
  assert.match(sql,/Supervisor self-edit permitted/);
 });
+check("uncertified coverage never presented as pickup opportunity",()=>{
+ const sql=from("sql/phase3_coverage_fail_closed.sql");
+ assert.match(sql,/Coverage requests disabled until roster certification/);
+ assert.match(sql,/wf_staffing_readiness\(sh\.agency_id\)/);
+ assert.match(sql,/wf_staffing_readiness\(p_agency\)/);
+ assert.match(source,/Certified shortage opportunities/);
+ assert.match(source,/cache\.staff\?\.authoritative===true&&cache\.staff\?\.alerts_enabled===true/);
+ assert.match(source,/Unavailable until the authorized staffing roster is certified/);
+});
 console.log(checks+" authoritative staging roster contract checks passed");
