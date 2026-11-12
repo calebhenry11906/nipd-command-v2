@@ -9,6 +9,9 @@ on:
       - 'tests/staging-site-package.cjs'
       - 'staging-start.html'
       - 'index.html'
+      - 'shift-authoritative.js'
+      - 'shift-authoritative.css'
+      - 'tests/shift-authoritative-contract.cjs'
       - 'dashboard.html'
       - 'tests/phase3-staging-readonly.sql'
       - 'tests/phase3-live-workflows.mjs'
@@ -23,6 +26,9 @@ on:
       - 'tests/staging-site-package.cjs'
       - 'staging-start.html'
       - 'index.html'
+      - 'shift-authoritative.js'
+      - 'shift-authoritative.css'
+      - 'tests/shift-authoritative-contract.cjs'
       - 'dashboard.html'
       - 'tests/phase3-staging-readonly.sql'
       - 'security-*.html'
@@ -65,6 +71,8 @@ jobs:
           node-version: '22'
       - name: Check security test syntax
         run: |
+          node --check shift-authoritative.js
+          node --check tests/shift-authoritative-contract.cjs
           node --check tests/staging-site-package.cjs
           node --check tests/phase3-security-contract.cjs
           node --check tests/phase3-live-workflows.mjs
@@ -72,6 +80,7 @@ jobs:
         run: |
           node tests/phase3-security-contract.cjs
           node tests/staging-site-package.cjs
+          node tests/shift-authoritative-contract.cjs
 
   staging-readonly:
     name: Staging database read-only audit (optional manual dispatch)
