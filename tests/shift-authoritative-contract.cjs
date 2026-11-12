@@ -9,8 +9,12 @@ function check(name,fn){try{fn();checks++;console.log("PASS "+name)}catch(e){con
 check("main dashboard loads protected authoritative shift integration last",()=>{
  assert.match(html,/<script type="module" src="shift-authoritative\.js\?v=[^"]+"><\/script>/);
  assert.match(html,/<link rel="stylesheet" href="shift-authoritative\.css\?v=[^"]+">/);
- const a=html.indexOf('src="phase2c-roster.js"'),b=html.indexOf('src="shift-authoritative.js?');
- assert.ok(a>=0&&b>a,"integrated module must supersede legacy roster");
+ const a=html.indexOf('src="shift-assignments.js"'),b=html.indexOf('src="shift-authoritative.js?');
+ assert.ok(a>=0&&b>a,"authoritative navigation must load after legacy seed setup");
+ assert.ok(!html.includes('src="phase2c-roster.js"'),"duplicate legacy staffing panel must not load");
+ assert.match(html,/window\.NIPD_USE_AUTH_ROSTER=true/);
+ assert.match(from("shift-assignments.js"),/if\(window\.NIPD_USE_AUTH_ROSTER\)/);
+ assert.match(source,/document\.getElementById\("module"\)\?\.classList\.remove\("active"\)/);
 });
 check("personnel roster is loaded from role-protected RPC",()=>{
  assert.match(source,/db\.rpc\("wf_directory_list"/);
