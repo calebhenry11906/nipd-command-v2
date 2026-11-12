@@ -50,7 +50,11 @@ function renderDirectory(box){
  box.append(element("p","Live authorized employee directory. This view does not use local-storage edits, and does not certify deployable shift staffing.","as-description"));
  const head=element("div",undefined,"as-filters");
  const input=element("input");input.type="search";input.placeholder="Search employee, rank, unit, radio number";input.setAttribute("aria-label","Search personnel");input.value=search;
- input.oninput=e=>{search=e.target.value;renderDirectory(box)};
+ input.oninput=e=>{
+  search=e.target.value;const cursor=e.target.selectionStart;
+  renderDirectory(box);const next=box.querySelector('input[type="search"]');
+  if(next){next.focus();try{next.setSelectionRange(cursor,cursor)}catch{}}
+ };
  const units=["All",...new Set(cache.people.map(p=>p.unit||"Unassigned").sort())];
  const select=element("select");select.setAttribute("aria-label","Filter personnel by unit");
  for(const u of units){const opt=element("option",u);opt.value=u;select.append(opt)}
@@ -122,6 +126,7 @@ function renderCoverage(box){
 }
 async function refresh(){
  const ticket=++requestSeq;
+ cache=null;
  shell();render();
  try{
   const {data:{user},error}=await db.auth.getUser();
