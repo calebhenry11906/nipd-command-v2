@@ -1,0 +1,34 @@
+/* Integrated authenticated Shift Assignments workspace — staging, Nov 2026 */
+.as-integrated{color:#183a58}
+.as-heading{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;margin:5px 0 18px}
+.as-heading h2{font-size:clamp(22px,3vw,28px);color:#133553;margin:0 0 6px}
+.as-heading p{font-size:13px;color:#637c91;margin:0}
+.as-refresh,.as-tab{border-radius:9px;border:1px solid #bfd0e3;padding:11px 17px;color:#1d507e;background:#f2f7fc;font-weight:650;min-height:44px}
+.as-refresh:hover,.as-tab:hover{background:#e3effb}
+.as-alert{border-radius:11px;padding:14px 17px;font-size:13px;line-height:1.6;margin:0 0 18px;border:1px solid #cfdeea;background:#f1f7fc}
+.as-warning{background:#fff7e7;border-color:#e8c994;color:#7a5417}
+.as-tabs{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:16px}
+.as-tab.selected{background:#205c93;color:white;border-color:#205c93}
+.as-content{border:1px solid #d7e3ed;background:#fff;padding:clamp(16px,3vw,25px);border-radius:15px;min-height:190px}
+.as-content h3{font-size:21px;margin:0 0 10px;color:#133553}
+.as-description{font-size:13px;line-height:1.6;color:#647d91}
+.as-filters{display:flex;gap:9px;flex-wrap:wrap;margin:17px 0 8px}
+.as-filters input,.as-filters select{border:1px solid #bdcddd;border-radius:9px;padding:12px;color:#184060;background:#fafcff;min-height:44px}
+.as-filters input{flex:2;min-width:190px}.as-filters select{flex:1;min-width:140px}
+.as-count{font-weight:600;font-size:12px;color:#668198;margin:6px 0 15px}
+.as-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.as-card{background:#fff;border:1px solid #d5e2ed;border-radius:12px;overflow:hidden;min-width:0;padding:0 0 10px}
+.as-card>h4{font-size:16px;color:#153b5d;padding:18px 17px 5px;margin:0}
+.as-card-head{background:#f0f6fb;padding:14px 17px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.as-card-head h4{font-size:16px;margin:0;color:#17436a}.as-chip{background:#dceaf5;border-radius:20px;padding:5px 9px;color:#315c82;font-size:11px;white-space:nowrap}
+.as-person{border-top:1px solid #e5edf3}.as-person summary{cursor:pointer;padding:13px 16px;font-size:13px;font-weight:650;color:#234a6f;line-height:1.45}
+.as-person summary:hover{background:#f5f9fc}.as-person-details{background:#f9fbfe;padding:9px 17px 15px;color:#405c74;font-size:12px}
+.as-person-details p{margin:5px 0}.as-person-details small{color:#876527}
+.as-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:15px;margin:0}
+.as-metrics div{background:#f2f7fc;padding:12px;border-radius:9px}.as-metrics dt{font-size:12px;color:#647d92}.as-metrics dd{font-weight:750;font-size:22px;margin:5px 0 0;color:#184a77}
+.as-card>.as-description{padding:0 16px}
+.as-empty{color:#647d91;font-size:13px;padding:15px 17px;line-height:1.6}
+.as-request{display:flex;flex-direction:column;border-top:1px solid #e4ecf3;padding:14px 17px;gap:5px;font-size:13px}.as-request small{color:#67839b}
+@media(max-width:740px){.as-groups{grid-template-columns:1fr}.as-tabs{display:grid;grid-template-columns:1fr}.as-heading{align-items:start}.as-refresh{width:100%}}
+
+.as-demo-editor{display:flex;flex-direction:column;gap:10px;border-top:1px solid #d8e4ed;padding-top:12px;margin-top:12px}.as-demo-editor input{border:1px solid #bbcede;border-radius:8px;padding:10px;min-height:42px;width:100%;font-size:13px}.as-demo-editor button{align-self:start}.as-editor-status{font-size:12px;color:#775817;margin:0;line-height:1.5}
