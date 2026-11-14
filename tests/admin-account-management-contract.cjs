@@ -1,0 +1,26 @@
+"use strict";
+const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const read=(x)=>fs.readFileSync(require("node:path").join(__dirname,"..",x),"utf8");
+const js=read("admin-account-management.js"),css=read("admin-account-management.css"),html=read("index.html"),
+renderer=read("admin-details-renderer.js"),sql=read("sql/admin-account-provisioning-review.sql");
+assert.match(sql,/wf_secure\.wf_require_aal2\(\)/);
+assert.match(sql,/wf_site_administrators/);
+assert.match(sql,/staff_access/);
+assert.match(sql,/m\.enabled/);
+assert.match(sql,/sa\.enabled/);
+assert.match(sql,/invitations_enabled',false/);
+assert.match(sql,/revoke all on function public\.wf_admin_account_provisioning_review\(uuid\) from public,anon/);
+assert.match(sql,/grant execute on function public\.wf_admin_account_provisioning_review\(uuid\) to authenticated/);
+assert.doesNotMatch(sql,/insert into auth\.users|auth\.admin|wf_admin_set_website_admin/i);
+assert.match(js,/window\.NIPD_ADMIN_ALLOWED!==true/);
+assert.match(js,/getAuthenticatorAssuranceLevel\(\)/);
+assert.match(js,/currentLevel!=="aal2"/);
+assert.match(js,/db\.rpc\("wf_admin_account_provisioning_review"/);
+assert.match(js,/stillUser\.id!==user\.id/);
+assert.doesNotMatch(js,/db\.auth\.admin|inviteUserByEmail|signUp\(|createUser\(|\.from\(|localStorage|sessionStorage/);
+assert.match(renderer,/NIPD_ACCOUNT_MANAGEMENT_MOUNT/);
+assert.match(html,/admin-account-management\.js\?v=/);
+assert.match(html,/admin-account-management\.css\?v=/);
+assert.match(css,/@media\(max-width:650px\)/);
+console.log("PASS read-only administrator account provisioning contracts");
