@@ -10,6 +10,11 @@ on:
       - 'staging-start.html'
       - 'index.html'
       - 'shift-authoritative.js'
+      - 'admin-account-management.js'
+      - 'admin-account-management.css'
+      - 'admin-details-renderer.js'
+      - 'sql/admin-account-provisioning-review.sql'
+      - 'tests/admin-account-management-contract.cjs'
       - 'shift-authoritative.css'
       - 'tests/shift-authoritative-contract.cjs'
       - 'sql/phase3_demo_roster_unit_management.sql'
@@ -30,6 +35,11 @@ on:
       - 'staging-start.html'
       - 'index.html'
       - 'shift-authoritative.js'
+      - 'admin-account-management.js'
+      - 'admin-account-management.css'
+      - 'admin-details-renderer.js'
+      - 'sql/admin-account-provisioning-review.sql'
+      - 'tests/admin-account-management-contract.cjs'
       - 'shift-authoritative.css'
       - 'tests/shift-authoritative-contract.cjs'
       - 'sql/phase3_demo_roster_unit_management.sql'
@@ -78,6 +88,8 @@ jobs:
       - name: Check security test syntax
         run: |
           node --check shift-authoritative.js
+          node --check admin-account-management.js
+          node --check tests/admin-account-management-contract.cjs
           node --check tests/shift-authoritative-contract.cjs
           node --check tests/staging-site-package.cjs
           node --check tests/phase3-security-contract.cjs
@@ -87,6 +99,7 @@ jobs:
           node tests/phase3-security-contract.cjs
           node tests/staging-site-package.cjs
           node tests/shift-authoritative-contract.cjs
+          node tests/admin-account-management-contract.cjs
 
   staging-readonly:
     name: Staging database read-only audit (optional manual dispatch)
