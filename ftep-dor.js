@@ -3,7 +3,7 @@
 (()=>{"use strict";
 const C=["Driving Skill – Stress Conditions","Orientation Skill – Stress Conditions","Field Performance – Stress Conditions","Officer Safety – General","Officer Safety – Suspicious Persons & Prisoners","Control of Conflict – Voice Command","Control of Conflict – Physical Skill","Use of Force","Driving Skill – Non-Stress Conditions","Orientation Skill – Non-Stress Conditions","Field Performance – Non-Stress Conditions","Problem Solving & Decision Making","Self-Initiated Field Activity","Patrol Procedures","Investigative Procedures","Interview & Interrogation Skills","Technology – Computer / Radar / In-Car Camera / Breath Testing","Routine Forms – Accuracy & Completeness","Report Writing – Organization / Details","Report Writing – Grammar / Neatness / Spelling","Report Writing – Appropriate Time Used","Radio – Use of Codes & Procedures","Radio – Hears & Comprehends Transmissions","Radio – Articulation of Transmissions","Department P&P – Field Performance","Department P&P – Verbal / Written / Simulated Test","Criminal Statutes – Field Performance","Criminal Statutes – Verbal / Written / Simulated Test","Resources & Alternatives – Field Performance","Resources & Alternatives – Verbal / Written / Simulated Test","Traffic Statutes – Field Performance","Traffic Statutes – Verbal / Written / Simulated Test","Acceptance of Feedback – FTO & Program","Attitude Toward Job","Relationships – Citizens","Relationships – Supervisors & Co-workers","Relationships – Ethnic / Cultural / Social Groups","General Appearance"];
 const R=[["","Select rating"],["1","1 — Unacceptable"],["2","2 — Needs improvement"],["3","3 — Below standard"],["4","4 — Minimum acceptable"],["5","5 — Above standard"],["6","6 — Well above standard"],["7","7 — Superior"],["NO","N/O — Not observed"]];
-const observations=[];const ratings={};const notes={};
+const observations=[];const ratings={};const notes={};const trainingResponse={};
 const e=(t,v,c)=>{const x=document.createElement(t);if(v!==undefined)x.textContent=v;if(c)x.className=c;return x};
 function label(text,control){const x=e("label",undefined,"ftep-field");x.append(e("span",text),control);return x}
 function btn(text,act,cls=""){const x=e("button",text,"ftep-btn "+cls);x.type="button";x.onclick=act;return x}
@@ -31,6 +31,7 @@ function open(host,snapshot,back){
  const localObs=()=>observations.filter(o=>o.key===stateKey());
  const localRatings=()=>ratings[stateKey()]||(ratings[stateKey()]={});
  const localNotes=()=>notes[stateKey()]||(notes[stateKey()]={});
+ const localTrainingResponse=()=>trainingResponse[stateKey()]||(trainingResponse[stateKey()]={status:"not_assessed",category:"",details:"",instruction:"",response:"",followup:""});
  const refresh=()=>{const vals=Object.values(localRatings()),count=vals.filter(v=>v&&v!=="NO").length;const scored=vals.map(Number).filter(v=>v>=1&&v<=7);tiles[0][1]=String(localObs().length);tiles[1][1]=count+" / 38";tiles[2][1]=String(scored.filter(v=>v<4).length);tiles[3][1]=String(38-vals.filter(Boolean).length+vals.filter(v=>v==="NO").length);[...stats.children].forEach((t,i)=>t.querySelector("strong").textContent=tiles[i][1])};
  function showObservations(){
   const form=e("form",undefined,"ftep-observe-form");
@@ -69,8 +70,29 @@ function open(host,snapshot,back){
   results.append(e("p",localObs().length+" observations · "+rated.filter(x=>x.r&&x.r!=="NO").length+" numeric ratings · "+missing+" unselected · "+unjustified+" required remarks missing.","ftep-dor-progress"));
   const table=e("table",undefined,"ftep-dor-table"),h=e("tr");["#","Category","Grade"].forEach(t=>h.append(e("th",t)));table.append(h);
   rated.forEach(x=>{const tr=e("tr");[String(x.number),x.name,x.r||"Not selected"].forEach(t=>tr.append(e("td",t)));table.append(tr)});results.append(table);
+  const tr=localTrainingResponse(),responseCard=e("section",undefined,"ftep-observe-form");
+  responseCard.append(e("h3","Response to Training / Not Responding to Training"),e("p","Document observable behavior and actual follow-up. A repeated deficiency does not automatically mean the trainee is refusing or failing to respond to instruction.","ftep-help"));
+  const status=e("select");
+  [["not_assessed","Not assessed"],["responding","Responding to training"],["mixed","Improvement inconsistent / requires reassessment"],["not_responding","Not responding to documented training"]].forEach(([v,t])=>{const o=e("option",t);o.value=v;status.append(o)});
+  status.value=tr.status;status.onchange=()=>{tr.status=status.value;validate()};
+  const cat=e("select");{const o=e("option","Choose affected category");o.value="";cat.append(o)}
+  C.forEach((name,i)=>{const o=e("option",String(i+1).padStart(2,"0")+" · "+name);o.value=String(i+1);cat.append(o)});
+  cat.value=tr.category;cat.onchange=()=>{tr.category=cat.value;validate()};
+  responseCard.append(label("Response status",status),label("SEG category",cat));
+  function fieldFor(title,key){const box=e("textarea");box.rows=2;box.maxLength=2000;box.value=tr[key]||"";box.oninput=()=>{tr[key]=box.value;validate()};responseCard.append(label(title,box))}
+  fieldFor("Observed deficiency / dates and evidence","details");
+  fieldFor("Instruction or remediation actually delivered","instruction");
+  fieldFor("Observed trainee response after instruction","response");
+  fieldFor("Next measurable reassessment","followup");
+  const validation=e("p","","ftep-status");responseCard.append(validation);
+  function validate(){
+   const required=["category","details","instruction","response","followup"];
+   validation.textContent=tr.status==="not_responding"&&required.some(k=>!String(tr[k]||"").trim())?
+    "A 'not responding' designation requires a category, documented observations, instruction, observed follow-up performance, and a reassessment plan.":
+    tr.status==="not_responding"?"Documentation entered. Supervisor review is recommended before any formal adverse training determination.":"This section is an FTO draft and not a disciplinary finding.";
+  }validate();
   const notice=e("p","No submission is available until protected DOR storage, approved SEGs, and supervisor review functions are implemented.","ftep-dor-warning");
-  panel.replaceChildren(results,notice);
+  panel.replaceChildren(results,responseCard,notice);
  }
  const pages=[["observations","Observations"],["ratings","38-category ratings"],["summary","Review draft"]];
  function renderTab(){tabs.replaceChildren();for(const [id,name] of pages){const b=btn(name,()=>{active=id;renderTab()},active===id?"primary":"");b.setAttribute("aria-pressed",String(active===id));tabs.append(b)}refresh();if(active==="observations")showObservations();else if(active==="ratings")showRatings();else showSummary()}
