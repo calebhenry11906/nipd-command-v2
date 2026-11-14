@@ -14,6 +14,10 @@ const importPanel=section("Employee Account Import","Administrator-only Excel/CS
 importPanel.id="nipdBulkImportPanel";
 if(window.NIPD_BULK_IMPORT_MOUNT)window.NIPD_BULK_IMPORT_MOUNT(importPanel);
 else window.addEventListener("nipd-bulk-import-ready",()=>{if(importPanel.isConnected)window.NIPD_BULK_IMPORT_MOUNT?.(importPanel)},{once:true});
+const accounts=section("Employee Account Management","Website Administrator review of the staged 55-person account plan. Read-only; no activation or invitations.");
+accounts.id="nipdAccountManagement";
+if(window.NIPD_ACCOUNT_MANAGEMENT_MOUNT)window.NIPD_ACCOUNT_MANAGEMENT_MOUNT(accounts);
+else window.addEventListener("nipd-account-management-ready",()=>{if(accounts.isConnected)window.NIPD_ACCOUNT_MANAGEMENT_MOUNT?.(accounts)},{once:true});
 const readiness=section("Deployment Readiness — Staging","Live, administrator-only release gate. This is a status check, not authorization to activate production.");
 readiness.id="nipdReadiness";
 const status=n("p","Checking the current staging environment…");readiness.append(status);
