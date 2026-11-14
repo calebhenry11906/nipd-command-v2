@@ -1,0 +1,21 @@
+/* Phase 1 FTEP workbench: all elements are scoped to the existing protected module. */
+.ftep-workbench{max-width:1240px;margin:auto}
+.ftep-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.ftep-metric{padding:16px;border:1px solid #d5e3ef;border-radius:12px;background:#f7fbff;display:grid;gap:5px}
+.ftep-metric strong{font-size:25px;line-height:1.15;color:#18466b}
+.ftep-metric span{font-size:12px;color:#59748d}
+.ftep-tabs{display:flex;gap:9px;flex-wrap:wrap;border-bottom:1px solid #d7e5ee;padding-bottom:14px}
+.ftep-work-panel{min-width:0}
+.ftep-observe-form{padding:20px;border:1px solid #d6e3ee;border-radius:12px;background:#fbfdff;display:grid;gap:10px}
+.ftep-observe-form h3{font-size:18px;margin:0;color:#173f5c}
+.ftep-observe-grid{display:grid;grid-template-columns:1fr 2fr 1.5fr;gap:10px}
+.ftep-observe-form textarea{border:1px solid #bccfe0;border-radius:8px;min-height:120px;padding:12px;font:inherit;resize:vertical;color:#153d5c}
+.ftep-observation-list{display:grid;gap:10px;margin-top:15px}
+.ftep-observation{border:1px solid #d7e3ed;border-radius:12px;padding:15px;background:#fff;display:grid;gap:5px}
+.ftep-observation strong{color:#173d5c}.ftep-observation small{color:#5c7184}.ftep-observation p{margin:3px 0;white-space:pre-wrap}
+.ftep-seg-guide{grid-column:1/-1;margin:0;background:#eef5fc;border-left:3px solid #29739d;padding:10px 12px;font-size:12px;color:#32546d;line-height:1.5}
+.ftep-workbench .ftep-dor-row{grid-template-columns:minmax(0,1fr) minmax(0,220px)}
+.ftep-workbench .ftep-dor-row .ftep-field:last-of-type{grid-column:1/-1}
+.ftep-workbench .ftep-dor-row .ftep-status{grid-column:1/-1}
+.ftep-workbench .ftep-dor-table{min-width:500px}
+@media(max-width:720px){.ftep-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.ftep-observe-grid{grid-template-columns:1fr}.ftep-workbench .ftep-dor-row{grid-template-columns:1fr}}
