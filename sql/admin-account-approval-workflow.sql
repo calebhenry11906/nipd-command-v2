@@ -51,6 +51,10 @@ begin
  or person.auth_user_id is not null or (person.supervisor_person_id is not null and not person.supervisor_verified)
  or (person.full_name<>'Brandon Williams' and person.supervisor_person_id is null)
  then raise exception 'Account plan is not eligible for approval' using errcode='42501';end if;
+ if exists(select 1 from wf_secure.wf_account_approval_requests r
+ where r.agency_id=p_agency and r.person_id=p_person
+ and r.decision in ('awaiting_independent_review','approved_for_invitation_staging'))
+ then raise exception 'Account already pending or independently approved' using errcode='42501';end if;
  if exists(select 1 from auth.users where lower(email)=candidate.planned_email)
  then raise exception 'Email already belongs to an authentication account' using errcode='23505';end if;
  insert into wf_secure.wf_account_approval_requests
