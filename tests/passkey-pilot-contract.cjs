@@ -1,0 +1,18 @@
+"use strict";
+const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const path=require("node:path");
+const read=p=>fs.readFileSync(path.join(__dirname,"..",p),"utf8");
+const html=read("passkey-pilot.html"),src=read("passkey-pilot.js"),entry=read("staging-start.html"),gate=read("dashboard-auth-gate.js");
+assert.match(html,/Passkey Authentication Pilot/);
+assert.match(html,/Not an operational login replacement/);
+assert.match(entry,/href="\.\/passkey-pilot\.html"/);
+assert.match(src,/experimental:\{passkey:true\}/);
+assert.match(src,/auth\.signInWithPasskey\(\)/);
+assert.match(src,/auth\.registerPasskey\(\)/);
+assert.match(src,/getAuthenticatorAssuranceLevel\(\)/);
+assert.match(src,/currentLevel!=="aal2"/);
+assert.match(src,/!user\.email_confirmed_at/);
+assert.doesNotMatch(src,/createUser|inviteUserByEmail|resetPasswordForEmail|auth\.admin|sessionStorage|localStorage|window\.location\s*=|location\.replace|\.from\(/);
+assert.match(gate,/aal\.data\.currentLevel!=="aal2"/);
+console.log("PASS isolated passkey pilot, existing MFA gate unchanged, no invitations or grants");
