@@ -1,15 +1,15 @@
-// NIPD Command v2 — staging employee account management (review-only).
-// Server rejects non-admin requests. No invite, activation, or grant actions are implemented.
+// NIPD Command v2 — staged, two-actor employee account review workflow.
+// Server enforces independent Website Administrator decisions. No invite, activation, or grant actions.
 (()=>{
 "use strict";
 const AGENCY="0364257b-f54f-40cb-a34a-0cb125afb16d";
 const el=(tag,value,cls)=>{const node=document.createElement(tag);if(value!==undefined)node.textContent=String(value);if(cls)node.className=cls;return node};
 let mounted=null;let runId=0;let filter="",statusFilter="all";
 const statusNames={pending_approval:"Awaiting approval",existing_linked:"Existing linked account",needs_email_verification:"Verify email",needs_scope_review:"Scope review"};
-function render(host,people){
+function render(host,people,requests,actor,db){
  host.replaceChildren();
  const title=el("h3","Employee Account Management");
- const intro=el("p","Staging review only · Website Administrators · No employee invitations, account activation, or permission grants.","am-help");
+ const intro=el("p","Staging approvals only · Two separate Website Administrators required · No employee invitations, account activation, or permission grants.","am-help");
  const stats=el("div",undefined,"am-stats");
  for(const [name,count] of [["Personnel staged",people.length],["Email mapped",people.filter(x=>x.department_email).length],["Pending approval",people.filter(x=>x.status==="pending_approval").length],["Existing account",people.filter(x=>x.already_linked).length],["Scope review",people.filter(x=>x.status==="needs_scope_review").length]]){const item=el("div",undefined,"am-stat");item.append(el("strong",count),el("span",name));stats.append(item)}
  const bar=el("div",undefined,"am-tools");
@@ -29,6 +29,44 @@ function render(host,people){
    head.append(name,state);
    const info=el("div",undefined,"am-detail");
    for(const [label,value] of [["Unit",p.unit],["Reports to",p.supervisor||"Department command"],["Department email",p.department_email||"Not verified"],["Planned authorization role",p.planned_role],["Scope",p.scope],["MFA",p.requires_mfa?"Required":"Not configured"],["Account",p.already_linked?"Previously linked":"Not activated"],["Next step",p.note||"Awaiting explicit authorization"]]){const row=el("p");row.append(el("strong",label+": "),document.createTextNode(value||"—"));info.append(row)}
+   const related=requests.filter(r=>r.person_id===p.person_id);
+   if(related.length){const last=related[0];info.append(el("p","Approval history: "+last.decision.replaceAll("_"," ")+" · "+new Date(last.requested_at).toLocaleString(),"am-help"));}
+   const pending=related.find(r=>r.decision==="awaiting_independent_review");
+   const actions=el("div",undefined,"am-review-actions");
+   const result=el("p",undefined,"am-help");result.setAttribute("role","status");
+   const reason=el("input");reason.type="text";reason.minLength=10;reason.maxLength=400;reason.placeholder="Document authorization reason (10+ characters)";reason.setAttribute("aria-label","Account decision reason for "+p.name);
+   const requestButton=el("button","Submit for independent review");
+   const approveButton=el("button","Approve for invitation staging");
+   const rejectButton=el("button","Reject access request");
+   async function runAction(rpc,args){
+    if(reason.value.trim().length<10){result.textContent="An authorization reason of at least 10 characters is required.";return}
+    for(const b of [requestButton,approveButton,rejectButton])b.disabled=true;
+    result.textContent="Submitting a staging decision…";
+    try{
+     if(window.NIPD_ADMIN_ALLOWED!==true)throw Error("Authorization expired");
+     const {data:{user}}=await db.auth.getUser();
+     const {data:aal}=await db.auth.mfa.getAuthenticatorAssuranceLevel();
+     if(!user||user.id!==actor||aal?.currentLevel!=="aal2")throw Error("Signed-in authenticator session changed");
+     const {error}=await db.rpc(rpc,args);
+     if(error)throw Error("Decision was not accepted. Check independent administrator and employee eligibility.");
+     result.textContent="Decision recorded in staging; no invitation sent.";
+     await mount(host);
+    }catch(e){result.textContent=e.message;for(const b of [requestButton,approveButton,rejectButton])b.disabled=false}
+   }
+   requestButton.type=approveButton.type=rejectButton.type="button";
+   requestButton.onclick=()=>runAction("wf_admin_account_request_review",{p_agency:AGENCY,p_person:p.person_id,p_reason:reason.value.trim()});
+   approveButton.onclick=()=>runAction("wf_admin_account_decide_review",{p_agency:AGENCY,p_request:pending.id,p_approve:true,p_reason:reason.value.trim()});
+   rejectButton.onclick=()=>runAction("wf_admin_account_decide_review",{p_agency:AGENCY,p_request:pending.id,p_approve:false,p_reason:reason.value.trim()});
+   if(p.status==="pending_approval"&&!p.already_linked){
+    actions.append(reason);
+    if(pending){
+      actions.append(el("p",pending.requester===actor?"Awaiting another Website Administrator; self-approval is blocked.":"Separate Website Administrator review available.","am-help"));
+      if(pending.requester!==actor)actions.append(approveButton,rejectButton);
+    } else if(!related.some(r=>r.decision==="approved_for_invitation_staging")) actions.append(requestButton);
+    else actions.append(el("p","Independently approved for future invitation staging; real invitations remain disabled.","am-help"));
+    actions.append(result);
+    info.append(actions);
+   }
    details.append(head,info);list.append(details);
   }
  }
@@ -54,7 +92,7 @@ async function mount(host){
   if(ticket!==runId||mounted!==host||!host.isConnected)return;
   const {data:{user:stillUser}}=await db.auth.getUser();
   if(!stillUser||stillUser.id!==user.id||window.NIPD_ADMIN_ALLOWED!==true)throw Error("Session changed; reload Administration.");
-  render(host,data.items);
+  render(host,data.items,Array.isArray(data.approval_requests)?data.approval_requests:[],user.id,db);
  }catch(_){if(ticket===runId&&mounted===host)host.replaceChildren(el("h3","Employee Account Management"),el("p","Account review is unavailable. Authorized Website Administrator access and authenticator MFA are required. No employee information was displayed.","am-help"))}
 }
 window.NIPD_ACCOUNT_MANAGEMENT_MOUNT=mount;
