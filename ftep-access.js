@@ -139,7 +139,7 @@ async function render(){
  root.replaceChildren(el("h2","Field Training & Evaluation Program"));
  const content=el("div",undefined,"ftep-grid");
  content.append(summary(data),roster(data),assignmentList(data));
- const dorLaunch=heading("Daily Observation Reports","Open the dedicated DOR screen to grade each of the 30 observations individually and view per-category cumulative scoring. The report editor is a staging preview until secure DOR storage and official evaluation guidelines are approved.");
+ const dorLaunch=heading("Daily Observation Reports","Open a dedicated 38-category DOR workbench with quick field observations, rating guidance, and a draft review. This remains a staging preview until protected storage and approved SEG text are available.");
  const openDor=button("Open Daily Observation Reports",()=>{
    if(typeof window.NIPD_FTEP_SHOW_DOR!=="function"){return}
    window.NIPD_FTEP_SHOW_DOR(root,data,()=>render());
@@ -153,7 +153,7 @@ async function render(){
   content.append(manageAssignments(data,data.trainees||[]));
  }
  if(["admin","coordinator","command"].includes(access))content.append(history(data));
- const info=heading("Official Evaluation Records","The 30 observation labels, protected DOR storage, electronic acknowledgments, and phase release decisions still require the approved departmental evaluation guidelines and database workflow. The DOR scoring screen is not an official record.");
+ const info=heading("Official Evaluation Records","Protected DOR storage, official SEG text, electronic acknowledgments, and phase release decisions still require the approved departmental evaluation guidelines and database workflow. The DOR workbench is not an official record.");
  content.append(info);root.append(content);
 }
 window.NIPD_FTEP_RENDER=()=>{if(!isOpen()){root.hidden=true;return}root.hidden=false;render()};
