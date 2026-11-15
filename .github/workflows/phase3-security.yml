@@ -9,6 +9,9 @@ on:
       - 'tests/staging-site-package.cjs'
       - 'staging-start.html'
       - 'index.html'
+      - 'passkey-pilot.html'
+      - 'passkey-pilot.js'
+      - 'tests/passkey-pilot-contract.cjs'
       - 'shift-authoritative.js'
       - 'admin-account-management.js'
       - 'admin-account-management.css'
@@ -35,6 +38,9 @@ on:
       - 'tests/staging-site-package.cjs'
       - 'staging-start.html'
       - 'index.html'
+      - 'passkey-pilot.html'
+      - 'passkey-pilot.js'
+      - 'tests/passkey-pilot-contract.cjs'
       - 'shift-authoritative.js'
       - 'admin-account-management.js'
       - 'admin-account-management.css'
@@ -91,6 +97,8 @@ jobs:
         run: |
           node --check shift-authoritative.js
           node --check admin-account-management.js
+          node --check passkey-pilot.js
+          node --check tests/passkey-pilot-contract.cjs
           node --check tests/admin-account-management-contract.cjs
           node --check tests/shift-authoritative-contract.cjs
           node --check tests/staging-site-package.cjs
@@ -102,6 +110,7 @@ jobs:
           node tests/staging-site-package.cjs
           node tests/shift-authoritative-contract.cjs
           node tests/admin-account-management-contract.cjs
+          node tests/passkey-pilot-contract.cjs
 
   staging-readonly:
     name: Staging database read-only audit (optional manual dispatch)
