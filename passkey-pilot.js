@@ -13,6 +13,31 @@ function failure(error){const code=error?.code||"";
  if(code==="webauthn_verification_failed")return "The phone passkey could not be verified.";
  return "Passkey verification was cancelled, unsupported, or rejected. No protected workforce access was granted.";
 }
+const preflight=byId("passkeyPreflight");
+preflight.addEventListener("click",async()=>{
+ preflight.disabled=true;
+ try{
+  if(!window.isSecureContext || !window.PublicKeyCredential){
+   message("preflightStatus","BLOCKED: This browser or connection does not support secure WebAuthn passkeys.");return;
+  }
+  const supported=await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+  if(!supported){message("preflightStatus","REVIEW: No local platform authenticator detected. Cross-device phone passkeys may still work.");}
+  const stableHost="nipd-workforce-staging-login.vercel.app";
+  if(location.hostname!==stableHost){
+   message("preflightStatus","BLOCKED for enrollment: This is a changing preview hostname ("+location.hostname+"). Use a dedicated stable staging domain configured as Supabase's WebAuthn relying-party ID and allowed HTTPS origin. The stable hostname must serve this staging branch.");
+   return;
+  }
+  const {data,error}=await db.auth.passkey.startAuthentication();
+  if(error){
+   message("preflightStatus",error.code==="passkey_disabled"
+    ?"BLOCKED: Enable experimental Passkeys in the Supabase staging project's Authentication settings."
+    :"BLOCKED: Supabase passkey readiness check failed. Verify enabled feature and WebAuthn relying-party settings.");return;
+  }
+  if(!data?.challenge_id){message("preflightStatus","BLOCKED: No WebAuthn challenge was provided.");return}
+  message("preflightStatus","PASS: HTTPS and WebAuthn challenge available on fixed hostname. Device enrollment and protected-server acceptance still require separate testing.");
+ }catch(_){message("preflightStatus","BLOCKED: Cannot validate WebAuthn readiness on this device or origin. No authentication was changed.")}
+ finally{preflight.disabled=false}
+});
 signIn.addEventListener("click",async()=>{
  signIn.disabled=true;message("signInStatus","Requesting a passkey from your device…");
  try{
