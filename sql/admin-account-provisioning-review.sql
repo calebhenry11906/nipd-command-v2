@@ -22,6 +22,14 @@ begin
   'invitations_enabled',false,
   'account_creation_enabled',false,
   'mfa_required',true,
+  'current_actor',actor,
+  'approval_requests',coalesce((
+    select jsonb_agg(jsonb_build_object(
+       'id',r.id,'person_id',r.person_id,'requester',r.requested_by,
+       'requested_at',r.requested_at,'decision',r.decision,'decided_at',r.decided_at
+    ) order by r.requested_at desc)
+    from wf_secure.wf_account_approval_requests r where r.agency_id=p_agency
+  ),'[]'::jsonb),
   'total',(select count(*) from wf_secure.wf_account_provisioning_plan p where p.agency_id=p_agency),
   'items',coalesce((
     select jsonb_agg(jsonb_build_object(
