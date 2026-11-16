@@ -6,10 +6,12 @@ const AGENCY="0364257b-f54f-40cb-a34a-0cb125afb16d";
 const el=(tag,value,cls)=>{const node=document.createElement(tag);if(value!==undefined)node.textContent=String(value);if(cls)node.className=cls;return node};
 let mounted=null;let runId=0;let filter="",statusFilter="all";
 const statusNames={pending_approval:"Awaiting approval",existing_linked:"Existing linked account",needs_email_verification:"Verify email",needs_scope_review:"Scope review"};
-function render(host,people,requests,actor,db){
+function render(host,people,requests,actor,db,eligibleAdmins){
  host.replaceChildren();
  const title=el("h3","Employee Account Management");
  const intro=el("p","Staging approvals only · Two separate Website Administrators required · No employee invitations, account activation, or permission grants.","am-help");
+ const preflight=el("p",eligibleAdmins<2?"Account approvals are blocked: two independently authorized Website Administrators are required. Currently eligible: "+eligibleAdmins+". No invitations or accounts can be created.":"Independent administrator review is configured. Approvals are staging decisions only; employee access remains disabled.","am-help");
+ host.append(preflight);
  const stats=el("div",undefined,"am-stats");
  for(const [name,count] of [["Personnel staged",people.length],["Email mapped",people.filter(x=>x.department_email).length],["Pending approval",people.filter(x=>x.status==="pending_approval").length],["Existing account",people.filter(x=>x.already_linked).length],["Scope review",people.filter(x=>x.status==="needs_scope_review").length]]){const item=el("div",undefined,"am-stat");item.append(el("strong",count),el("span",name));stats.append(item)}
  const bar=el("div",undefined,"am-tools");
@@ -57,7 +59,7 @@ function render(host,people,requests,actor,db){
    requestButton.onclick=()=>runAction("wf_admin_account_request_review",{p_agency:AGENCY,p_person:p.person_id,p_reason:reason.value.trim()});
    approveButton.onclick=()=>runAction("wf_admin_account_decide_review",{p_agency:AGENCY,p_request:pending.id,p_approve:true,p_reason:reason.value.trim()});
    rejectButton.onclick=()=>runAction("wf_admin_account_decide_review",{p_agency:AGENCY,p_request:pending.id,p_approve:false,p_reason:reason.value.trim()});
-   if(p.status==="pending_approval"&&!p.already_linked){
+   if(p.status==="pending_approval"&&!p.already_linked&&eligibleAdmins>=2){
     actions.append(reason);
     if(pending){
       actions.append(el("p",pending.requester===actor?"Awaiting another Website Administrator; self-approval is blocked.":"Separate Website Administrator review available.","am-help"));
@@ -92,7 +94,7 @@ async function mount(host){
   if(ticket!==runId||mounted!==host||!host.isConnected)return;
   const {data:{user:stillUser}}=await db.auth.getUser();
   if(!stillUser||stillUser.id!==user.id||window.NIPD_ADMIN_ALLOWED!==true)throw Error("Session changed; reload Administration.");
-  render(host,data.items,Array.isArray(data.approval_requests)?data.approval_requests:[],user.id,db);
+  render(host,data.items,Array.isArray(data.approval_requests)?data.approval_requests:[],user.id,db,Number(data.eligible_website_administrators)||0);
  }catch(_){if(ticket===runId&&mounted===host)host.replaceChildren(el("h3","Employee Account Management"),el("p","Account review is unavailable. Authorized Website Administrator access and authenticator MFA are required. No employee information was displayed.","am-help"))}
 }
 window.NIPD_ACCOUNT_MANAGEMENT_MOUNT=mount;
