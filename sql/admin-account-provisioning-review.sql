@@ -46,6 +46,17 @@ begin
        'supervisor',s.full_name,
        'status',p.provisioning_status,
        'requires_mfa',p.requires_mfa,'already_linked',d.auth_user_id is not null,
+       'lifecycle_stage',case
+         when not d.active then 'offboarded'
+         when d.auth_user_id is not null then 'existing_account_check_required'
+         when p.planned_email is null then 'needs_verified_email'
+         when p.provisioning_status='needs_scope_review' then 'needs_access_scope_review'
+         else 'not_provisioned' end,
+       'lifecycle_next_action',case
+         when d.auth_user_id is not null then 'Confirm account enabled status and MFA from protected identity administration before any change'
+         when p.planned_email is null then 'Verify department email'
+         when p.provisioning_status='needs_scope_review' then 'Review role and operational scope'
+         else 'Await approved onboarding and invitation workflow' end,
        'invitation_sent',false,
        'note',p.note
     ) order by d.full_name)
