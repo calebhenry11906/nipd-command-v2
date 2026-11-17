@@ -43,6 +43,11 @@ begin
  where a.agency_id=p_agency and a.user_id=actor and a.enabled
  ) then raise exception 'Website Administrator approval access required' using errcode='42501';end if;
  if length(trim(coalesce(p_reason,'')))<10 then raise exception 'Provide an authorization reason of at least 10 characters';end if;
+ if (select count(*) from public.wf_site_administrators a
+   join public.wf_members m on m.agency_id=a.agency_id and m.user_id=a.user_id and m.enabled
+   join public.staff_access s on s.user_id=a.user_id and s.enabled
+   where a.agency_id=p_agency and a.enabled)<2
+ then raise exception 'Independent Website Administrator reviewer not configured' using errcode='42501';end if;
  select * into candidate from wf_secure.wf_account_provisioning_plan where agency_id=p_agency and person_id=p_person for update;
  select * into person from public.wf_personnel_directory where agency_id=p_agency and id=p_person;
  if not found or not person.active or person.is_demo or candidate.person_id is null or candidate.provisioning_status<>'pending_approval'
@@ -100,6 +105,8 @@ begin
  or d.supervisor_person_id is distinct from req.supervisor_snapshot
  or not p.requires_mfa or (d.supervisor_person_id is not null and not d.supervisor_verified)
  then raise exception 'Employee mapping changed or no longer eligible; reject and restart review' using errcode='42501';end if;
+ if p_approve and exists(select 1 from auth.users u where lower(u.email)=p.planned_email)
+ then raise exception 'Email has become linked to an authentication account; restart review' using errcode='23505';end if;
  new_status:=case when p_approve then 'approved_for_invitation_staging' else 'rejected' end;
  update wf_secure.wf_account_approval_requests
  set decision=new_status,decided_by=actor,decided_at=now(),decision_reason=left(trim(p_reason),400)
