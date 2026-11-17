@@ -3,7 +3,7 @@ const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const read=(x)=>fs.readFileSync(require("node:path").join(__dirname,"..",x),"utf8");
 const js=read("admin-account-management.js"),css=read("admin-account-management.css"),html=read("index.html"),
-renderer=read("admin-details-renderer.js"),sql=read("sql/admin-account-provisioning-review.sql");
+renderer=read("admin-details-renderer.js"),sql=read("sql/admin-account-provisioning-review.sql"),approvals=read("sql/admin-account-approval-workflow.sql");
 assert.match(sql,/wf_secure\.wf_require_aal2\(\)/);
 assert.match(sql,/wf_site_administrators/);
 assert.match(sql,/staff_access/);
