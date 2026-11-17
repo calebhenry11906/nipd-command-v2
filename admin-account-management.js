@@ -10,6 +10,9 @@ function render(host,people,requests,actor,db,eligibleAdmins){
  host.replaceChildren();
  const title=el("h3","Employee Account Management");
  const intro=el("p","Staging approvals only · Two separate Website Administrators required · No employee invitations, account activation, or permission grants.","am-help");
+ const lifecycle=el("section",undefined,"am-lifecycle");
+ lifecycle.append(el("h4","Account lifecycle — staged readiness"),el("p","Onboarding → verified email → independent approval → invitation → first sign-in/MFA → active access → suspension/offboarding. Only pre-invitation readiness is automated. Account recovery, suspension and offboarding are not enabled here.","am-help"));
+ host.append(lifecycle);
  const preflight=el("p",eligibleAdmins<2?"Account approvals are blocked: two independently authorized Website Administrators are required. Currently eligible: "+eligibleAdmins+". No invitations or accounts can be created.":"Independent administrator review is configured. Approvals are staging decisions only; employee access remains disabled.","am-help");
  host.append(preflight);
  const stats=el("div",undefined,"am-stats");
@@ -30,7 +33,7 @@ function render(host,people,requests,actor,db,eligibleAdmins){
    const state=el("span",statusNames[p.status]||"Review required","am-status");
    head.append(name,state);
    const info=el("div",undefined,"am-detail");
-   for(const [label,value] of [["Unit",p.unit],["Reports to",p.supervisor||"Department command"],["Department email",p.department_email||"Not verified"],["Planned authorization role",p.planned_role],["Scope",p.scope],["MFA",p.requires_mfa?"Required":"Not configured"],["Account",p.already_linked?"Previously linked":"Not activated"],["Next step",p.note||"Awaiting explicit authorization"]]){const row=el("p");row.append(el("strong",label+": "),document.createTextNode(value||"—"));info.append(row)}
+   for(const [label,value] of [["Unit",p.unit],["Reports to",p.supervisor||"Department command"],["Department email",p.department_email||"Not verified"],["Planned authorization role",p.planned_role],["Scope",p.scope],["MFA",p.requires_mfa?"Required":"Not configured"],["Account",p.already_linked?"Previously linked":"Not activated"],["Lifecycle status",(p.lifecycle_stage||"unknown").replaceAll("_"," ")],["Lifecycle next step",p.lifecycle_next_action||"Restricted identity review required"],["Next step",p.note||"Awaiting explicit authorization"]]){const row=el("p");row.append(el("strong",label+": "),document.createTextNode(value||"—"));info.append(row)}
    const related=requests.filter(r=>r.person_id===p.person_id);
    if(related.length){const last=related[0];info.append(el("p","Approval history: "+last.decision.replaceAll("_"," ")+" · "+new Date(last.requested_at).toLocaleString(),"am-help"));}
    const pending=related.find(r=>r.decision==="awaiting_independent_review");
