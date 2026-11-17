@@ -46,6 +46,8 @@ begin
        'supervisor',s.full_name,
        'status',p.provisioning_status,
        'requires_mfa',p.requires_mfa,'already_linked',d.auth_user_id is not null,
+       'protected_admin_target',exists(select 1 from public.wf_site_administrators wa
+         where wa.agency_id=p_agency and wa.user_id=d.auth_user_id),
        'lifecycle_stage',case
          when not d.active then 'offboarded'
          when d.auth_user_id is not null then 'existing_account_check_required'
