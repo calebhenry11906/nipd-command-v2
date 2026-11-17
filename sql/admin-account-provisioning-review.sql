@@ -19,6 +19,12 @@ begin
  end if;
  return jsonb_build_object(
   'read_only',true,
+  'eligible_website_administrators',(
+    select count(*) from public.wf_site_administrators sa
+    join public.wf_members m on m.agency_id=sa.agency_id and m.user_id=sa.user_id and m.enabled
+    join public.staff_access ac on ac.user_id=sa.user_id and ac.enabled
+    where sa.agency_id=p_agency and sa.enabled
+  ),
   'invitations_enabled',false,
   'account_creation_enabled',false,
   'mfa_required',true,
