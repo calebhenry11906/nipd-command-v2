@@ -6,7 +6,7 @@ const AGENCY="0364257b-f54f-40cb-a34a-0cb125afb16d";
 const el=(tag,value,cls)=>{const node=document.createElement(tag);if(value!==undefined)node.textContent=String(value);if(cls)node.className=cls;return node};
 let mounted=null;let runId=0;let filter="",statusFilter="all";
 const statusNames={pending_approval:"Awaiting approval",existing_linked:"Existing linked account",needs_email_verification:"Verify email",needs_scope_review:"Scope review"};
-function render(host,people,requests,actor,db,eligibleAdmins){
+function render(host,people,requests,actor,db,eligibleAdmins,lifecycleRequests){
  host.replaceChildren();
  const title=el("h3","Employee Account Management");
  const intro=el("p","Staging approvals only · Two separate Website Administrators required · No employee invitations, account activation, or permission grants.","am-help");
@@ -34,6 +34,61 @@ function render(host,people,requests,actor,db,eligibleAdmins){
    head.append(name,state);
    const info=el("div",undefined,"am-detail");
    for(const [label,value] of [["Unit",p.unit],["Reports to",p.supervisor||"Department command"],["Department email",p.department_email||"Not verified"],["Planned authorization role",p.planned_role],["Scope",p.scope],["MFA",p.requires_mfa?"Required":"Not configured"],["Account",p.already_linked?"Previously linked":"Not activated"],["Lifecycle status",(p.lifecycle_stage||"unknown").replaceAll("_"," ")],["Lifecycle next step",p.lifecycle_next_action||"Restricted identity review required"],["Next step",p.note||"Awaiting explicit authorization"]]){const row=el("p");row.append(el("strong",label+": "),document.createTextNode(value||"—"));info.append(row)}
+   const lifecycleRelated=lifecycleRequests.filter(r=>r.person_id===p.person_id);
+   if(lifecycleRelated.length){
+    const section=el("div",undefined,"am-review-actions");
+    section.append(el("strong","Account recovery / suspension / offboarding decisions"));
+    for(const r of lifecycleRelated){
+     section.append(el("p",r.action+" · "+r.status.replaceAll("_"," ")+" · "+new Date(r.requested_at).toLocaleString(),"am-help"));
+     if(r.status==="pending_independent_review"&&r.requested_by!==actor&&eligibleAdmins>=2){
+      const note=el("input");note.placeholder="Independent decision reason (10–400 characters)";note.maxLength=400;
+      const controls=el("div",undefined,"am-review-actions");
+      const feedback=el("p",undefined,"am-help");feedback.setAttribute("role","status");
+      for(const [label,approved] of [["Approve for manual execution",true],["Reject request",false]]){
+       const button=el("button",label);button.type="button";
+       button.onclick=async()=>{
+        if(note.value.trim().length<10){feedback.textContent="A documented reason is required.";return}
+        button.disabled=true;
+        try{
+         const {data:aal}=await db.auth.mfa.getAuthenticatorAssuranceLevel();
+         const {data:{user}}=await db.auth.getUser();
+         if(window.NIPD_ADMIN_ALLOWED!==true||aal?.currentLevel!=="aal2"||user?.id!==actor)throw Error("Administrator session changed");
+         const {error}=await db.rpc("wf_admin_account_lifecycle_decide",{p_agency:AGENCY,p_request:r.id,p_approve:approved,p_reason:note.value.trim()});
+         if(error)throw Error("Decision denied; check independent reviewer and account eligibility.");
+         await mount(host);
+        }catch(e){feedback.textContent=e.message;button.disabled=false}
+       };
+       controls.append(button);
+      }
+      section.append(note,controls,feedback);
+     }else if(r.status==="pending_independent_review"&&r.requested_by===actor){
+      section.append(el("p","Awaiting an independent Website Administrator.","am-help"));
+     }
+    }
+    info.append(section);
+   }
+   if(p.already_linked&&!p.protected_admin_target&&eligibleAdmins>=2&&!lifecycleRelated.some(r=>["pending_independent_review","approved_for_manual_execution"].includes(r.status))){
+    const lifecycleForm=el("div",undefined,"am-review-actions");
+    lifecycleForm.append(el("strong","Request account lifecycle review (no access change)"));
+    const action=el("select");action.setAttribute("aria-label","Lifecycle action for "+p.name);
+    for(const a of ["recovery","suspension","offboarding"]){const opt=el("option",a);opt.value=a;action.append(opt)}
+    const why=el("input");why.placeholder="Document reason (10–400 characters)";why.maxLength=400;
+    const send=el("button","Submit for independent lifecycle review");send.type="button";
+    const feedback=el("p",undefined,"am-help");feedback.setAttribute("role","status");
+    send.onclick=async()=>{
+     if(why.value.trim().length<10){feedback.textContent="A documented reason is required.";return}
+     send.disabled=true;
+     try{
+      const {data:aal}=await db.auth.mfa.getAuthenticatorAssuranceLevel();
+      const {data:{user}}=await db.auth.getUser();
+      if(window.NIPD_ADMIN_ALLOWED!==true||aal?.currentLevel!=="aal2"||user?.id!==actor)throw Error("Administrator session changed");
+      const {error}=await db.rpc("wf_admin_account_lifecycle_request",{p_agency:AGENCY,p_person:p.person_id,p_action:action.value,p_reason:why.value.trim()});
+      if(error)throw Error("Request denied; account may be protected or ineligible.");
+      await mount(host);
+     }catch(e){feedback.textContent=e.message;send.disabled=false}
+    };
+    lifecycleForm.append(action,why,send,feedback);info.append(lifecycleForm);
+   }
    const related=requests.filter(r=>r.person_id===p.person_id);
    if(related.length){const last=related[0];info.append(el("p","Approval history: "+last.decision.replaceAll("_"," ")+" · "+new Date(last.requested_at).toLocaleString(),"am-help"));}
    const pending=related.find(r=>r.decision==="awaiting_independent_review");
@@ -93,11 +148,13 @@ async function mount(host){
   const {data:aal,error:aalError}=await db.auth.mfa.getAuthenticatorAssuranceLevel();
   if(aalError||aal?.currentLevel!=="aal2")throw Error("Authenticator verification is required.");
   const {data,error}=await db.rpc("wf_admin_account_provisioning_review",{p_agency:AGENCY});
+  const {data:lifecycle,error:lifecycleError}=await db.rpc("wf_admin_account_lifecycle_review",{p_agency:AGENCY});
+  if(lifecycleError||lifecycle?.read_only!==true||lifecycle?.execution_enabled!==false||!Array.isArray(lifecycle.requests))throw Error("Protected lifecycle review unavailable.");
   if(error||data?.read_only!==true||data?.invitations_enabled!==false||!Array.isArray(data?.items))throw Error("Access to account planning is unavailable.");
   if(ticket!==runId||mounted!==host||!host.isConnected)return;
   const {data:{user:stillUser}}=await db.auth.getUser();
   if(!stillUser||stillUser.id!==user.id||window.NIPD_ADMIN_ALLOWED!==true)throw Error("Session changed; reload Administration.");
-  render(host,data.items,Array.isArray(data.approval_requests)?data.approval_requests:[],user.id,db,Number(data.eligible_website_administrators)||0);
+  render(host,data.items,Array.isArray(data.approval_requests)?data.approval_requests:[],user.id,db,Number(data.eligible_website_administrators)||0,lifecycle.requests);
  }catch(_){if(ticket===runId&&mounted===host)host.replaceChildren(el("h3","Employee Account Management"),el("p","Account review is unavailable. Authorized Website Administrator access and authenticator MFA are required. No employee information was displayed.","am-help"))}
 }
 window.NIPD_ACCOUNT_MANAGEMENT_MOUNT=mount;
