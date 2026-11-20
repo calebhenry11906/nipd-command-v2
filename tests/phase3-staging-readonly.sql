@@ -52,5 +52,27 @@ SELECT 1/(CASE WHEN NOT EXISTS (
  WHERE n.nspname='public' AND p.proname LIKE 'wf_%'
  AND EXISTS (SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) x WHERE x.grantee=0 AND x.privilege_type='EXECUTE')
 ) THEN 1 ELSE 0 END) AS no_public_workforce_execute;
+\echo Checking account lifecycle execution is private and disabled
+SELECT 1/(CASE WHEN NOT EXISTS (
+ SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+ WHERE n.nspname='public' AND p.proname IN (
+ 'wf_admin_account_execute_demo_fenced','wf_admin_account_execution_record_auth')
+ AND (has_function_privilege('anon',p.oid,'EXECUTE')
+ OR has_function_privilege('authenticated',p.oid,'EXECUTE'))
+) THEN 1 ELSE 0 END) AS lifecycle_executor_is_service_only;
+SELECT 1/(CASE WHEN EXISTS(
+ SELECT 1 FROM wf_secure.wf_account_execution_policy
+ WHERE demo_execution_enabled OR real_execution_enabled
+) THEN 0 ELSE 1 END) AS lifecycle_execution_flags_off;
+SELECT 1/(CASE WHEN NOT EXISTS(
+ SELECT 1 FROM wf_secure.wf_account_execution_runs
+) THEN 1 ELSE 0 END) AS no_account_executions;
+\echo Checking protected account lifecycle requires a live AAL2 session
+SELECT 1/(CASE WHEN (
+ SELECT count(*) FROM pg_proc p WHERE p.proname IN (
+ 'wf_admin_account_lifecycle_review','wf_admin_account_lifecycle_request',
+ 'wf_admin_account_lifecycle_decide','wf_admin_account_execution_preflight')
+ AND pg_get_functiondef(p.oid) LIKE '%wf_require_aal2()%'
+)=4 THEN 1 ELSE 0 END) AS lifecycle_aal2_contract;
 \echo Checking all Phase 3 catalog assertions passed
 COMMIT;
