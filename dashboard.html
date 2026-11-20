@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>NIPD Command v2 — Secure Staging Dashboard</title>
+<style>
+:root{font:15px system-ui,-apple-system,"Segoe UI",sans-serif;color:#18364f;background:#edf2f7}
+*{box-sizing:border-box}body{margin:0}
+header{background:#102e4e;color:white;padding:20px 24px}
+header strong{font-size:19px}header small{display:block;color:#d7e6f2;margin-top:5px}
+main{max-width:990px;margin:auto;padding:24px}
+.panel{background:white;border:1px solid #d6e1ec;border-radius:13px;padding:24px;margin:18px 0}
+h1{font-size:26px;margin:0 0 8px}h2{font-size:20px;margin:0 0 10px}
+p{line-height:1.6;color:#54718b}
+.notice{background:#fff6dd;border:1px solid #dfc68e;border-radius:10px;padding:14px}
+.actions{display:flex;gap:11px;flex-wrap:wrap;margin-top:20px}
+a.action,button{display:inline-block;background:#1c568e;color:#fff;border:0;border-radius:9px;text-decoration:none;padding:12px 16px;font:inherit;font-weight:700;cursor:pointer}
+button.secondary{background:#e7eef5;color:#22435f;border:1px solid #c3d3e1}
+a.action:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid #70aced;outline-offset:2px}
+.role{display:inline-block;border-radius:99px;background:#e8f2fc;color:#195085;padding:6px 11px;font-size:13px}
+input{padding:10px;max-width:100%;border:1px solid #bed0e1;border-radius:7px}
+.danger{color:#a23e37}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><strong>NIPD COMMAND</strong><small>SECURE WORKFORCE STAGING — TEST ACCOUNTS ONLY</small></header>
+<main>
+<p class="notice"><strong>Staging demonstration:</strong> No real personnel data. This isolated preview includes an authenticated dashboard and Leave &amp; Training test workspace, not every NIPD Command module.</p>
+<section id="mfa" class="panel" hidden></section>
+<section id="dashboard" class="panel" hidden>
+<h1 id="heading">Workforce Dashboard</h1>
+<p id="identity">Checking your authorized account…</p>
+<p><span class="role" id="rank">Verified MFA Session</span></p>
+<div class="actions">
+<a class="action" href="leave-secure.html">Open Leave &amp; Training</a>
+<button id="signOut" type="button" class="secondary">Sign Out</button>
+</div>
+</section>
+<p id="status" role="status" aria-live="polite"></p>
+</main>
+<script type="module">
+import {createClient} from "https://esm.sh/@supabase/supabase-js@2.108.0";
+import {createMfaGate} from "./mfa-gate.js";
+const db=createClient("https://qvnldjidqyuwglksdtlm.supabase.co","sb_publishable_LovOph-C6UpNNq1oNR4TQQ_1VYEiChB");
+const el=id=>document.getElementById(id);
+let version=0;
+const gate=createMfaGate(db,el("mfa"),authorized=>{
+ el("dashboard").hidden=!authorized;
+ if(authorized)void displayAuthorizedDashboard();
+});
+async function displayAuthorizedDashboard(){
+ const current=++version;
+ el("dashboard").hidden=true;
+ el("status").textContent="";
+ try{
+  const assurance=await db.auth.mfa.getAuthenticatorAssuranceLevel();
+  if(current!==version||assurance.error||assurance.data?.currentLevel!=="aal2"){
+   el("dashboard").hidden=true;
+   return;
+  }
+  const {data:{user},error:userError}=await db.auth.getUser();
+  if(current!==version||userError||!user) return;
+  const result=await db.rpc("wf_my_agencies");
+  if(current!==version)return;
+  if(result.error)throw result.error;
+  const agencies=Array.isArray(result.data)?result.data:[];
+  const membership=agencies[0];
+  const rank=membership?.rank||"Staging User";
+  el("heading").textContent=(membership?.rank?rank+"'s ":"")+"Workforce Dashboard";
+  el("identity").textContent="Signed in: "+(user.email||"Authorized staging account");
+  el("rank").textContent=membership?rank+" · "+(membership.name||"Assigned Agency"):"No active agency membership";
+  el("dashboard").hidden=false;
+ }catch(e){
+  el("dashboard").hidden=true;
+  el("status").textContent="Unable to load your authorized staging dashboard. "+(e?.message||"Try again.");
+ }
+}
+el("signOut").addEventListener("click",async()=>{
+ version++;
+ el("dashboard").hidden=true;
+ await db.auth.signOut();
+ location.replace("leave-secure.html");
+});
+(async()=>{
+ try{
+  const {data:{user},error}=await db.auth.getUser();
+  if(error||!user){location.replace("leave-secure.html");return}
+  await gate.refresh();
+ }catch(e){el("dashboard").hidden=true;el("status").textContent="Unable to verify your session. Return to sign-in."}
+})();
+</script>
+</body>
+</html>
