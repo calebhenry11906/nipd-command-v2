@@ -62,3 +62,18 @@ When a separately authorized fictional pilot is explicitly enabled:
 
 ### Limitations / production acceptance
 This deployment is **not operational production suspension/offboarding**. It neither guarantees Supabase Auth session revocation nor demonstrates all protected RPCs rejecting a previously issued JWT after suspension in real signed-role integration tests. A simulated database contract check is not equivalent to live Auth proof.
+
+## November 20, 2026 — Shared workforce-session guard hardening
+All protected `wf_%` RPCs that invoke `wf_secure.wf_require_aal2()` now additionally require fresh **enabled membership**, **enabled staff access**, and an **active agency** from database tables. Previously, the shared function validated authenticator assurance, JWT expiry and an existing Auth session, while individual RPCs performed membership checks. Central enforcement closes the risk that a new protected RPC forgets the disabled-account check.
+
+- Staging migration: `sql/phase3_disabled_membership_session_guard.sql`
+- Transaction-rolled-back validation: `tests/staging-disabled-session-rollback.sql`
+- Auth session fixture: an existing **fictional employee** with an active database Auth session
+- Control with enabled workforce membership: AAL2 guard accepted a locally simulated unexpired JWT.
+- Staff access disabled (within transaction): guard denied with SQLSTATE `42501`.
+- Staff access restored and membership disabled (within same transaction): guard denied with SQLSTATE `42501`.
+- The transaction was **rolled back**, with 3 fictional active memberships and 3 fictional enabled staff accounts remaining unchanged. No lifecycle execution was performed.
+
+**Evidence boundary:** This verifies the SQL guard under locally simulated JWT request claims and an existing Auth-session record. It does **not** demonstrate enforcement with an actual issued, cryptographically signed user JWT through PostgREST/Edge Functions. Two separate MFA-enrolled fictional administrators and an end-to-end signed-JWT regression remain required for operational acceptance.
+
+**Auth session handling:** A long Auth ban is a sign-in prevention measure, **not** proof of global session revocation. Supported Supabase `signOut` can invalidate a user's refresh sessions when the supported bearer token is available, but the current lifecycle executor does not possess the subject employee's bearer token and does not claim to revoke Auth sessions. The NIPD workforce denial is enforced by fresh database membership, staff and session checks on protected calls.
