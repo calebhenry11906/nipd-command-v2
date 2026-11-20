@@ -30,3 +30,12 @@ Further staging acceptance with **two distinct MFA-enrolled fictional Website Ad
 - Two eligible independent Website Administrators are not yet onboarded.
 - Real account lifecycle execution service has intentionally not been implemented or enabled.
 - Application remains staging-only; the repository and GitHub Pages frontend are public. Never commit confidential personnel records or secrets.
+
+## November 20, 2026 — Execution readiness gate
+Staging now includes `public.wf_admin_account_execution_preflight(agency, request)`. This is a **read-only preflight** for *approved* suspension/offboarding records, not an executor. It independently requires the caller's AAL2 session and enabled Website Administrator, then checks an unchanged employee/Auth identity mapping, an enabled membership/staff-access pair, separated reviewers, a non-administrator target, and an approved lifecycle decision.
+
+The response always returns `execution_enabled=false`, `session_revocation_confirmed=false` and `workforce_access_disabled=false`, even if the other policy checks pass. No UI path can interpret a preflight pass as an actual access change.
+
+**Implementation detail:** Supabase notes that signing out invalidates refresh tokens but existing access JWTs may still work until expiry. Future execution must therefore first ensure every protected RPC and RLS path rejects disabled or offboarded members, then perform supported server-side session revocation with a secure backend. Do not write directly to Auth-managed session tables or expose privileged Auth keys to the public frontend.
+
+A server-side negative check confirmed unauthenticated callers cannot invoke the preflight. CI contract tests passed. Authenticated two-actor end-to-end suspension and offboarding execution remain untested and disabled.
