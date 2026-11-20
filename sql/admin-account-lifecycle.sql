@@ -77,7 +77,10 @@ begin
  then raise exception 'Invalid lifecycle action or reason' using errcode='22023';end if;
  select * into person from public.wf_personnel_directory
  where agency_id=p_agency and id=p_person for update;
- if not found or not person.active or person.is_demo or person.auth_user_id is null
+ if not found or not person.active or (person.is_demo and not exists(select 1
+  from wf_secure.wf_account_execution_policy cfg
+  where cfg.agency_id=p_agency and cfg.demo_execution_enabled
+  and not cfg.real_execution_enabled)) or person.auth_user_id is null
  or person.auth_user_id=actor
  or not exists(select 1 from public.wf_members m where m.agency_id=p_agency and m.user_id=person.auth_user_id)
  then raise exception 'Account is not eligible for lifecycle request' using errcode='42501';end if;
@@ -122,7 +125,10 @@ begin
  select * into person from public.wf_personnel_directory
  where agency_id=p_agency and id=req.person_id;
  if not found or person.auth_user_id is distinct from req.auth_user_snapshot
- or not person.active or person.is_demo or person.auth_user_id=actor
+ or not person.active or (person.is_demo and not exists(select 1
+  from wf_secure.wf_account_execution_policy cfg
+  where cfg.agency_id=p_agency and cfg.demo_execution_enabled
+  and not cfg.real_execution_enabled)) or person.auth_user_id=actor
  or not exists(select 1 from public.wf_members m where m.agency_id=p_agency and m.user_id=person.auth_user_id)
  or exists(select 1 from public.wf_site_administrators a where a.agency_id=p_agency and a.user_id=person.auth_user_id)
  then raise exception 'Account identity or eligibility changed; restart review' using errcode='42501';end if;
