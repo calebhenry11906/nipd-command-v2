@@ -7,6 +7,9 @@ const preflight=read("sql/admin-account-execution-preflight.sql");
 const lifecycle=read("sql/admin-account-lifecycle.sql");
 const edge=read("supabase/functions/nipd-account-lifecycle/index.ts");
 const ui=read("admin-account-management.js");
+const suspensionGuard=read("sql/phase3_disabled_membership_session_guard.sql");
+const rollbackTest=read("tests/staging-disabled-session-rollback.sql");
+
 for(const predicate of [
  /demo_execution_enabled boolean not null default false/,
  /real_execution_enabled boolean not null default false check \(real_execution_enabled=false\)/,
@@ -42,4 +45,17 @@ assert.doesNotMatch(edge,/deleteUser\(|inviteUserByEmail\(|resetPasswordForEmail
 assert.doesNotMatch(sql,/delete from auth\.sessions|delete from auth\.users|update auth\.sessions/i);
 assert.match(sql,/revoke all on wf_secure\.wf_account_execution_policy from public,anon,authenticated/);
 assert.match(sql,/revoke all on wf_secure\.wf_account_execution_runs from public,anon,authenticated/);
+assert.match(suspensionGuard,/auth\.sessions/);
+assert.match(suspensionGuard,/public\.wf_members m/);
+assert.match(suspensionGuard,/m\.enabled/);
+assert.match(suspensionGuard,/public\.staff_access a/);
+assert.match(suspensionGuard,/a\.enabled/);
+assert.match(suspensionGuard,/public\.wf_agencies g/);
+assert.match(suspensionGuard,/Workforce account disabled or not authorized/);
+assert.match(rollbackTest,/BEGIN;/);
+assert.match(rollbackTest,/ROLLBACK;/);
+assert.match(rollbackTest,/d\.is_demo/);
+assert.match(rollbackTest,/UPDATE public\.staff_access SET enabled=false/);
+assert.match(rollbackTest,/UPDATE public\.wf_members SET enabled=false/);
+assert.match(rollbackTest,/R AISE EXCEPTION|RAISE EXCEPTION/);
 console.log("PASS fictional-only privileged lifecycle execution and non-revocation honesty contracts");
