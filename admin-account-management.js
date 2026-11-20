@@ -40,6 +40,23 @@ function render(host,people,requests,actor,db,eligibleAdmins,lifecycleRequests){
     section.append(el("strong","Account recovery / suspension / offboarding decisions"));
     for(const r of lifecycleRelated){
      section.append(el("p",r.action+" · "+r.status.replaceAll("_"," ")+" · "+new Date(r.requested_at).toLocaleString(),"am-help"));
+     if(r.status==="approved_for_manual_execution"&&["suspension","offboarding"].includes(r.action)){
+      const preflight=el("button","Check execution readiness (no changes)");preflight.type="button";
+      const result=el("p",undefined,"am-help");result.setAttribute("role","status");
+      preflight.onclick=async()=>{
+       preflight.disabled=true;
+       try{
+        const {data:{user}}=await db.auth.getUser();
+        const {data:aal}=await db.auth.mfa.getAuthenticatorAssuranceLevel();
+        if(window.NIPD_ADMIN_ALLOWED!==true||user?.id!==actor||aal?.currentLevel!=="aal2")throw Error("Administrator session changed");
+        const {data,error}=await db.rpc("wf_admin_account_execution_preflight",{p_agency:AGENCY,p_request:r.id});
+        if(error||data?.execution_enabled!==false)throw Error("Protected readiness verification failed");
+        result.textContent=(data.policy_eligible?"Policy eligible, but execution is disabled. ":"Not eligible for execution. ")+
+         "No membership or Auth session has been changed.";
+       }catch(e){result.textContent=e.message}finally{preflight.disabled=false}
+      };
+      section.append(preflight,result);
+     }
      if(r.status==="pending_independent_review"&&r.requested_by!==actor&&eligibleAdmins>=2){
       const note=el("input");note.placeholder="Independent decision reason (10–400 characters)";note.maxLength=400;
       const controls=el("div",undefined,"am-review-actions");
