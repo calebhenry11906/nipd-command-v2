@@ -19,6 +19,10 @@ on:
       - 'sql/admin-account-provisioning-review.sql'
       - 'sql/admin-account-approval-workflow.sql'
       - 'tests/admin-account-management-contract.cjs'
+      - 'tests/account-lifecycle-executor-contract.cjs'
+      - 'sql/admin-account-execution-demo-fenced.sql'
+      - 'sql/admin-account-execution-preflight.sql'
+      - 'supabase/functions/nipd-account-lifecycle/index.ts'
       - 'shift-authoritative.css'
       - 'tests/shift-authoritative-contract.cjs'
       - 'sql/phase3_demo_roster_unit_management.sql'
@@ -48,6 +52,10 @@ on:
       - 'sql/admin-account-provisioning-review.sql'
       - 'sql/admin-account-approval-workflow.sql'
       - 'tests/admin-account-management-contract.cjs'
+      - 'tests/account-lifecycle-executor-contract.cjs'
+      - 'sql/admin-account-execution-demo-fenced.sql'
+      - 'sql/admin-account-execution-preflight.sql'
+      - 'supabase/functions/nipd-account-lifecycle/index.ts'
       - 'shift-authoritative.css'
       - 'tests/shift-authoritative-contract.cjs'
       - 'sql/phase3_demo_roster_unit_management.sql'
@@ -100,6 +108,7 @@ jobs:
           node --check passkey-pilot.js
           node --check tests/passkey-pilot-contract.cjs
           node --check tests/admin-account-management-contract.cjs
+          node --check tests/account-lifecycle-executor-contract.cjs
           node --check tests/shift-authoritative-contract.cjs
           node --check tests/staging-site-package.cjs
           node --check tests/phase3-security-contract.cjs
@@ -110,6 +119,7 @@ jobs:
           node tests/staging-site-package.cjs
           node tests/shift-authoritative-contract.cjs
           node tests/admin-account-management-contract.cjs
+          node tests/account-lifecycle-executor-contract.cjs
           node tests/passkey-pilot-contract.cjs
 
   staging-readonly:
