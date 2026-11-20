@@ -63,7 +63,7 @@ begin
  where agency_id=p_agency and id=p_request for update;
  if not found or r.status<>'approved_for_manual_execution'
   or r.action not in ('suspension','offboarding')
-  or r.requested_by=p_actor or r.decided_by=p_actor
+  or r.requested_by=p_actor or r.decided_by is distinct from p_actor
   or r.requested_by=r.decided_by
  then raise exception 'Independent lifecycle approval required' using errcode='42501';end if;
  select * into d from public.wf_personnel_directory
