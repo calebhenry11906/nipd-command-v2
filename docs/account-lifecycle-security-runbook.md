@@ -39,3 +39,26 @@ The response always returns `execution_enabled=false`, `session_revocation_confi
 **Implementation detail:** Supabase notes that signing out invalidates refresh tokens but existing access JWTs may still work until expiry. Future execution must therefore first ensure every protected RPC and RLS path rejects disabled or offboarded members, then perform supported server-side session revocation with a secure backend. Do not write directly to Auth-managed session tables or expose privileged Auth keys to the public frontend.
 
 A server-side negative check confirmed unauthenticated callers cannot invoke the preflight. CI contract tests passed. Authenticated two-actor end-to-end suspension and offboarding execution remain untested and disabled.
+
+## November 20, 2026 — Privileged fictional execution service (deployed, locked)
+Supabase staging Edge Function `nipd-account-lifecycle` was deployed with JWT verification enabled. Source: `supabase/functions/nipd-account-lifecycle/index.ts`, plus `sql/admin-account-execution-demo-fenced.sql`.
+
+**Both execution gates default OFF:** Edge environment `NIPD_LIFECYCLE_DEMO_EXECUTION_ENABLED` is not enabled, and private database policy `wf_secure.wf_account_execution_policy.demo_execution_enabled=false`. The database has a permanent `real_execution_enabled=false` constraint and its executor **requires `wf_personnel_directory.is_demo=true`**, so real employee accounts cannot be targeted by this path.
+
+When a separately authorized fictional pilot is explicitly enabled:
+1. The requestor and independent approver use MFA AAL2. The execution actor must be the independent approver, not the requester.
+2. The Edge Function independently validates the actor's Supabase Auth user using the signed bearer JWT, then uses a user-scoped RPC to require AAL2, enabled Website Administrator, active agency and eligible request.
+3. A service-role-only transactional RPC rechecks the target's original Auth ID, fictional status, active membership, staff access and administrator exclusions. It disables membership and staff access, preserves audit history, marks fictional personnel inactive for offboarding, and journals the transition.
+4. Supabase Auth Admin attempts a long ban via `updateUserById(..., {ban_duration:"876000h"})`. The separate journal records success or failure. Ban errors produce a partial-completion response and do **not** restore workforce access.
+5. Neither bans nor this backend guarantee **Auth session destruction**. An existing JWT may remain valid to Auth, even after a ban. NIPD workforce permissions are denied by server-side disabled membership and staff access. For true Auth refresh-token revocation, require a separately verified supported target-session revocation process. Never claim "all sessions revoked" from a ban alone.
+
+### Security evidence
+- CI workflow includes `tests/account-lifecycle-executor-contract.cjs`; status passed on staging November 20, 2026.
+- SQL negative tests: executor denied with feature flags disabled; Auth journal rejected nonexistent claim; unsigned preflight rejected; no execution journal rows.
+- The private execution tables are not readable by `anon` or `authenticated`, and the two mutation RPCs grant EXECUTE only to `service_role`.
+- Current population unchanged: 55 active non-demo directory personnel, zero executed lifecycle requests.
+- Before a fictional end-to-end pilot, enroll two separately authorized MFA Website Administrators. Do not enable flags or send real invitations without project owner and department change control.
+- Supabase security advisor still reports previously flagged privileged-function warnings and leaked-password-protection warning; resolve as part of production readiness. See https://supabase.com/dashboard/project/qvnldjidqyuwglksdtlm/advisors/security
+
+### Limitations / production acceptance
+This deployment is **not operational production suspension/offboarding**. It neither guarantees Supabase Auth session revocation nor demonstrates all protected RPCs rejecting a previously issued JWT after suspension in real signed-role integration tests. A simulated database contract check is not equivalent to live Auth proof.
