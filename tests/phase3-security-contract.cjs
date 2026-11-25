@@ -24,6 +24,23 @@ test("server-side guard rejects malformed or expired JWT exp",()=>{
  assert.match(guard,/v_exp\s+IS\s+NULL/i);
  assert.match(guard,/v_exp::numeric\s*<=\s*extract\(epoch\s+FROM\s+now\(\)\)/i);
 });
+test("all protected RPCs reject disabled membership and disabled staff despite valid session",()=>{
+ const enforcement=get("sql/phase3_disabled_membership_session_guard.sql");
+ assert.match(enforcement,/public\.wf_members/);
+ assert.match(enforcement,/public\.staff_access/);
+ assert.match(enforcement,/public\.wf_agencies/);
+ assert.match(enforcement,/m\.enabled/);
+ assert.match(enforcement,/a\.enabled/);
+ assert.match(enforcement,/auth\.sessions/);
+ const rollback=get("tests/staging-disabled-session-rollback.sql");
+ assert.match(rollback,/d\.is_demo AND d\.active/);
+ assert.match(rollback,/UPDATE public\.staff_access SET enabled=false/);
+ assert.match(rollback,/UPDATE public\.wf_members SET enabled=false/);
+ assert.match(rollback,/ROLLBACK;/);
+ assert.doesNotMatch(rollback,/COMMIT;/);
+ const audit=get("tests/phase3-staging-readonly.sql");
+ assert.match(audit,/disabled_membership_and_staff_fail_closed/);
+});
 test("server-side guard requires active matching auth session",()=>{
  assert.match(guard,/auth\.sessions/i);
  assert.match(guard,/s\.user_id\s*=\s*v_uid/i);
