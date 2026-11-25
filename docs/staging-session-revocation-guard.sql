@@ -1,6 +1,7 @@
 -- Applied to hosted STAGING via Supabase migration:
 -- 20261107: require_unexpired_active_auth_session_for_workforce_rpc
 -- This supersedes the helper originally created by 20261106162728.
+-- Synchronized to the hosted shared guard after the disabled-membership hardening.
 -- Must not be deployed to production until genuine token tests pass.
 CREATE OR REPLACE FUNCTION wf_secure.wf_require_aal2()
 RETURNS void
@@ -30,6 +31,15 @@ BEGIN
       AND (s.not_after IS NULL OR s.not_after > now())
   ) THEN
     RAISE EXCEPTION 'Authentication session revoked or expired' USING ERRCODE='42501';
+  END IF;
+  -- A current JWT is insufficient if workforce membership or staff access is disabled.
+  IF NOT EXISTS (
+    SELECT 1 FROM public.wf_members m
+    JOIN public.wf_agencies g ON g.id=m.agency_id AND g.active
+    JOIN public.staff_access a ON a.user_id=m.user_id AND a.enabled
+    WHERE m.user_id=v_uid AND m.enabled
+  ) THEN
+    RAISE EXCEPTION 'Workforce account disabled or not authorized' USING ERRCODE='42501';
   END IF;
 END;
 $mfa$;
