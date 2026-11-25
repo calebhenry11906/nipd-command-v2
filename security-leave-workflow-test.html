@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer">
+<title>NIPD Command v2 — Staging Two-Level Leave Approval Acceptance</title>
+<style>body{font:15px system-ui,sans-serif;margin:28px auto;max-width:850px;padding:0 16px;background:#f2f5fa;color:#18324b}section{border:1px solid #cfdae6;background:#fff;border-radius:11px;padding:20px;margin:15px 0}h1{font-size:24px}h2{font-size:19px}label{display:block;margin:9px 0}input{padding:10px;border-radius:7px;border:1px solid #a9b7c5;max-width:90%;width:360px}button{padding:11px 15px;background:#205886;border:0;border-radius:6px;color:#fff;cursor:pointer;margin:5px 6px 5px 0}button:disabled{opacity:.55}button.danger{background:#953a3a}.note{color:#536d81}.warning{border-left:4px solid #b98729;padding-left:10px}#results{white-space:pre-line;line-height:1.7;background:#f1f5f9;border-radius:8px;padding:12px}#mfa{border:1px dashed #b9c6d4;border-radius:8px;padding:13px}section[hidden]{display:none}</style></head>
+<body><h1>Staging — Real Two-Level Leave Approval</h1>
+<p class="warning"><b>Fictional accounts only.</b> This page submits one fictional `other` leave request to the existing fictional staging agency, then tests owner self-approval denial, assigned Sergeant approval, Sergeant final approval denial, and independent Lieutenant final denial. Final denial avoids creating an approved absence. This changes only fictional staging request/audit/notification rows; it does not change production data. Do not use any real personnel account.</p>
+<section><h2>1. Sign in with the assigned fictional account</h2><label>Email <input id="email" type="email" autocomplete="email" placeholder="officerinvalida@gmail.com"></label>
+<button id="send" type="button">Send email code</button><label>Email code <input id="otp" type="text" inputmode="numeric" maxlength="8" autocomplete="one-time-code"></label>
+<button id="verify" type="button">Verify email code</button><div id="mfa"></div><p id="who" class="note"></p><button id="logout" type="button">Sign out current test login</button></section>
+<section><h2>2. Run the workflow by role</h2>
+<p><b>First:</b> Officer signs in and creates the request. <b>Second:</b> Sergeant signs in to approve first-level and prove they cannot approve final. <b>Third:</b> Lieutenant signs in to deny final and verify the completed audit trail.</p>
+<p id="requestState" class="note">No test request created on this browser.</p>
+<button id="officer" type="button">Officer: submit + test self-approval denial</button>
+<button id="sergeant" type="button">Sergeant: approve first + test final denial</button>
+<button id="lieutenant" type="button">Lieutenant: deny final + verify</button>
+<button id="refresh" type="button">Read current request status</button>
+<p class="note">All actions require a valid signed AAL2 Supabase session. Do not share verification codes or tokens. Test request ID is saved in local browser storage so it survives signing out between fictional users.</p></section>
+<section><h2>Results</h2><div id="results" role="status" aria-live="polite">No workflow tests executed.</div><button id="copy" type="button">Copy non-secret results</button></section>
+<script type="module">
+import {createClient} from "https://esm.sh/@supabase/supabase-js@2.108.0";
+import {createMfaGate} from "./mfa-gate.js";
+const api="https://qvnldjidqyuwglksdtlm.supabase.co",key="sb_publishable_LovOph-C6UpNNq1oNR4TQQ_1VYEiChB";
+const db=createClient(api,key,{auth:{autoRefreshToken:true,persistSession:true}});
+const ag="0364257b-f54f-40cb-a34a-0cb125afb16d";
+const emails={Officer:"officerinvalida@gmail.com",Sergeant:"sergeantinvalida@gmail.com",Lieutenant:"lieutenantainvalid@gmail.com"};
+const $=id=>document.getElementById(id);const storageKey="nipd_phase3_fictional_leave_test_v1";
+let actor=null,role=null,busy=false;
+function log(s){if($("results").textContent==="No workflow tests executed.")$("results").textContent="STAGING LEAVE WORKFLOW SECURITY RESULTS";$("results").textContent+="\n"+new Date().toLocaleTimeString()+"  "+s;}
+function requestId(){const id=localStorage.getItem(storageKey);return typeof id==="string"&&/^[0-9a-f]{8}-[0-9a-f-]{27,}$/.test(id)?id:null;}
+function displayId(){ $("requestState").textContent=requestId()?"Fictional request ID: "+requestId():"No test request created on this browser."; }
+function assert(value,message){if(!value)throw Error(message);}
+async function roleCheck(expected){assert(actor,"Sign in and verify authenticator first.");const {data:assurance,error:e1}=await db.auth.mfa.getAuthenticatorAssuranceLevel();if(e1)throw e1;assert(assurance.currentLevel==="aal2","AAL2 authenticator verification required");const {data:{user}}=await db.auth.getUser();assert(user?.email?.toLowerCase()===emails[expected],"Wrong account: sign in as "+emails[expected]);const {data,error}=await db.rpc("wf_my_agencies");if(error)throw error;assert(Array.isArray(data)&&data.some(x=>x.id===ag&&x.rank===expected),"Expected "+expected+" agency role unavailable");return user;}
+async function overview(){const {data,error}=await db.rpc("wf_leave_overview",{p_agency:ag});if(error)throw error;const r=data?.requests?.find(x=>x.id===requestId());assert(r,"Fictional request unavailable to this account");return r;}
+async function execute(label,callback){if(busy)return;busy=true;for(const id of ["officer","sergeant","lieutenant"])$(id).disabled=true;try{await callback()}catch(e){log("FAIL / INCONCLUSIVE "+label+": "+(e?.message||"Unknown error"))}finally{busy=false;for(const id of ["officer","sergeant","lieutenant"])$(id).disabled=false;displayId()}}
+const gate=createMfaGate(db,$("mfa"),async authorized=>{if(!authorized){actor=null;role=null;$("who").textContent="Authenticator verification required.";return}const {data:{user}}=await db.auth.getUser();actor=user;try{const {data}=await db.rpc("wf_my_agencies");role=Array.isArray(data)?data.find(x=>x.id===ag)?.rank:null;$("who").textContent="Signed in: "+user.email+" — "+(role||"no fictional agency")+" (AAL2).";log("AAL2 login verified for "+role)}catch(e){$("who").textContent="Unable to read agency role: "+e.message}});
+$("send").onclick=async()=>{const email=$("email").value.trim().toLowerCase();if(!Object.values(emails).includes(email)){log("Only the three existing fictional test emails are allowed.");return}const {error}=await db.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:location.href.split("?")[0]}});log(error?"Email request failed: "+error.message:"Verification email requested.")};
+$("verify").onclick=async()=>{const email=$("email").value.trim().toLowerCase(),token=$("otp").value.trim();if(!Object.values(emails).includes(email)||!/^\d{6,8}$/.test(token)){log("Enter an authorized fictional email and complete verification code.");return}try{const {error}=await db.auth.verifyOtp({email,token,type:"email"});if(error)throw error;$("otp").value="";log("Email code accepted. Complete authenticator if prompted.");await gate.refresh()}catch(e){log("Email verification failed: "+e.message)}};
+$("logout").onclick=async()=>{const {error}=await db.auth.signOut({scope:"local"});if(error)log("Sign out failed: "+error.message);else{actor=null;role=null;log("Signed out this fictional login. Next role may sign in.");await gate.refresh()}};
+$("officer").onclick=()=>execute("Officer stage",async()=>{await roleCheck("Officer");assert(!requestId(),"This browser already holds a test request. Finish it before submitting another.");
+const begin="2027-02-17T12:00:00.000Z",end="2027-02-17T13:00:00.000Z";const {data,error}=await db.rpc("wf_request_leave",{p_agency:ag,p_kind:"other",p_start:begin,p_end:end});if(error)throw error;assert(typeof data==="string"&&data.length===36,"No request ID returned");localStorage.setItem(storageKey,data);log("PASS fictional Officer submitted future `other` request; ID "+data);
+const r=await overview();assert(r.status==="supervisor","Expected supervisor pending status");log("PASS owner sees pending supervisor review");
+const denied=await db.rpc("wf_decide_leave",{p_request:data,p_approve:true,p_reason:""});log((denied.error?"PASS":"FAIL")+" owner self-approval refused"+(denied.error?": "+denied.error.message:" — UNEXPECTED APPROVAL"));
+});
+$("sergeant").onclick=()=>execute("Sergeant stage",async()=>{await roleCheck("Sergeant");const id=requestId();assert(id,"Officer must create the request first");
+const r=await overview();assert(r.status==="supervisor","Expected first-level pending; current status "+r.status);
+const {data,error}=await db.rpc("wf_decide_leave",{p_request:id,p_approve:true,p_reason:""});if(error)throw error;assert(data==="final","Expected transition to final; got "+data);log("PASS assigned Sergeant first-level approval transitioned to final");
+const finalDenied=await db.rpc("wf_decide_leave",{p_request:id,p_approve:true,p_reason:""});log((finalDenied.error?"PASS":"FAIL")+" Sergeant prohibited from final approval"+(finalDenied.error?": "+finalDenied.error.message:" — UNEXPECTED APPROVAL"));const after=await overview();assert(after.status==="final","Expected final pending");log("PASS second-stage decision remains pending independent Lieutenant review");
+});
+$("lieutenant").onclick=()=>execute("Lieutenant stage",async()=>{await roleCheck("Lieutenant");const id=requestId();assert(id,"Officer stage required");const r=await overview();assert(r.status==="final","Expected final pending; current status "+r.status);
+const {data,error}=await db.rpc("wf_decide_leave",{p_request:id,p_approve:false,p_reason:"Fictional staged authorization test only"});if(error)throw error;assert(data==="denied","Expected denied result");log("PASS separately authenticated Lieutenant completed final denial");
+const after=await overview();assert(after.status==="denied","Expected completed denied status");log("PASS final request status denied; no approved absence is created by this decision");log("WORKFLOW COMPLETE — fictional test ID "+id);
+});
+$("refresh").onclick=async()=>{try{const r=await overview();log("READ-ONLY current fictional request status: "+r.status)}catch(e){log("Read status unavailable: "+e.message)}};
+$("copy").onclick=()=>navigator.clipboard.writeText($("results").textContent).then(()=>log("Copied non-secret results."),()=>log("Clipboard unavailable."));
+displayId();(async()=>{const {data:{user}}=await db.auth.getUser();if(user)await gate.refresh();else $("who").textContent="Sign in to begin."})();
+</script></body></html>
