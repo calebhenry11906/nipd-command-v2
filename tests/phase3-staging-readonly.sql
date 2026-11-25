@@ -74,5 +74,16 @@ SELECT 1/(CASE WHEN (
  'wf_admin_account_lifecycle_decide','wf_admin_account_execution_preflight')
  AND pg_get_functiondef(p.oid) LIKE '%wf_require_aal2()%'
 )=4 THEN 1 ELSE 0 END) AS lifecycle_aal2_contract;
+\echo Checking suspended users are denied by the shared protected-RPC guard
+SELECT 1/(CASE WHEN EXISTS (
+ SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+ WHERE n.nspname='wf_secure' AND p.proname='wf_require_aal2'
+ AND pg_get_functiondef(p.oid) LIKE '%public.wf_members%'
+ AND pg_get_functiondef(p.oid) LIKE '%public.staff_access%'
+ AND pg_get_functiondef(p.oid) LIKE '%m.enabled%'
+ AND pg_get_functiondef(p.oid) LIKE '%a.enabled%'
+ AND pg_get_functiondef(p.oid) LIKE '%public.wf_agencies%'
+ AND pg_get_functiondef(p.oid) LIKE '%auth.sessions%'
+) THEN 1 ELSE 0 END) AS disabled_membership_and_staff_fail_closed;
 \echo Checking all Phase 3 catalog assertions passed
 COMMIT;
